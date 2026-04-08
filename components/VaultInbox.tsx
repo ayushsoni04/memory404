@@ -1,13 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { gsap } from "gsap";
 import LinkPreviewThumb from "@/components/LinkPreviewThumb";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
 import type { LinkApiRow } from "@/lib/links";
 import { formatRelativeTime } from "@/lib/links";
 
-type GroupRow = { id: string; name: string; createdAt: string };
+type GroupRow = {
+  id: string;
+  name: string;
+  createdAt: string;
+  linksCount: number;
+  previewTitles: string[];
+};
 
 async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
@@ -32,6 +39,7 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 }
 
 export default function VaultInbox() {
+  const pageRef = useRef<HTMLDivElement | null>(null);
   const [urlInput, setUrlInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -53,6 +61,7 @@ export default function VaultInbox() {
 
   const [groups, setGroups] = useState<GroupRow[]>([]);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [openedGroupId, setOpenedGroupId] = useState<string | null>(null);
   const [saveToGroupId, setSaveToGroupId] = useState<string | null>(null);
   const [newGroupNameDraft, setNewGroupNameDraft] = useState("");
   const [groupsError, setGroupsError] = useState<string | null>(null);
@@ -97,11 +106,11 @@ export default function VaultInbox() {
   }, []);
 
   const loadLinks = useCallback(async () => {
-    if (!selectedGroupId) return;
+    if (!openedGroupId) return;
     setFetchError(null);
     setLoadingLinks(true);
     try {
-      const res = await fetch(linksListUrl(selectedGroupId));
+      const res = await fetch(linksListUrl(openedGroupId));
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg =
@@ -121,37 +130,79 @@ export default function VaultInbox() {
     } finally {
       setLoadingLinks(false);
     }
-  }, [linksListUrl, selectedGroupId]);
+  }, [linksListUrl, openedGroupId]);
 
   /** Poll metadata completion without full-page loading state. */
   const refreshLinksSilently = useCallback(async () => {
-    if (!selectedGroupId) return;
+    if (!openedGroupId) return;
     try {
-      const res = await fetch(linksListUrl(selectedGroupId));
+      const res = await fetch(linksListUrl(openedGroupId));
       const data = await res.json().catch(() => ({}));
       if (!res.ok) return;
       if (Array.isArray(data.links)) setLinks(data.links);
     } catch {
       /* ignore */
     }
-  }, [linksListUrl, selectedGroupId]);
+  }, [linksListUrl, openedGroupId]);
 
   useEffect(() => {
     void loadGroups();
   }, [loadGroups]);
 
   useEffect(() => {
-    if (selectedGroupId) void loadLinks();
-  }, [loadLinks, selectedGroupId]);
+    if (openedGroupId) void loadLinks();
+  }, [loadLinks, openedGroupId]);
 
-  const selectedGroup =
-    groups.find((g) => g.id === selectedGroupId) ?? null;
+  const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
 
   const filteredGroups = (() => {
     const q = groupSearch.trim().toLowerCase();
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
   })();
+
+  useEffect(() => {
+    if (!pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".animate-in",
+        { y: 14, opacity: 0, filter: "blur(4px)" },
+        {
+          y: 0,
+          opacity: 1,
+          filter: "blur(0px)",
+          duration: 0.45,
+          stagger: 0.08,
+          ease: "power2.out",
+        },
+      );
+    }, pageRef);
+    return () => ctx.revert();
+  }, []);
+
+  useEffect(() => {
+    if (!pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".folder-card",
+        { y: 8, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.35, stagger: 0.04, ease: "power2.out" },
+      );
+    }, pageRef);
+    return () => ctx.revert();
+  }, [filteredGroups.length, selectedGroupId]);
+
+  useEffect(() => {
+    if (!pageRef.current) return;
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        ".link-card",
+        { y: 10, opacity: 0 },
+        { y: 0, opacity: 1, duration: 0.32, stagger: 0.03, ease: "power2.out" },
+      );
+    }, pageRef);
+    return () => ctx.revert();
+  }, [links.length, selectedGroupId]);
 
   const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
 
@@ -204,7 +255,7 @@ export default function VaultInbox() {
       await loadGroups();
       if (data.link && typeof data.link === "object") {
         const row = data.link as LinkApiRow;
-        if (row.groupId === selectedGroupId) {
+        if (row.groupId === openedGroupId) {
           setLinks((prev) => [row, ...prev.filter((l) => l.id !== row.id)]);
         } else {
           await loadLinks();
@@ -348,7 +399,7 @@ export default function VaultInbox() {
         setPatchErrors((p) => ({ ...p, [link.id]: msg }));
         return;
       }
-      if (nextGroupId !== selectedGroupId) {
+      if (nextGroupId !== openedGroupId) {
         setLinks((prev) => prev.filter((l) => l.id !== link.id));
       } else if (data.link) {
         setLinks((prev) =>
@@ -403,8 +454,11 @@ export default function VaultInbox() {
   };
 
   return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8 px-4 py-10 sm:py-12">
-      <header className="text-center">
+    <div
+      ref={pageRef}
+      className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:py-12"
+    >
+      <header className="animate-in relative overflow-hidden rounded-3xl border border-zinc-200/70 bg-gradient-to-br from-white via-zinc-50 to-zinc-100 px-6 py-8 text-center shadow-sm dark:border-zinc-700/80 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-800">
         <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
           The Vault
         </h1>
@@ -418,7 +472,7 @@ export default function VaultInbox() {
 
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50"
+        className="animate-in flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50"
       >
         <div className="flex gap-2">
           <input
@@ -490,38 +544,117 @@ export default function VaultInbox() {
         ) : null}
       </form>
 
-      <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-            Links
-          </h2>
-          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400 sm:min-w-[12rem]">
-            Show group
-            <select
-              value={selectedGroupId ?? ""}
-              onChange={(e) => {
-                const v = e.target.value;
-                setSelectedGroupId(v || null);
-              }}
-              disabled={!groups.length}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-            >
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
+      <section className="animate-in flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+          Groups
+        </h2>
+
+        <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Search groups
+              <input
+                type="text"
+                value={groupSearch}
+                onChange={(e) => setGroupSearch(e.target.value)}
+                placeholder="e.g. Design"
+                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+            </label>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => void loadGroups()}
+                className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+              >
+                Refresh
+              </button>
+              <button
+                type="button"
+                onClick={() => setGroupSearch("")}
+                className="rounded-md px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+              >
+                Clear
+              </button>
+            </div>
+          </div>
+
+          {!groups.length ? (
+            <p className="text-sm text-zinc-500">No groups yet.</p>
+          ) : filteredGroups.length === 0 ? (
+            <p className="text-sm text-zinc-500">No groups match.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {filteredGroups.map((g) => {
+                const active = g.id === selectedGroupId;
+                return (
+                  <button
+                    key={g.id}
+                    type="button"
+                    onClick={() => {
+                      setSelectedGroupId(g.id);
+                      setOpenedGroupId(g.id);
+                      setSaveToGroupId(g.id);
+                    }}
+                    className={`folder-card flex flex-col items-center justify-center gap-2 rounded-2xl border p-4 text-center transition ${
+                      active
+                        ? "border-blue-500 bg-blue-50 text-blue-900 shadow-md dark:border-blue-400 dark:bg-blue-500/10 dark:text-blue-200"
+                        : "border-zinc-300 bg-white text-zinc-700 hover:-translate-y-0.5 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
+                    }`}
+                    title="Click to view this group"
+                  >
+                    <div className="relative h-12 w-16">
+                      <div className="absolute left-1 top-0 h-3.5 w-7 rounded-t-md bg-blue-400/90 dark:bg-blue-400/80" />
+                      <div className="absolute inset-x-0 top-2 h-9 rounded-md bg-gradient-to-b from-blue-300 to-blue-500 shadow-[0_8px_24px_rgba(59,130,246,0.45)] dark:from-blue-400 dark:to-blue-600" />
+                    </div>
+                    <span className="line-clamp-2 text-xs font-semibold">{g.name}</span>
+                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
+                      {g.linksCount} link{g.linksCount === 1 ? "" : "s"}
+                    </span>
+                    <div className="mt-1 w-full space-y-1">
+                      {g.previewTitles.length ? (
+                        g.previewTitles.slice(0, 2).map((title, idx) => (
+                          <p
+                            key={`${g.id}-preview-${idx}`}
+                            className="truncate text-[10px] text-zinc-500 dark:text-zinc-400"
+                          >
+                            {title}
+                          </p>
+                        ))
+                      ) : (
+                        <p className="text-[10px] text-zinc-400">No links yet</p>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
-        {selectedGroup ? (
-          <p className="text-xs text-zinc-400 dark:text-zinc-500">
-            Viewing:{" "}
-            <span className="font-medium text-zinc-700 dark:text-zinc-300">
-              {selectedGroup.name}
-            </span>
-          </p>
-        ) : null}
+      </section>
+
+      {openedGroupId ? (
+        <section className="animate-in flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
+              Links
+            </h2>
+            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
+              Inside{" "}
+              <span className="font-medium text-zinc-700 dark:text-zinc-300">
+                {openedGroup?.name ?? "Group"}
+              </span>
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={() => setOpenedGroupId(null)}
+            className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
+          >
+            Back to folders
+          </button>
+        </div>
 
         {!selectedGroupId && groupsError ? (
           <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
@@ -563,7 +696,7 @@ export default function VaultInbox() {
             {links.map((link) => (
               <li
                 key={link.id}
-                className="flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 transition hover:border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:border-zinc-600"
+                className="link-card flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:border-zinc-600"
               >
                 {editingId === link.id ? (
                   <div className="flex flex-col gap-2">
@@ -722,73 +855,7 @@ export default function VaultInbox() {
           </ul>
         )}
       </section>
-
-      <section className="flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Groups
-        </h2>
-
-        <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Search groups
-              <input
-                type="text"
-                value={groupSearch}
-                onChange={(e) => setGroupSearch(e.target.value)}
-                placeholder="e.g. Design"
-                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </label>
-            <div className="flex shrink-0 gap-2">
-              <button
-                type="button"
-                onClick={() => void loadGroups()}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-              >
-                Refresh
-              </button>
-              <button
-                type="button"
-                onClick={() => setGroupSearch("")}
-                className="rounded-md px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                Clear
-              </button>
-            </div>
-          </div>
-
-          {!groups.length ? (
-            <p className="text-sm text-zinc-500">No groups yet.</p>
-          ) : filteredGroups.length === 0 ? (
-            <p className="text-sm text-zinc-500">No groups match.</p>
-          ) : (
-            <div className="flex flex-wrap gap-2">
-              {filteredGroups.map((g) => {
-                const active = g.id === selectedGroupId;
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedGroupId(g.id);
-                      setSaveToGroupId(g.id);
-                    }}
-                    className={`rounded-full border px-3 py-1.5 text-xs font-medium transition ${
-                      active
-                        ? "border-zinc-900 bg-zinc-900 text-white shadow-sm dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
-                        : "border-zinc-300 bg-white text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                    }`}
-                    title="Click to view this group"
-                  >
-                    {g.name}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </section>
+      ) : null}
     </div>
   );
 }

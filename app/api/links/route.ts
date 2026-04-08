@@ -1,7 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { after } from "next/server";
 import { NextResponse } from "next/server";
-import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
 import {
   getOrCreateUncategorizedGroupId,
@@ -76,6 +74,9 @@ type PostBody = {
   url?: string;
   groupId?: unknown;
   newGroupName?: unknown;
+  title?: unknown;
+  description?: unknown;
+  imageUrl?: unknown;
 };
 
 async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
@@ -184,22 +185,31 @@ export async function POST(request: Request) {
       );
     }
 
+    const titleFromPayload =
+      typeof body.title === "string" && body.title.trim()
+        ? body.title.trim()
+        : null;
+    const descriptionFromPayload =
+      typeof body.description === "string" && body.description.trim()
+        ? body.description.trim()
+        : null;
+    const imageUrlFromPayload =
+      typeof body.imageUrl === "string" && body.imageUrl.trim()
+        ? body.imageUrl.trim()
+        : null;
+
     const created = await prisma.link.create({
       data: {
         url,
-        title: url,
-        description: null,
-        imageUrl: null,
+        title: titleFromPayload ?? url,
+        description: descriptionFromPayload,
+        imageUrl: imageUrlFromPayload,
         customTitle: null,
         tags: [],
         notes: null,
         groupId: resolved.groupId,
-        metadataStatus: "pending",
+        metadataStatus: "ready",
       },
-    });
-
-    after(() => {
-      void enrichLinkMetadataInBackground(created.id, url);
     });
 
     return NextResponse.json(

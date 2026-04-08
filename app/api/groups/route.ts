@@ -19,12 +19,27 @@ export async function GET() {
     await getOrCreateUncategorizedGroupId();
     const groups = await prisma.group.findMany({
       orderBy: [{ name: "asc" }],
+      include: {
+        _count: { select: { links: true } },
+        links: {
+          orderBy: { createdAt: "desc" },
+          take: 3,
+          select: {
+            id: true,
+            title: true,
+            customTitle: true,
+            url: true,
+          },
+        },
+      },
     });
     return NextResponse.json({
       groups: groups.map((g) => ({
         id: g.id,
         name: g.name,
         createdAt: g.createdAt.toISOString(),
+        linksCount: g._count.links,
+        previewTitles: g.links.map((l) => l.customTitle ?? l.title ?? l.url),
       })),
     });
   } catch (e) {
