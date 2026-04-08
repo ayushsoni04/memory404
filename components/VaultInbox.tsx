@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { gsap } from "gsap";
 import LinkPreviewThumb from "@/components/LinkPreviewThumb";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
@@ -169,49 +168,6 @@ export default function VaultInbox() {
   const rootOrSelectedChildren = filteredGroups.filter((g) =>
     openedGroupId ? g.parentGroupId === openedGroupId : g.parentGroupId == null,
   );
-
-  useEffect(() => {
-    if (!pageRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".animate-in",
-        { y: 14, opacity: 0, filter: "blur(4px)" },
-        {
-          y: 0,
-          opacity: 1,
-          filter: "blur(0px)",
-          duration: 0.45,
-          stagger: 0.08,
-          ease: "power2.out",
-        },
-      );
-    }, pageRef);
-    return () => ctx.revert();
-  }, []);
-
-  useEffect(() => {
-    if (!pageRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".folder-card",
-        { y: 8, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.35, stagger: 0.04, ease: "power2.out" },
-      );
-    }, pageRef);
-    return () => ctx.revert();
-  }, [filteredGroups.length, selectedGroupId]);
-
-  useEffect(() => {
-    if (!pageRef.current) return;
-    const ctx = gsap.context(() => {
-      gsap.fromTo(
-        ".link-card",
-        { y: 10, opacity: 0 },
-        { y: 0, opacity: 1, duration: 0.32, stagger: 0.03, ease: "power2.out" },
-      );
-    }, pageRef);
-    return () => ctx.revert();
-  }, [links.length, selectedGroupId]);
 
   const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
 
