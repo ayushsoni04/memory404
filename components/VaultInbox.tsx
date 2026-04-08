@@ -11,6 +11,7 @@ import { formatRelativeTime } from "@/lib/links";
 type GroupRow = {
   id: string;
   name: string;
+  parentGroupId: string | null;
   createdAt: string;
   linksCount: number;
   previewTitles: string[];
@@ -64,6 +65,9 @@ export default function VaultInbox() {
   const [openedGroupId, setOpenedGroupId] = useState<string | null>(null);
   const [saveToGroupId, setSaveToGroupId] = useState<string | null>(null);
   const [newGroupNameDraft, setNewGroupNameDraft] = useState("");
+  const [createFolderName, setCreateFolderName] = useState("");
+  const [createFolderParentId, setCreateFolderParentId] = useState<string>("");
+  const [creatingFolder, setCreatingFolder] = useState(false);
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [groupSearch, setGroupSearch] = useState("");
 
@@ -98,6 +102,7 @@ export default function VaultInbox() {
       if (inbox) {
         setSelectedGroupId((prev) => prev ?? inbox.id);
         setSaveToGroupId((prev) => prev ?? inbox.id);
+        setCreateFolderParentId((prev) => prev || inbox.id);
       }
     } catch {
       setGroupsError("Failed to load groups");
@@ -160,6 +165,10 @@ export default function VaultInbox() {
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
   })();
+
+  const rootOrSelectedChildren = filteredGroups.filter((g) =>
+    openedGroupId ? g.parentGroupId === openedGroupId : g.parentGroupId == null,
+  );
 
   useEffect(() => {
     if (!pageRef.current) return;
@@ -416,6 +425,52 @@ export default function VaultInbox() {
     }
   };
 
+  const createFolder = async (options?: { openCreated?: boolean }) => {
+    const openCreated = options?.openCreated ?? true;
+    const name = createFolderName.trim();
+    if (!name) {
+      setGroupsError("Folder name cannot be empty");
+      return;
+    }
+    setCreatingFolder(true);
+    setGroupsError(null);
+    try {
+      const payload: { name: string; parentGroupId?: string } = { name };
+      if (createFolderParentId) payload.parentGroupId = createFolderParentId;
+      const res = await fetch("/api/groups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setGroupsError(
+          typeof data.error === "string" ? data.error : "Failed to create folder",
+        );
+        return;
+      }
+      const created = data.group as GroupRow | undefined;
+      setCreateFolderName("");
+      await loadGroups();
+      if (openCreated && created?.id) {
+        setSelectedGroupId(created.id);
+        setOpenedGroupId(created.id);
+      }
+    } catch {
+      setGroupsError("Failed to create folder");
+    } finally {
+      setCreatingFolder(false);
+    }
+  };
+
+  const createSubfolderInOpenedGroup = async () => {
+    if (!openedGroupId) return;
+    const previousParent = createFolderParentId;
+    setCreateFolderParentId(openedGroupId);
+    await createFolder({ openCreated: false });
+    setCreateFolderParentId(previousParent);
+  };
+
   const clearCustomTitle = async (id: string) => {
     setRenameDraft("");
     setRenaming(true);
@@ -550,6 +605,42 @@ export default function VaultInbox() {
         </h2>
 
         <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
+          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
+            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              New folder name
+              <input
+                type="text"
+                value={createFolderName}
+                onChange={(e) => setCreateFolderName(e.target.value)}
+                placeholder="e.g. Research"
+                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              />
+            </label>
+            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+              Parent
+              <select
+                value={createFolderParentId}
+                onChange={(e) => setCreateFolderParentId(e.target.value)}
+                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              >
+                <option value="">Root</option>
+                {groups.map((g) => (
+                  <option key={`parent-${g.id}`} value={g.id}>
+                    {g.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              onClick={() => void createFolder()}
+              disabled={creatingFolder}
+              className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+            >
+              {creatingFolder ? "Creating..." : "Create folder"}
+            </button>
+          </div>
+
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
               Search groups
@@ -581,11 +672,11 @@ export default function VaultInbox() {
 
           {!groups.length ? (
             <p className="text-sm text-zinc-500">No groups yet.</p>
-          ) : filteredGroups.length === 0 ? (
+          ) : rootOrSelectedChildren.length === 0 ? (
             <p className="text-sm text-zinc-500">No groups match.</p>
           ) : (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {filteredGroups.map((g) => {
+              {rootOrSelectedChildren.map((g) => {
                 const active = g.id === selectedGroupId;
                 return (
                   <button
@@ -653,6 +744,27 @@ export default function VaultInbox() {
             className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
           >
             Back to folders
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
+          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
+            Add subfolder in {openedGroup?.name ?? "current folder"}
+            <input
+              type="text"
+              value={createFolderName}
+              onChange={(e) => setCreateFolderName(e.target.value)}
+              placeholder="e.g. Resources"
+              className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+            />
+          </label>
+          <button
+            type="button"
+            onClick={() => void createSubfolderInOpenedGroup()}
+            disabled={creatingFolder}
+            className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+          >
+            {creatingFolder ? "Creating..." : "Add subfolder"}
           </button>
         </div>
 

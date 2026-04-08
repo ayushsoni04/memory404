@@ -35,11 +35,15 @@ model Link {
 }
 
 model Group {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  links     Link[]
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name          String
+  parentGroupId String?  @map("parent_group_id") @db.Uuid
+  parentGroup   Group?   @relation("GroupTree", fields: [parentGroupId], references: [id], onDelete: SetNull)
+  childGroups   Group[]  @relation("GroupTree")
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  links         Link[]
 
+  @@index([parentGroupId])
   @@unique([name])
   @@map("groups")
 }

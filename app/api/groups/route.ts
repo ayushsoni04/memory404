@@ -7,6 +7,7 @@ export const runtime = "nodejs";
 
 type PostBody = {
   name?: unknown;
+  parentGroupId?: unknown;
 };
 
 export async function GET() {
@@ -37,6 +38,7 @@ export async function GET() {
       groups: groups.map((g) => ({
         id: g.id,
         name: g.name,
+        parentGroupId: g.parentGroupId,
         createdAt: g.createdAt.toISOString(),
         linksCount: g._count.links,
         previewTitles: g.links.map((l) => l.customTitle ?? l.title ?? l.url),
@@ -77,8 +79,29 @@ export async function POST(request: Request) {
       );
     }
 
+    let parentGroupId: string | null = null;
+    if ("parentGroupId" in body && body.parentGroupId != null) {
+      if (typeof body.parentGroupId !== "string" || !body.parentGroupId.trim()) {
+        return NextResponse.json(
+          { error: "parentGroupId must be a non-empty string when provided" },
+          { status: 400 },
+        );
+      }
+      parentGroupId = body.parentGroupId.trim();
+      const parentExists = await prisma.group.findUnique({
+        where: { id: parentGroupId },
+        select: { id: true },
+      });
+      if (!parentExists) {
+        return NextResponse.json(
+          { error: "parentGroupId is invalid" },
+          { status: 400 },
+        );
+      }
+    }
+
     const created = await prisma.group.create({
-      data: { name },
+      data: { name, parentGroupId },
     });
 
     return NextResponse.json(
@@ -86,6 +109,7 @@ export async function POST(request: Request) {
         group: {
           id: created.id,
           name: created.name,
+          parentGroupId: created.parentGroupId,
           createdAt: created.createdAt.toISOString(),
         },
       },
