@@ -74,7 +74,7 @@ function App() {
 
   const canSave = useMemo(() => tabUrl && apiBase.trim(), [tabUrl, apiBase]);
 
-  const onSave = async () => {
+  const onSave = async (openAfterSave = false) => {
     if (!canSave) return;
     setSaving(true);
     setStatus("");
@@ -105,6 +105,9 @@ function App() {
       if (!res.ok) throw new Error(data?.error || "Failed to save");
       setStatus("Saved to Linksavekren");
       setNewGroupName("");
+      if (openAfterSave) {
+        await chrome.tabs.create({ url: apiBase.trim() });
+      }
     } catch (e) {
       setIsErr(true);
       setStatus(e instanceof Error ? e.message : "Failed to save");
@@ -147,9 +150,27 @@ function App() {
           placeholder="e.g. Design"
         />
 
-        <button className="primary" disabled={!canSave || saving} onClick={onSave}>
-          {saving ? "Saving..." : "Save Current Tab"}
-        </button>
+        <p className="muted" style={{ marginTop: -2, marginBottom: 10 }}>
+          Omnibox mode: type <b>lk</b> in address bar, press Tab, then type URL
+          to save & open, or type <b>open</b> to just open app.
+        </p>
+
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+          <button
+            className="primary"
+            disabled={!canSave || saving}
+            onClick={() => void onSave(false)}
+          >
+            {saving ? "Saving..." : "Just Save"}
+          </button>
+          <button
+            className="primary"
+            disabled={!canSave || saving}
+            onClick={() => void onSave(true)}
+          >
+            {saving ? "Saving..." : "Save & Open"}
+          </button>
+        </div>
         {status ? (
           <p className={`status status-pop ${isErr ? "err" : "ok"}`}>{status}</p>
         ) : null}
