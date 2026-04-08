@@ -7,6 +7,12 @@
     "default_title": "Save Link",
     "default_popup": "popup.html"
   },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "omnibox": {
+    "keyword": "lk"
+  },
   "commands": {
     "_execute_action": {
       "suggested_key": {
@@ -16,7 +22,7 @@
       "description": "Open Linksavekren Quick Save popup"
     }
   },
-  "permissions": ["tabs", "activeTab", "scripting", "storage"],
+  "permissions": ["tabs", "activeTab", "scripting", "storage", "omnibox"],
   "host_permissions": [
     "http://localhost:3000/*",
     "https://localhost:3000/*",
