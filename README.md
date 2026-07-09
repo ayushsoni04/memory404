@@ -36,6 +36,20 @@ Env vars on Render: `DATABASE_URL`, `DIRECT_URL`, optional `CORS_ORIGINS=https:/
 
 Local split-stack dev: run `npm run dev` (frontend) and `cd backend && npm run dev` (API), with `NEXT_PUBLIC_API_URL=http://localhost:4000` in `.env.local`.
 
+### Keep-alive (free tier)
+
+GitHub Actions [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive.yml) pings your services on a schedule:
+
+| Service | Why | Schedule |
+|---------|-----|----------|
+| **Render** | Free web services sleep after ~15 min idle | Every 14 minutes |
+| **Supabase** | Free projects pause after ~7 days idle | Daily (+ DB hits every 14 min via health checks) |
+| **Vercel** | Stays warm; avoids cold starts | Every 14 minutes |
+
+Optional GitHub repo variables: `VERCEL_APP_URL`, `RENDER_API_URL`, `SUPABASE_PROJECT_URL` (your `https://xxx.supabase.co` URL).
+
+Trigger manually: **Actions → Keep services alive → Run workflow**.
+
 ## Getting Started
 
 First, run the development server:

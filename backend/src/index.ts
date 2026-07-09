@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 import { groupsRouter } from "./routes/groups.js";
 import { linksRouter } from "./routes/links.js";
 
@@ -28,8 +29,19 @@ app.use(
 
 app.use(express.json({ limit: "1mb" }));
 
-app.get("/health", (_req, res) => {
-  res.json({ ok: true, service: "linksavekren-api" });
+app.get("/health", async (_req, res) => {
+  const envErr = getDatabaseEnvError();
+  if (envErr) {
+    res.status(503).json({ ok: false, service: "linksavekren-api", error: envErr });
+    return;
+  }
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ ok: true, service: "linksavekren-api", db: "ok" });
+  } catch (e) {
+    console.error("GET /health:", e);
+    res.status(503).json({ ok: false, service: "linksavekren-api", db: "error" });
+  }
 });
 
 app.use("/api/groups", groupsRouter);
