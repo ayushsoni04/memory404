@@ -27,7 +27,7 @@ function escapeOmniboxXml(text) {
     .replaceAll("'", "&apos;");
 }
 
-async function saveLink(url) {
+async function saveUrlToApp(url) {
   const apiBase = await getApiBase();
   const res = await fetch(`${apiBase}/api/links`, {
     method: "POST",
@@ -36,7 +36,7 @@ async function saveLink(url) {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => ({}));
-    throw new Error(data?.error || "Failed to save link");
+    throw new Error(data?.error || `Save failed (${res.status})`);
   }
   return apiBase;
 }
@@ -44,7 +44,7 @@ async function saveLink(url) {
 async function handleSave(url, openAfterSave) {
   if (!url || !isLikelyUrl(url)) return;
   try {
-    const apiBase = await saveLink(url);
+    const apiBase = await saveUrlToApp(url);
     if (openAfterSave) {
       await chrome.tabs.create({ url: apiBase });
     }
@@ -132,7 +132,14 @@ chrome.omnibox.onInputEntered.addListener(async (text) => {
     return;
   }
   if (isLikelyUrl(input)) {
-    await handleSave(input, true);
+    try {
+      const base = await saveUrlToApp(input);
+      await chrome.tabs.create({ url: base });
+    } catch (e) {
+      const msg =
+        e instanceof Error ? encodeURIComponent(e.message) : "save_failed";
+      await chrome.tabs.create({ url: `${apiBase}?error=${msg}` });
+    }
     return;
   }
   await chrome.tabs.create({ url: apiBase });
