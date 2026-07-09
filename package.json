@@ -1,9 +1,11 @@
 {
-  "name": "linksavekren",
+  "name": "not-a-bookmark",
   "version": "0.1.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "backend:dev": "npm run dev --prefix backend",
+    "postinstall": "prisma generate",
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",

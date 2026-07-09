@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import LinkPreviewThumb from "@/components/LinkPreviewThumb";
+import { apiUrl } from "@/lib/api-base";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
 import type { LinkApiRow } from "@/lib/links";
@@ -73,15 +74,15 @@ export default function VaultInbox() {
   const linksListUrl = useCallback(
     (groupId: string | null) =>
       groupId
-        ? `/api/links?groupId=${encodeURIComponent(groupId)}`
-        : "/api/links",
+        ? apiUrl(`/api/links?groupId=${encodeURIComponent(groupId)}`)
+        : apiUrl("/api/links"),
     [],
   );
 
   const loadGroups = useCallback(async () => {
     setGroupsError(null);
     try {
-      const res = await fetch("/api/groups");
+      const res = await fetch(apiUrl("/api/groups"));
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setGroupsError(
@@ -197,7 +198,7 @@ export default function VaultInbox() {
         payload.groupId = saveToGroupId;
       }
 
-      const res = await fetch("/api/links", {
+      const res = await fetch(apiUrl("/api/links"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -242,7 +243,7 @@ export default function VaultInbox() {
       return next;
     });
     try {
-      const res = await fetch(`/api/links/${id}`, { method: "DELETE" });
+      const res = await fetch(apiUrl(`/api/links/${id}`), { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg =
@@ -293,7 +294,7 @@ export default function VaultInbox() {
       return n;
     });
     try {
-      const res = await fetch(`/api/links/${id}`, {
+      const res = await fetch(apiUrl(`/api/links/${id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -352,7 +353,7 @@ export default function VaultInbox() {
       return n;
     });
     try {
-      const res = await fetch(`/api/links/${link.id}`, {
+      const res = await fetch(apiUrl(`/api/links/${link.id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ groupId: nextGroupId }),
@@ -393,7 +394,7 @@ export default function VaultInbox() {
     try {
       const payload: { name: string; parentGroupId?: string } = { name };
       if (createFolderParentId) payload.parentGroupId = createFolderParentId;
-      const res = await fetch("/api/groups", {
+      const res = await fetch(apiUrl("/api/groups"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -436,7 +437,7 @@ export default function VaultInbox() {
       return n;
     });
     try {
-      const res = await fetch(`/api/links/${id}`, {
+      const res = await fetch(apiUrl(`/api/links/${id}`), {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ customTitle: null }),

@@ -172,6 +172,7 @@ export async function POST(request: Request) {
         {
           error: "A link with this URL already exists.",
           existingId: existing.id,
+          link: linkToApiRow(existing),
         },
         { status: 409 },
       );

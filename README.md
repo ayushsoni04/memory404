@@ -1,6 +1,40 @@
-# linksavekrenge
+# Not a Bookmark
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+
+## Production
+
+- **Frontend (Vercel):** [https://linksavekren.vercel.app](https://linksavekren.vercel.app)
+- **Backend (Render):** Express API in `backend/` — see [Render setup](#backend-render) below
+
+Set `NEXT_PUBLIC_API_URL` on Vercel to your Render service URL (e.g. `https://linksavekren-api.onrender.com`) so the frontend and extension talk to Render instead of Next.js `/api` routes.
+
+Redeploy frontend:
+
+```bash
+npx vercel --prod
+```
+
+### Backend (Render)
+
+```bash
+cd backend
+npm install
+npm run dev   # http://localhost:4000
+```
+
+Deploy via [Render Dashboard](https://dashboard.render.com) → **New Blueprint** and point at this repo (`render.yaml`), or create a **Web Service** manually:
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `backend` |
+| Build Command | `npm install && npm run build` |
+| Start Command | `npm start` |
+| Health Check | `/health` |
+
+Env vars on Render: `DATABASE_URL`, `DIRECT_URL`, optional `CORS_ORIGINS=https://linksavekren.vercel.app`
+
+Local split-stack dev: run `npm run dev` (frontend) and `cd backend && npm run dev` (API), with `NEXT_PUBLIC_API_URL=http://localhost:4000` in `.env.local`.
 
 ## Getting Started
 

@@ -1,6 +1,6 @@
-# Linksavekren Chrome Extension
+# Not a Bookmark Chrome Extension
 
-React + webpack Chrome extension (Manifest V3) to save the current tab into your Linksavekren app.
+React + webpack Chrome extension (Manifest V3) to save the current tab into your Not a Bookmark app.
 
 ## Features
 
@@ -10,7 +10,7 @@ React + webpack Chrome extension (Manifest V3) to save the current tab into your
   - description
   - og image
 - Lets you choose an existing group or create a new one inline
-- Configurable app URL (defaults to `http://localhost:3000`)
+- Configurable app URL (defaults to `http://localhost:3000`; use `https://linksavekren.vercel.app` for production)
 
 ## Setup
 
@@ -35,5 +35,6 @@ npm run dev
 
 ## Notes
 
-- Make sure your app is running (e.g. `npm run dev` in project root)
-- If your app runs on a different origin, update it in the popup's **App URL**
+- **Local:** run `npm run dev` in the project root, keep App URL as `http://localhost:3000`
+- **Production:** set App URL in the popup (⚙) to `https://linksavekren.vercel.app`
+- Reload the extension in `chrome://extensions` after rebuilding

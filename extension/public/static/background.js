@@ -88,7 +88,12 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const url = getUrlFromContext(info, tab);
   if (!url) return;
   if (info.menuItemId === "lk-save") {
-    await handleSave(url, false);
+    try {
+      await chrome.action.openPopup();
+    } catch {
+      await handleSave(url, false);
+    }
+    return;
   }
   if (info.menuItemId === "lk-save-open") {
     await handleSave(url, true);
@@ -98,7 +103,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.omnibox.onInputStarted.addListener(() => {
   chrome.omnibox.setDefaultSuggestion({
     description:
-      "Linksavekren: type URL to <match>save &amp; open</match>, or type <match>open</match>.",
+      "Not a Bookmark: type URL to <match>save &amp; open</match>, or type <match>open</match>.",
   });
 });
 
@@ -110,11 +115,11 @@ chrome.omnibox.onInputChanged.addListener((text, suggest) => {
       content: input || "open",
       description: input
         ? `Save and open: <match>${safe}</match>`
-        : "Open Linksavekren app",
+        : "Open Not a Bookmark app",
     },
     {
       content: "open",
-      description: "Open Linksavekren app only",
+      description: "Open Not a Bookmark app only",
     },
   ]);
 });
