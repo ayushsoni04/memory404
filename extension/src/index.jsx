@@ -1,8 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { PixelWaveLoader } from "./PixelWaveLoader";
 import "./styles.css";
 
 const DEFAULT_API_BASE = "http://localhost:3000";
+
+const PROGRESSIVE_MESSAGES = [
+  { afterMs: 0, text: "Saving…" },
+  { afterMs: 2500, text: "Still working…" },
+  { afterMs: 5500, text: "Almost there…" },
+  { afterMs: 10000, text: "Taking a bit longer…" },
+  { afterMs: 16000, text: "Hang tight…" },
+];
 
 async function getActiveTab() {
   const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
@@ -34,7 +43,7 @@ async function extractPageMeta(tabId) {
   return result ?? { title: null, description: null, imageUrl: null };
 }
 
-async function saveCurrentTab(apiBase) {
+async function saveCurrentTab(apiBase, groupId) {
   const tab = await getActiveTab();
   if (!tab?.id || !tab.url) throw new Error("No active tab found");
 
@@ -45,6 +54,7 @@ async function saveCurrentTab(apiBase) {
     description: meta.description ?? null,
     imageUrl: meta.imageUrl ?? null,
   };
+  if (groupId) payload.groupId = groupId;
 
   const res = await fetch(`${apiBase}/api/links`, {
     method: "POST",
@@ -53,12 +63,12 @@ async function saveCurrentTab(apiBase) {
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok) {
-    return { linkId: data.link?.id, groupId: data.link?.groupId ?? null };
+    return { linkId: data.link?.id, groupId: data.link?.groupId ?? groupId ?? null };
   }
   if (res.status === 409 && (data.existingId || data.link?.id)) {
     return {
       linkId: data.link?.id ?? data.existingId,
-      groupId: data.link?.groupId ?? null,
+      groupId: data.link?.groupId ?? groupId ?? null,
     };
   }
   throw new Error(data?.error || "Failed to save");
@@ -82,39 +92,55 @@ async function createGroup(apiBase, name) {
   return data.group;
 }
 
-async function moveLinkToGroup(apiBase, linkId, groupId) {
-  const res = await fetch(`${apiBase}/api/links/${linkId}`, {
-    method: "PATCH",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ groupId }),
-  });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data?.error || "Failed to move link");
-  return data.link;
+function useProgressiveMessage(active, initial = "Saving…") {
+  const [message, setMessage] = useState(initial);
+
+  useEffect(() => {
+    if (!active) {
+      setMessage(initial);
+      return;
+    }
+    const started = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - started;
+      let next = initial;
+      for (const step of PROGRESSIVE_MESSAGES) {
+        if (elapsed >= step.afterMs) {
+          next = step.afterMs === 0 ? initial : step.text;
+        }
+      }
+      setMessage(next);
+    };
+    tick();
+    const id = window.setInterval(tick, 400);
+    return () => window.clearInterval(id);
+  }, [active, initial]);
+
+  return message;
 }
 
-function AppIcon() {
+function ProgressiveLoader({ active, label = "Saving…" }) {
+  const message = useProgressiveMessage(active, label);
   return (
-    <span className="app-icon" aria-hidden="true">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-        <rect x="4" y="3" width="16" height="18" rx="3" stroke="currentColor" strokeWidth="1.6" />
-        <path d="M8 8h8M8 12h8M8 16h5" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
-      </svg>
-    </span>
+    <div className="saving-loader" role="status" aria-live="polite" aria-label={message}>
+      <PixelWaveLoader width={88} label={message} />
+      <span className="saved-text">{message}</span>
+    </div>
   );
 }
 
 function App() {
   const [apiBase, setApiBase] = useState(DEFAULT_API_BASE);
   const [showSettings, setShowSettings] = useState(false);
-  const [phase, setPhase] = useState("saving");
+  /** pick | saving | saved | error */
+  const [phase, setPhase] = useState("pick");
   const [linkId, setLinkId] = useState(null);
   const [currentGroupId, setCurrentGroupId] = useState(null);
   const [groups, setGroups] = useState([]);
+  const [groupsLoading, setGroupsLoading] = useState(true);
   const [groupQuery, setGroupQuery] = useState("");
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const [assigning, setAssigning] = useState(false);
-  const [assignNote, setAssignNote] = useState("");
+  const [dropdownOpen, setDropdownOpen] = useState(true);
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [error, setError] = useState("");
   const inputRef = useRef(null);
 
@@ -125,6 +151,7 @@ function App() {
     });
   }, []);
 
+  // Load groups first — do not save until the user picks a group.
   useEffect(() => {
     const base = apiBase.trim();
     if (!base) return;
@@ -132,23 +159,29 @@ function App() {
 
     let cancelled = false;
     (async () => {
-      setPhase("saving");
+      setPhase("pick");
+      setGroupsLoading(true);
       setError("");
+      setLinkId(null);
+      setCurrentGroupId(null);
       try {
-        const [saved, loadedGroups] = await Promise.all([
-          saveCurrentTab(base),
-          fetchGroups(base).catch(() => []),
-        ]);
+        const loadedGroups = await fetchGroups(base);
         if (cancelled) return;
-        setLinkId(saved.linkId);
-        setCurrentGroupId(saved.groupId);
         setGroups(loadedGroups);
-        setPhase("saved");
+        const inbox =
+          loadedGroups.find(
+            (g) => g.name.trim().toLowerCase() === "uncategorized",
+          ) ?? loadedGroups[0] ?? null;
+        if (inbox) {
+          setSelectedGroupId(inbox.id);
+          setGroupQuery(inbox.name);
+        }
         setTimeout(() => inputRef.current?.focus(), 50);
       } catch (e) {
         if (cancelled) return;
-        setPhase("error");
-        setError(e instanceof Error ? e.message : "Failed to save");
+        setError(e instanceof Error ? e.message : "Failed to load groups");
+      } finally {
+        if (!cancelled) setGroupsLoading(false);
       }
     })();
 
@@ -174,66 +207,62 @@ function App() {
     [groups, currentGroupId],
   );
 
-  const assignGroup = async (target) => {
-    if (!linkId || !target || assigning) return;
+  const resolveTargetGroup = async () => {
+    const base = apiBase.trim();
+    if (selectedGroupId) {
+      const existing = groups.find((g) => g.id === selectedGroupId);
+      if (existing) return existing;
+    }
+    if (exactMatch) return exactMatch;
+    const name = groupQuery.trim();
+    if (!name) throw new Error("Pick a group first");
+    const created = await createGroup(base, name);
+    setGroups((prev) =>
+      [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
+    );
+    return created;
+  };
+
+  const saveToSelectedGroup = async () => {
     const base = apiBase.trim();
     if (!base) return;
-
-    setAssigning(true);
-    setAssignNote("");
     setError("");
+    setPhase("saving");
     try {
-      let groupId = target.id ?? null;
-      let groupName = target.name ?? "";
-
-      if (!groupId && target.name?.trim()) {
-        const name = target.name.trim();
-        const existing = groups.find((g) => g.name.toLowerCase() === name.toLowerCase());
-        if (existing) {
-          groupId = existing.id;
-          groupName = existing.name;
-        } else {
-          const created = await createGroup(base, name);
-          groupId = created.id;
-          groupName = created.name;
-          setGroups((prev) =>
-            [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
-          );
-        }
-      }
-
-      if (!groupId) return;
-      if (groupId === currentGroupId) {
-        setGroupQuery("");
-        setDropdownOpen(false);
-        return;
-      }
-
-      await moveLinkToGroup(base, linkId, groupId);
-      setCurrentGroupId(groupId);
-      setGroupQuery("");
+      const target = await resolveTargetGroup();
+      const saved = await saveCurrentTab(base, target.id);
+      setLinkId(saved.linkId);
+      setCurrentGroupId(saved.groupId ?? target.id);
+      setSelectedGroupId(saved.groupId ?? target.id);
+      setGroupQuery(target.name);
+      setPhase("saved");
       setDropdownOpen(false);
-      setAssignNote(`Added to ${groupName}`);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to assign group");
-    } finally {
-      setAssigning(false);
+      setPhase("pick");
+      setError(e instanceof Error ? e.message : "Failed to save");
     }
+  };
+
+  const pickGroup = (g) => {
+    setSelectedGroupId(g.id);
+    setGroupQuery(g.name);
+    setDropdownOpen(false);
+    setError("");
   };
 
   const onGroupKeyDown = (e) => {
     if (e.key === "Enter") {
       e.preventDefault();
       if (exactMatch) {
-        void assignGroup(exactMatch);
+        pickGroup(exactMatch);
       } else if (groupQuery.trim()) {
-        void assignGroup({ name: groupQuery.trim() });
+        setSelectedGroupId(null);
+        setDropdownOpen(false);
       }
       return;
     }
     if (e.key === "Escape") {
       setDropdownOpen(false);
-      setGroupQuery("");
     }
   };
 
@@ -270,97 +299,122 @@ function App() {
           ⚙
         </button>
 
-        {phase === "saving" ? (
-          <div className="saved-row">
-            <AppIcon />
-            <span className="saved-text">Saving…</span>
-          </div>
-        ) : null}
+        {phase === "saving" ? <ProgressiveLoader active label="Saving…" /> : null}
 
         {phase === "error" ? (
           <div className="saved-row error-row">
-            <AppIcon />
             <span className="saved-text">{error || "Could not save link"}</span>
           </div>
         ) : null}
 
-        {phase === "saved" ? (
+        {phase === "pick" || phase === "saved" ? (
           <>
             <div className="saved-row">
-              <AppIcon />
-              <span className="saved-text">Saved to Not a Bookmark</span>
+              <span className="saved-text">
+                {phase === "saved"
+                  ? "Saved to Not a Bookmark"
+                  : "Choose a group, then save"}
+              </span>
             </div>
 
             <div className="group-section">
-              <div className={`group-field ${dropdownOpen ? "open" : ""}`}>
-                <input
-                  ref={inputRef}
-                  className="group-input"
-                  value={groupQuery}
-                  onChange={(e) => {
-                    setGroupQuery(e.target.value);
-                    setDropdownOpen(true);
-                    setAssignNote("");
-                  }}
-                  onFocus={() => setDropdownOpen(true)}
-                  onBlur={() => {
-                    setTimeout(() => setDropdownOpen(false), 120);
-                  }}
-                  onKeyDown={onGroupKeyDown}
-                  placeholder="Add group"
-                  disabled={assigning}
-                  autoComplete="off"
-                  spellCheck={false}
-                />
-                <button
-                  type="button"
-                  className="chevron-btn"
-                  aria-label="Show groups"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => {
-                    setDropdownOpen((v) => !v);
-                    inputRef.current?.focus();
-                  }}
-                >
-                  ▾
-                </button>
-              </div>
+              {groupsLoading ? (
+                <ProgressiveLoader active label="Loading groups…" />
+              ) : (
+                <>
+                  <div className={`group-field ${dropdownOpen ? "open" : ""}`}>
+                    <input
+                      ref={inputRef}
+                      className="group-input"
+                      value={groupQuery}
+                      onChange={(e) => {
+                        setGroupQuery(e.target.value);
+                        setSelectedGroupId(null);
+                        setDropdownOpen(true);
+                        setError("");
+                      }}
+                      onFocus={() => setDropdownOpen(true)}
+                      onBlur={() => {
+                        setTimeout(() => setDropdownOpen(false), 120);
+                      }}
+                      onKeyDown={onGroupKeyDown}
+                      placeholder="Pick or create a group"
+                      disabled={phase === "saved"}
+                      autoComplete="off"
+                      spellCheck={false}
+                    />
+                    <button
+                      type="button"
+                      className="chevron-btn"
+                      aria-label="Show groups"
+                      disabled={phase === "saved"}
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setDropdownOpen((v) => !v);
+                        inputRef.current?.focus();
+                      }}
+                    >
+                      ▾
+                    </button>
+                  </div>
 
-              {dropdownOpen && filteredGroups.length ? (
-                <ul className="group-list" role="listbox">
-                  {filteredGroups.map((g) => (
-                    <li key={g.id}>
-                      <button
-                        type="button"
-                        className={`group-option ${g.id === currentGroupId ? "active" : ""}`}
-                        onMouseDown={(e) => e.preventDefault()}
-                        onClick={() => void assignGroup(g)}
-                      >
-                        {g.name}
-                        {g.id === currentGroupId ? <span className="check">✓</span> : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                  {phase === "pick" && dropdownOpen && filteredGroups.length ? (
+                    <ul className="group-list" role="listbox">
+                      {filteredGroups.map((g) => (
+                        <li key={g.id}>
+                          <button
+                            type="button"
+                            className={`group-option ${g.id === selectedGroupId ? "active" : ""}`}
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => pickGroup(g)}
+                          >
+                            {g.name}
+                            {g.id === selectedGroupId ? <span className="check">✓</span> : null}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
 
-              {dropdownOpen && groupQuery.trim() && !exactMatch ? (
-                <button
-                  type="button"
-                  className="create-option"
-                  onMouseDown={(e) => e.preventDefault()}
-                  onClick={() => void assignGroup({ name: groupQuery.trim() })}
-                >
-                  Create “{groupQuery.trim()}”
-                </button>
-              ) : null}
+                  {phase === "pick" &&
+                  dropdownOpen &&
+                  groupQuery.trim() &&
+                  !exactMatch ? (
+                    <button
+                      type="button"
+                      className="create-option"
+                      onMouseDown={(e) => e.preventDefault()}
+                      onClick={() => {
+                        setSelectedGroupId(null);
+                        setDropdownOpen(false);
+                      }}
+                    >
+                      Create “{groupQuery.trim()}”
+                    </button>
+                  ) : null}
 
-              {currentGroupName && !groupQuery ? (
-                <p className="current-group">In {currentGroupName}</p>
-              ) : null}
+                  {phase === "pick" ? (
+                    <button
+                      type="button"
+                      className="save-btn"
+                      disabled={!selectedGroupId && !groupQuery.trim()}
+                      onClick={() => void saveToSelectedGroup()}
+                    >
+                      Save to group
+                    </button>
+                  ) : null}
 
-              {assignNote ? <p className="assign-note">{assignNote}</p> : null}
-              {error ? <p className="field-error">{error}</p> : null}
+                  {phase === "saved" && currentGroupName ? (
+                    <p className="current-group">In {currentGroupName}</p>
+                  ) : null}
+
+                  {phase === "saved" && linkId ? (
+                    <p className="assign-note">Link saved</p>
+                  ) : null}
+
+                  {error ? <p className="field-error">{error}</p> : null}
+                </>
+              )}
             </div>
           </>
         ) : null}

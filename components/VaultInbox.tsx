@@ -1,17 +1,16 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import LinkPreviewThumb from "@/components/LinkPreviewThumb";
+import { AppLoader } from "@/components/AppLoader";
+import LinkCard from "@/components/LinkCard";
+import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import { apiUrl } from "@/lib/api-base";
-import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
 import type { LinkApiRow } from "@/lib/links";
-import { formatRelativeTime } from "@/lib/links";
 
 type GroupRow = {
   id: string;
   name: string;
-  parentGroupId: string | null;
   createdAt: string;
   linksCount: number;
   previewTitles: string[];
@@ -53,10 +52,6 @@ export default function VaultInbox() {
     {},
   );
   const [patchErrors, setPatchErrors] = useState<Record<string, string>>({});
-
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [renameDraft, setRenameDraft] = useState("");
-  const [renaming, setRenaming] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copyFailedId, setCopyFailedId] = useState<string | null>(null);
 
@@ -66,10 +61,13 @@ export default function VaultInbox() {
   const [saveToGroupId, setSaveToGroupId] = useState<string | null>(null);
   const [newGroupNameDraft, setNewGroupNameDraft] = useState("");
   const [createFolderName, setCreateFolderName] = useState("");
-  const [createFolderParentId, setCreateFolderParentId] = useState<string>("");
   const [creatingFolder, setCreatingFolder] = useState(false);
+  const [addingFolder, setAddingFolder] = useState(false);
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [groupSearch, setGroupSearch] = useState("");
+  const [openedLinkId, setOpenedLinkId] = useState<string | null>(null);
+  const [overlayOrigin, setOverlayOrigin] = useState<DOMRect | null>(null);
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
 
   const linksListUrl = useCallback(
     (groupId: string | null) =>
@@ -101,8 +99,8 @@ export default function VaultInbox() {
         ) ?? list[0];
       if (inbox) {
         setSelectedGroupId((prev) => prev ?? inbox.id);
+        setOpenedGroupId((prev) => prev ?? inbox.id);
         setSaveToGroupId((prev) => prev ?? inbox.id);
-        setCreateFolderParentId((prev) => prev || inbox.id);
       }
     } catch {
       setGroupsError("Failed to load groups");
@@ -165,10 +163,6 @@ export default function VaultInbox() {
     if (!q) return groups;
     return groups.filter((g) => g.name.toLowerCase().includes(q));
   })();
-
-  const rootOrSelectedChildren = filteredGroups.filter((g) =>
-    openedGroupId ? g.parentGroupId === openedGroupId : g.parentGroupId == null,
-  );
 
   const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
 
@@ -259,73 +253,15 @@ export default function VaultInbox() {
         return;
       }
       setLinks((prev) => prev.filter((l) => l.id !== id));
-      if (editingId === id) {
-        setEditingId(null);
-        setRenameDraft("");
+      if (openedLinkId === id) {
+        setOpenedLinkId(null);
+        setOverlayOrigin(null);
       }
     } catch {
       setDeleteErrors((prev) => ({
         ...prev,
         [id]: "Network error — try again",
       }));
-    }
-  };
-
-  const startRename = (link: LinkApiRow) => {
-    setPatchErrors((p) => {
-      const n = { ...p };
-      delete n[link.id];
-      return n;
-    });
-    setEditingId(link.id);
-    setRenameDraft(link.custom_title ?? "");
-  };
-
-  const cancelRename = () => {
-    setEditingId(null);
-    setRenameDraft("");
-  };
-
-  const saveRename = async (id: string) => {
-    setRenaming(true);
-    setPatchErrors((p) => {
-      const n = { ...p };
-      delete n[id];
-      return n;
-    });
-    try {
-      const res = await fetch(apiUrl(`/api/links/${id}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          customTitle: renameDraft.trim() ? renameDraft.trim() : null,
-        }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg =
-          typeof data.error === "string" ? data.error : "Failed to save name";
-        const hint =
-          typeof data.hint === "string" && data.hint.trim()
-            ? ` — ${data.hint.trim()}`
-            : "";
-        setPatchErrors((p) => ({ ...p, [id]: `${msg}${hint}` }));
-        return;
-      }
-      if (data.link) {
-        setLinks((prev) =>
-          prev.map((l) => (l.id === id ? (data.link as LinkApiRow) : l)),
-        );
-      }
-      setEditingId(null);
-      setRenameDraft("");
-    } catch {
-      setPatchErrors((p) => ({
-        ...p,
-        [id]: "Network error — try again",
-      }));
-    } finally {
-      setRenaming(false);
     }
   };
 
@@ -367,6 +303,10 @@ export default function VaultInbox() {
       }
       if (nextGroupId !== openedGroupId) {
         setLinks((prev) => prev.filter((l) => l.id !== link.id));
+        if (openedLinkId === link.id) {
+          setOpenedLinkId(null);
+          setOverlayOrigin(null);
+        }
       } else if (data.link) {
         setLinks((prev) =>
           prev.map((l) =>
@@ -382,8 +322,7 @@ export default function VaultInbox() {
     }
   };
 
-  const createFolder = async (options?: { openCreated?: boolean }) => {
-    const openCreated = options?.openCreated ?? true;
+  const createFolder = async () => {
     const name = createFolderName.trim();
     if (!name) {
       setGroupsError("Folder name cannot be empty");
@@ -392,12 +331,10 @@ export default function VaultInbox() {
     setCreatingFolder(true);
     setGroupsError(null);
     try {
-      const payload: { name: string; parentGroupId?: string } = { name };
-      if (createFolderParentId) payload.parentGroupId = createFolderParentId;
       const res = await fetch(apiUrl("/api/groups"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ name }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -408,10 +345,12 @@ export default function VaultInbox() {
       }
       const created = data.group as GroupRow | undefined;
       setCreateFolderName("");
+      setAddingFolder(false);
       await loadGroups();
-      if (openCreated && created?.id) {
+      if (created?.id) {
         setSelectedGroupId(created.id);
         setOpenedGroupId(created.id);
+        setSaveToGroupId(created.id);
       }
     } catch {
       setGroupsError("Failed to create folder");
@@ -420,510 +359,368 @@ export default function VaultInbox() {
     }
   };
 
-  const createSubfolderInOpenedGroup = async () => {
-    if (!openedGroupId) return;
-    const previousParent = createFolderParentId;
-    setCreateFolderParentId(openedGroupId);
-    await createFolder({ openCreated: false });
-    setCreateFolderParentId(previousParent);
+  const openAddFolder = () => {
+    setAddingFolder(true);
+    setCreateFolderName("");
+    setGroupsError(null);
+    window.setTimeout(() => folderInputRef.current?.focus(), 30);
   };
 
-  const clearCustomTitle = async (id: string) => {
-    setRenameDraft("");
-    setRenaming(true);
-    setPatchErrors((p) => {
-      const n = { ...p };
-      delete n[id];
-      return n;
-    });
-    try {
-      const res = await fetch(apiUrl(`/api/links/${id}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customTitle: null }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg =
-          typeof data.error === "string" ? data.error : "Failed to clear name";
-        setPatchErrors((p) => ({ ...p, [id]: msg }));
-        return;
-      }
-      if (data.link) {
-        setLinks((prev) =>
-          prev.map((l) => (l.id === id ? (data.link as LinkApiRow) : l)),
-        );
-      }
-      setEditingId(null);
-    } catch {
-      setPatchErrors((p) => ({
-        ...p,
-        [id]: "Network error — try again",
-      }));
-    } finally {
-      setRenaming(false);
-    }
+  const cancelAddFolder = () => {
+    setAddingFolder(false);
+    setCreateFolderName("");
   };
+
+  const openedLink = links.find((l) => l.id === openedLinkId) ?? null;
+  const openedLinkIndex = openedLink
+    ? links.findIndex((l) => l.id === openedLink.id)
+    : -1;
+
+  const openLinkDetail = (link: LinkApiRow, originEl: HTMLElement) => {
+    setOverlayOrigin(originEl.getBoundingClientRect());
+    setOpenedLinkId(link.id);
+  };
+
+  const closeLinkDetail = () => {
+    setOpenedLinkId(null);
+    setOverlayOrigin(null);
+  };
+
+  const goPrevLink = () => {
+    if (openedLinkIndex <= 0) return;
+    setOverlayOrigin(null);
+    setOpenedLinkId(links[openedLinkIndex - 1].id);
+  };
+
+  const goNextLink = () => {
+    if (openedLinkIndex < 0 || openedLinkIndex >= links.length - 1) return;
+    setOverlayOrigin(null);
+    setOpenedLinkId(links[openedLinkIndex + 1].id);
+  };
+
+  const selectGroup = (id: string) => {
+    setSelectedGroupId(id);
+    setOpenedGroupId(id);
+    setSaveToGroupId(id);
+  };
+
+  const fieldClass =
+    "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-border-strong focus:ring-1 focus:ring-foreground/20";
+  const pillBase =
+    "inline-flex h-7 shrink-0 items-center rounded-full border border-transparent px-2.5 text-[13px] leading-none transition-colors";
+  const pillActive = `${pillBase} bg-pill-active text-pill-active-fg`;
+  const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover`;
 
   return (
     <div
       ref={pageRef}
-      className="mx-auto flex w-full max-w-5xl flex-col gap-8 px-4 py-10 sm:py-12"
+      className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4 min-[1712px]:border-x min-[1712px]:border-border"
     >
-      <header className="animate-in relative overflow-hidden rounded-3xl border border-zinc-200/70 bg-gradient-to-br from-white via-zinc-50 to-zinc-100 px-6 py-8 text-center shadow-sm dark:border-zinc-700/80 dark:from-zinc-900 dark:via-zinc-900 dark:to-zinc-800">
-        <h1 className="text-3xl font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-          The Vault
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500 dark:text-zinc-400">
-          Save links into a group — default inbox is{" "}
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">
-            {UNCATEGORIZED_GROUP_NAME}
-          </span>
-        </p>
-      </header>
-
-      <form
-        onSubmit={handleSubmit}
-        className="animate-in flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50"
-      >
-        <div className="flex gap-2">
-          <input
-            type="url"
-            name="url"
-            value={urlInput}
-            onChange={(e) => setUrlInput(e.target.value)}
-            placeholder="https://…"
-            className="min-w-0 flex-1 rounded-xl border border-zinc-300 bg-white px-3 py-2.5 text-sm text-zinc-900 outline-none ring-zinc-400 transition focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-            disabled={saving}
-            autoComplete="off"
-          />
-          <button
-            type="submit"
-            disabled={saving}
-            className="shrink-0 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
+      {/* Sidebar — recent.design layout */}
+      <aside className="grid grid-cols-2 items-start gap-x-4 gap-y-8 lg:fixed lg:left-[max(1rem,calc((100vw-var(--content-max))/2+1rem))] lg:top-0 lg:z-[45] lg:box-border lg:flex lg:h-dvh lg:w-[var(--sidebar-w)] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-8 lg:py-4">
+        <div className="col-start-1 row-start-1 flex items-center justify-between">
+          <a
+            href="/"
+            aria-label="The Vault"
+            className="inline-flex items-center gap-2 text-foreground"
           >
-            {saving ? "Saving…" : "Save"}
-          </button>
-        </div>
-        <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center sm:gap-3">
-          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            Add into group
-            <select
-              value={saveToGroupId ?? ""}
-              onChange={(e) => setSaveToGroupId(e.target.value || null)}
-              disabled={saving || !groups.length}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+            <svg
+              width="28"
+              height="28"
+              viewBox="0 0 32 32"
+              fill="none"
+              aria-hidden="true"
             >
-              {groups.map((g) => (
-                <option key={g.id} value={g.id}>
-                  {g.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex min-w-0 flex-1 flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            Or create new group
-            <input
-              type="text"
-              value={newGroupNameDraft}
-              onChange={(e) => setNewGroupNameDraft(e.target.value)}
-              placeholder="e.g. Design"
-              disabled={saving}
-              className="rounded-lg border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-            />
-          </label>
-        </div>
-        <p className="text-xs text-zinc-400 dark:text-zinc-500">
-          Adding into:{" "}
-          <span className="font-medium text-zinc-700 dark:text-zinc-300">
-            {newGroupNameDraft.trim()
-              ? `New group “${newGroupNameDraft.trim()}”`
-              : groups.find((g) => g.id === saveToGroupId)?.name ?? "—"}
-          </span>
-        </p>
-        {groupsError ? (
-          <p className="text-sm text-amber-700 dark:text-amber-400">
-            {groupsError} — refresh the page to retry groups.
-          </p>
-        ) : null}
-        {saveError ? (
-          <p className="text-sm text-red-600 dark:text-red-400">{saveError}</p>
-        ) : null}
-        {savedFlash ? (
-          <p className="text-sm text-emerald-600 dark:text-emerald-400">
-            Saved!
-          </p>
-        ) : null}
-      </form>
-
-      <section className="animate-in flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-          Groups
-        </h2>
-
-        <div className="flex flex-col gap-3 rounded-xl border border-zinc-200 bg-zinc-50/60 p-4 dark:border-zinc-700 dark:bg-zinc-900/40">
-          <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto_auto] sm:items-end">
-            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              New folder name
-              <input
-                type="text"
-                value={createFolderName}
-                onChange={(e) => setCreateFolderName(e.target.value)}
-                placeholder="e.g. Research"
-                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              <path
+                d="M0 0.38C0 0.17 0.17 0 0.38 0H22c5.52 0 10 4.48 10 10s-4.48 10-10 10H0V0.38Z"
+                fill="currentColor"
               />
-            </label>
-            <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Parent
-              <select
-                value={createFolderParentId}
-                onChange={(e) => setCreateFolderParentId(e.target.value)}
-                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
+              <rect y="20" width="32" height="12" fill="currentColor" />
+            </svg>
+          </a>
+        </div>
+
+        <nav className="col-start-2 row-start-1 flex max-h-[40vh] flex-col items-start gap-1 overflow-y-auto lg:max-h-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {filteredGroups.map((g) => {
+            const active = g.id === openedGroupId || g.id === selectedGroupId;
+            return (
+              <button
+                key={g.id}
+                type="button"
+                onClick={() => selectGroup(g.id)}
+                className={`relative block max-w-full truncate pr-3.5 text-left text-[15px] transition-colors hover:text-foreground ${
+                  active ? "text-foreground" : "text-subtle"
+                }`}
               >
-                <option value="">Root</option>
+                {g.name}
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1/2 right-0 size-2 -translate-y-1/2 rounded-full bg-foreground"
+                  />
+                ) : null}
+              </button>
+            );
+          })}
+          {!filteredGroups.length && !groupsError ? (
+            <span className="text-[15px] text-subtle">Loading…</span>
+          ) : null}
+        </nav>
+
+        <div className="col-span-2 flex flex-col gap-5 lg:col-span-1 lg:mt-auto">
+          <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+            <input
+              type="url"
+              name="url"
+              value={urlInput}
+              onChange={(e) => setUrlInput(e.target.value)}
+              placeholder="Paste a link…"
+              className={fieldClass}
+              disabled={saving}
+              autoComplete="off"
+            />
+            <div className="flex gap-2">
+              <select
+                value={saveToGroupId ?? ""}
+                onChange={(e) => setSaveToGroupId(e.target.value || null)}
+                disabled={saving || !groups.length}
+                className={`${fieldClass} min-w-0 flex-1`}
+                aria-label="Save into group"
+              >
                 {groups.map((g) => (
-                  <option key={`parent-${g.id}`} value={g.id}>
+                  <option key={g.id} value={g.id}>
                     {g.name}
                   </option>
                 ))}
               </select>
-            </label>
-            <button
-              type="button"
-              onClick={() => void createFolder()}
-              disabled={creatingFolder}
-              className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-            >
-              {creatingFolder ? "Creating..." : "Create folder"}
-            </button>
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex h-[38px] shrink-0 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg transition hover:opacity-90 disabled:opacity-50"
+              >
+                {saving ? (
+                  <AppLoader
+                    compact
+                    progressive
+                    size={72}
+                    label="Saving…"
+                    className="!bg-transparent !p-0"
+                  />
+                ) : (
+                  "Save"
+                )}
+              </button>
+            </div>
+            <input
+              type="text"
+              value={newGroupNameDraft}
+              onChange={(e) => setNewGroupNameDraft(e.target.value)}
+              placeholder="Or new group name"
+              disabled={saving}
+              className={fieldClass}
+            />
+            {saveError ? (
+              <p className="text-xs text-danger">{saveError}</p>
+            ) : null}
+            {savedFlash ? (
+              <p className="text-xs text-success">Saved</p>
+            ) : null}
+            {groupsError ? (
+              <p className="text-xs text-muted">
+                {groupsError}{" "}
+                <button
+                  type="button"
+                  onClick={() => void loadGroups()}
+                  className="underline hover:text-foreground"
+                >
+                  Retry
+                </button>
+              </p>
+            ) : null}
+          </form>
+
+          <p className="hidden text-[13px] text-subtle lg:block">
+            © {new Date().getFullYear()} The Vault
+          </p>
+        </div>
+      </aside>
+
+      {/* Main feed */}
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-[252px]">
+        <main className="vault-enter relative z-30 flex min-w-0 flex-1 flex-col bg-background">
+          <header className="-mr-4 flex flex-col gap-y-1 pr-4 pt-[17px] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4">
+            <div className="flex flex-col gap-y-1 lg:min-w-0 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
+              <h1 className="shrink-0 text-[15px] font-medium leading-normal text-foreground">
+                {openedGroup?.name ?? "Vault"}
+              </h1>
+              <p className="min-w-0 text-balance text-[15px] text-subtle">
+                Links you save, browsed like a dark inspiration feed.
+              </p>
+            </div>
+            <span className="shrink-0 text-[13px] text-subtle">
+              {openedGroup
+                ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
+                : null}
+            </span>
+          </header>
+
+          {/* Sticky pills / add-folder bar */}
+          <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background/95 pt-4 pb-4 pr-4 backdrop-blur-md">
+            {addingFolder ? (
+              <form
+                className="flex min-w-0 flex-1 items-center gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void createFolder();
+                }}
+              >
+                <input
+                  ref={folderInputRef}
+                  type="text"
+                  value={createFolderName}
+                  onChange={(e) => setCreateFolderName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Escape") {
+                      e.preventDefault();
+                      cancelAddFolder();
+                    }
+                  }}
+                  placeholder="Folder name"
+                  disabled={creatingFolder}
+                  className="h-7 min-w-0 flex-1 rounded-full border border-dashed border-border bg-surface px-3 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40"
+                />
+                <button
+                  type="submit"
+                  disabled={creatingFolder || !createFolderName.trim()}
+                  className={pillActive}
+                >
+                  {creatingFolder ? (
+                    <AppLoader
+                      compact
+                      size={56}
+                      className="!bg-transparent !p-0"
+                    />
+                  ) : (
+                    "Save"
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={cancelAddFolder}
+                  disabled={creatingFolder}
+                  className={pillIdle}
+                >
+                  Cancel
+                </button>
+              </form>
+            ) : (
+              <>
+                <div className="flex min-w-0 flex-1 items-center gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {filteredGroups.map((g) => (
+                    <button
+                      key={`pill-${g.id}`}
+                      type="button"
+                      aria-pressed={g.id === openedGroupId}
+                      onClick={() => selectGroup(g.id)}
+                      className={
+                        g.id === openedGroupId ? pillActive : pillIdle
+                      }
+                    >
+                      {g.name}
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={openAddFolder}
+                    className="inline-flex h-7 shrink-0 items-center rounded-full border border-dashed border-muted/50 bg-transparent px-2.5 text-[13px] leading-none text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+                  >
+                    Add folder
+                  </button>
+                </div>
+                <div className="flex shrink-0 items-center gap-2">
+                  <input
+                    type="search"
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    placeholder="Search"
+                    className="hidden h-7 w-28 rounded-full border border-border bg-surface px-2.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-border-strong sm:block"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void loadGroups()}
+                    className={pillIdle}
+                  >
+                    Refresh
+                  </button>
+                </div>
+              </>
+            )}
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <label className="flex flex-1 flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-              Search groups
-              <input
-                type="text"
-                value={groupSearch}
-                onChange={(e) => setGroupSearch(e.target.value)}
-                placeholder="e.g. Design"
-                className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-              />
-            </label>
-            <div className="flex shrink-0 gap-2">
+          {/* Feed body */}
+          {!selectedGroupId && groupsError ? (
+            <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted">
+              <p>Groups could not be loaded.</p>
               <button
                 type="button"
                 onClick={() => void loadGroups()}
-                className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
+                className="mt-2 text-foreground underline"
               >
-                Refresh
+                Retry
               </button>
+            </div>
+          ) : !openedGroupId ? (
+            <div className="flex justify-center py-16">
+              <AppLoader progressive label="Loading groups…" size={120} />
+            </div>
+          ) : loadingLinks ? (
+            <div className="flex justify-center py-16">
+              <AppLoader progressive label="Loading links…" size={120} />
+            </div>
+          ) : fetchError ? (
+            <div className="rounded-xl border border-border bg-surface p-6 text-sm text-danger">
+              <p>{fetchError}</p>
               <button
                 type="button"
-                onClick={() => setGroupSearch("")}
-                className="rounded-md px-3 py-2 text-xs font-medium text-zinc-600 hover:bg-zinc-50 dark:text-zinc-400 dark:hover:bg-zinc-800"
+                onClick={() => void loadLinks()}
+                className="mt-2 text-foreground underline"
               >
-                Clear
+                Retry
               </button>
             </div>
-          </div>
-
-          {!groups.length ? (
-            <p className="text-sm text-zinc-500">No groups yet.</p>
-          ) : rootOrSelectedChildren.length === 0 ? (
-            <p className="text-sm text-zinc-500">No groups match.</p>
+          ) : links.length === 0 ? (
+            <p className="py-16 text-center text-[15px] text-subtle">
+              No links yet. Paste one in the sidebar.
+            </p>
           ) : (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              {rootOrSelectedChildren.map((g) => {
-                const active = g.id === selectedGroupId;
-                return (
-                  <button
-                    key={g.id}
-                    type="button"
-                    onClick={() => {
-                      setSelectedGroupId(g.id);
-                      setOpenedGroupId(g.id);
-                      setSaveToGroupId(g.id);
-                    }}
-                    className={`folder-card flex flex-col items-center justify-center gap-2 rounded-2xl border p-4 text-center transition ${
-                      active
-                        ? "border-blue-500 bg-blue-50 text-blue-900 shadow-md dark:border-blue-400 dark:bg-blue-500/10 dark:text-blue-200"
-                        : "border-zinc-300 bg-white text-zinc-700 hover:-translate-y-0.5 hover:border-zinc-400 hover:bg-zinc-50 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-200 dark:hover:bg-zinc-800"
-                    }`}
-                    title="Click to view this group"
-                  >
-                    <div className="relative h-12 w-16">
-                      <div className="absolute left-1 top-0 h-3.5 w-7 rounded-t-md bg-blue-400/90 dark:bg-blue-400/80" />
-                      <div className="absolute inset-x-0 top-2 h-9 rounded-md bg-gradient-to-b from-blue-300 to-blue-500 shadow-[0_8px_24px_rgba(59,130,246,0.45)] dark:from-blue-400 dark:to-blue-600" />
-                    </div>
-                    <span className="line-clamp-2 text-xs font-semibold">{g.name}</span>
-                    <span className="text-[10px] text-zinc-500 dark:text-zinc-400">
-                      {g.linksCount} link{g.linksCount === 1 ? "" : "s"}
-                    </span>
-                    <div className="mt-1 w-full space-y-1">
-                      {g.previewTitles.length ? (
-                        g.previewTitles.slice(0, 2).map((title, idx) => (
-                          <p
-                            key={`${g.id}-preview-${idx}`}
-                            className="truncate text-[10px] text-zinc-500 dark:text-zinc-400"
-                          >
-                            {title}
-                          </p>
-                        ))
-                      ) : (
-                        <p className="text-[10px] text-zinc-400">No links yet</p>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+            <div className="mind-grid">
+              {links.map((link) => (
+                <LinkCard key={link.id} link={link} onOpen={openLinkDetail} />
+              ))}
             </div>
           )}
-        </div>
-      </section>
+        </main>
 
-      {openedGroupId ? (
-        <section className="animate-in flex flex-col gap-3 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-700 dark:bg-zinc-900/50">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500 dark:text-zinc-400">
-              Links
-            </h2>
-            <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-              Inside{" "}
-              <span className="font-medium text-zinc-700 dark:text-zinc-300">
-                {openedGroup?.name ?? "Group"}
-              </span>
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={() => setOpenedGroupId(null)}
-            className="rounded-lg border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-200 dark:hover:bg-zinc-800"
-          >
-            Back to folders
-          </button>
-        </div>
+        <p className="mt-8 shrink-0 text-[13px] text-subtle lg:hidden">
+          © {new Date().getFullYear()} The Vault
+        </p>
+      </div>
 
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-          <label className="flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-            Add subfolder in {openedGroup?.name ?? "current folder"}
-            <input
-              type="text"
-              value={createFolderName}
-              onChange={(e) => setCreateFolderName(e.target.value)}
-              placeholder="e.g. Resources"
-              className="rounded-md border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none ring-zinc-400 focus:ring-2 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-            />
-          </label>
-          <button
-            type="button"
-            onClick={() => void createSubfolderInOpenedGroup()}
-            disabled={creatingFolder}
-            className="rounded-md border border-zinc-300 px-3 py-2 text-xs font-medium text-zinc-700 hover:bg-zinc-50 disabled:opacity-60 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-          >
-            {creatingFolder ? "Creating..." : "Add subfolder"}
-          </button>
-        </div>
-
-        {!selectedGroupId && groupsError ? (
-          <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-100">
-            <p>Groups could not be loaded, so your links cannot be shown.</p>
-            <button
-              type="button"
-              onClick={() => void loadGroups()}
-              className="mt-2 font-medium underline"
-            >
-              Retry groups
-            </button>
-          </div>
-        ) : !selectedGroupId ? (
-          <p className="py-8 text-center text-sm text-zinc-500">
-            Loading groups…
-          </p>
-        ) : loadingLinks ? (
-          <div className="flex items-center justify-center py-12 text-sm text-zinc-500">
-            <span className="inline-block size-5 animate-spin rounded-full border-2 border-zinc-300 border-t-zinc-600 dark:border-zinc-600 dark:border-t-zinc-300" />
-            <span className="ml-3">Loading links…</span>
-          </div>
-        ) : fetchError ? (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200">
-            <p>{fetchError}</p>
-            <button
-              type="button"
-              onClick={() => void loadLinks()}
-              className="mt-2 font-medium underline"
-            >
-              Retry
-            </button>
-          </div>
-        ) : links.length === 0 ? (
-          <p className="py-8 text-center text-sm text-zinc-500">
-            No links yet. Paste one above.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-3">
-            {links.map((link) => (
-              <li
-                key={link.id}
-                className="link-card flex flex-col gap-2 rounded-xl border border-zinc-200 bg-zinc-50/80 p-4 transition hover:border-zinc-300 hover:shadow-sm dark:border-zinc-700 dark:bg-zinc-900/40 dark:hover:border-zinc-600"
-              >
-                {editingId === link.id ? (
-                  <div className="flex flex-col gap-2">
-                    <label className="text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                      Custom name (optional)
-                    </label>
-                    <input
-                      type="text"
-                      value={renameDraft}
-                      onChange={(e) => setRenameDraft(e.target.value)}
-                      placeholder={link.title}
-                      className="rounded-md border border-zinc-300 bg-white px-2 py-1.5 text-sm dark:border-zinc-600 dark:bg-zinc-900"
-                      disabled={renaming}
-                    />
-                    <p className="text-xs text-zinc-400">
-                      Original title: {link.title}
-                    </p>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        disabled={renaming}
-                        onClick={() => void saveRename(link.id)}
-                        className="rounded-md bg-zinc-900 px-3 py-1 text-xs font-medium text-white dark:bg-zinc-100 dark:text-zinc-900"
-                      >
-                        Save
-                      </button>
-                      <button
-                        type="button"
-                        disabled={renaming}
-                        onClick={() => void clearCustomTitle(link.id)}
-                        className="rounded-md border border-zinc-300 px-3 py-1 text-xs dark:border-zinc-600"
-                      >
-                        Use original title
-                      </button>
-                      <button
-                        type="button"
-                        disabled={renaming}
-                        onClick={cancelRename}
-                        className="rounded-md px-3 py-1 text-xs text-zinc-600 dark:text-zinc-400"
-                      >
-                        Cancel
-                      </button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-start gap-3">
-                    {link.image_url ? (
-                      <LinkPreviewThumb
-                        src={link.image_url}
-                        alt={`Preview for ${link.display_title}`}
-                        className={`h-20 w-28 shrink-0 rounded-md border border-zinc-200 bg-zinc-100 object-contain p-2 dark:border-zinc-600 dark:bg-zinc-800 ${
-                          brandThumbnailInvertInDark(link.url)
-                            ? "dark:invert"
-                            : ""
-                        }`}
-                      />
-                    ) : null}
-                    <div className="min-w-0 flex-1">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-medium text-zinc-900 underline-offset-2 hover:underline dark:text-zinc-50"
-                      >
-                        {link.display_title}
-                      </a>
-                      <p
-                        className="mt-1 select-text break-all font-mono text-xs leading-relaxed text-zinc-500 dark:text-zinc-400"
-                        title={link.url}
-                      >
-                        {link.url}
-                      </p>
-                      <div className="mt-2 flex flex-wrap items-center gap-2">
-                        <a
-                          href={link.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center rounded-md bg-zinc-900 px-2.5 py-1 text-xs font-medium text-white hover:bg-zinc-800 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                        >
-                          Open link
-                        </a>
-                        <button
-                          type="button"
-                          onClick={() => void copyLinkUrl(link)}
-                          title="Copy URL to clipboard"
-                          className="rounded-md border border-zinc-300 px-2.5 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                        >
-                          {copiedId === link.id ? "Copied!" : "Copy link"}
-                        </button>
-                        {copyFailedId === link.id ? (
-                          <span className="text-xs text-red-600 dark:text-red-400">
-                            Copy failed — select the URL above
-                          </span>
-                        ) : null}
-                      </div>
-                      {link.description ? (
-                        <p className="mt-1 line-clamp-2 text-xs text-zinc-600 dark:text-zinc-300">
-                          {link.description}
-                        </p>
-                      ) : null}
-                      <p className="mt-1 text-xs text-zinc-400 dark:text-zinc-500">
-                        {formatRelativeTime(link.created_at)}
-                      </p>
-                      {link.metadata_status === "pending" ? (
-                        <p className="mt-1 text-xs text-amber-700 dark:text-amber-400">
-                          Fetching title & preview…
-                        </p>
-                      ) : null}
-                      <label className="mt-2 flex flex-col gap-1 text-xs font-medium text-zinc-500 dark:text-zinc-400">
-                        Move to group
-                        <select
-                          value={link.groupId}
-                          onChange={(e) =>
-                            void moveLinkToGroup(link, e.target.value)
-                          }
-                          className="max-w-full rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-900 dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100"
-                        >
-                          {groups.map((g) => (
-                            <option key={g.id} value={g.id}>
-                              {g.name}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                    </div>
-                    <div className="flex shrink-0 flex-col gap-1.5 self-start">
-                      <button
-                        type="button"
-                        onClick={() => startRename(link)}
-                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                      >
-                        Rename
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void handleDelete(link.id)}
-                        className="rounded-md border border-zinc-300 px-2 py-1 text-xs font-medium text-zinc-700 hover:bg-zinc-100 dark:border-zinc-600 dark:text-zinc-300 dark:hover:bg-zinc-800"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-                )}
-                {patchErrors[link.id] ? (
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    {patchErrors[link.id]}
-                  </p>
-                ) : null}
-                {deleteErrors[link.id] ? (
-                  <p className="text-xs text-red-600 dark:text-red-400">
-                    {deleteErrors[link.id]}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+      {openedLink ? (
+        <LinkDetailOverlay
+          link={openedLink}
+          groupName={openedGroup?.name ?? null}
+          groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+          originRect={overlayOrigin}
+          onClose={closeLinkDetail}
+          onPrev={goPrevLink}
+          onNext={goNextLink}
+          onDelete={(id) => void handleDelete(id)}
+          onMove={(link, groupId) => void moveLinkToGroup(link, groupId)}
+          onCopy={(link) => void copyLinkUrl(link)}
+          hasPrev={openedLinkIndex > 0}
+          hasNext={openedLinkIndex >= 0 && openedLinkIndex < links.length - 1}
+        />
       ) : null}
     </div>
   );

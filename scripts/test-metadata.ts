@@ -41,6 +41,7 @@ async function main() {
         : "(none)",
     );
     console.log("imageUrl:", m.imageUrl ?? "(none)");
+    console.log("faviconUrl:", m.faviconUrl ?? "(none)");
   }
 }
 

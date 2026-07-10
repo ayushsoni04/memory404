@@ -3,6 +3,7 @@ import {
   providerPreviewIcon,
   resolveProviderDisplayTitle,
 } from "@/lib/link-providers";
+import { isThumIoUrl } from "@/lib/screenshot";
 
 export type LinkApiRow = {
   id: string;
@@ -17,6 +18,9 @@ export type LinkApiRow = {
    * so the card always has a visual when the URL is valid.
    */
   image_url: string;
+  /** Site favicon/logo; falls back to Google favicon by host. */
+  favicon_url: string;
+  faviconUrl: string;
   tags: string[];
   notes: string | null;
   group_id: string;
@@ -44,9 +48,25 @@ export function effectivePreviewImageUrl(link: {
   imageUrl: string | null;
   url: string;
 }): string {
-  const branded = providerPreviewIcon(link.url, link.imageUrl);
+  // thum.io free tier often returns solid placeholders — never surface those.
+  const stored = isThumIoUrl(link.imageUrl) ? null : link.imageUrl;
+  const branded = providerPreviewIcon(link.url, stored);
   if (branded) return branded;
   return googleFaviconUrl(link.url) ?? "";
+}
+
+export function isGoogleFaviconUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  return url.includes("google.com/s2/favicons");
+}
+
+export function effectiveFaviconUrl(link: {
+  faviconUrl: string | null;
+  url: string;
+}): string {
+  const stored = link.faviconUrl?.trim();
+  if (stored) return stored;
+  return googleFaviconUrl(link.url, 64) ?? "";
 }
 
 export function displayTitle(link: {
@@ -61,6 +81,14 @@ export function displayTitle(link: {
   });
 }
 
+export function linkHostname(url: string): string {
+  try {
+    return new URL(url.trim()).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 export function linkToApiRow(link: {
   id: string;
   url: string;
@@ -68,12 +96,14 @@ export function linkToApiRow(link: {
   customTitle: string | null;
   description: string | null;
   imageUrl: string | null;
+  faviconUrl: string | null;
   tags: string[];
   notes: string | null;
   groupId: string;
   metadataStatus: LinkMetadataStatus;
   createdAt: Date;
 }): LinkApiRow {
+  const favicon = effectiveFaviconUrl(link);
   return {
     id: link.id,
     url: link.url,
@@ -82,6 +112,8 @@ export function linkToApiRow(link: {
     customTitle: link.customTitle,
     description: link.description,
     image_url: effectivePreviewImageUrl(link),
+    favicon_url: favicon,
+    faviconUrl: favicon,
     tags: link.tags,
     notes: link.notes,
     group_id: link.groupId,

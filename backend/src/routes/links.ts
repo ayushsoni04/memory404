@@ -7,6 +7,8 @@ import {
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
 import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
+import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
+import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const linksRouter = Router();
@@ -25,6 +27,7 @@ type PatchBody = {
   tags?: unknown;
   notes?: unknown;
   groupId?: unknown;
+  refreshPreview?: unknown;
 };
 
 async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
@@ -204,9 +207,11 @@ linksRouter.post("/", async (req, res) => {
         tags: [],
         notes: null,
         groupId: resolved.groupId,
-        metadataStatus: "ready",
+        metadataStatus: "pending",
       },
     });
+
+    void enrichLinkMetadataInBackground(created.id, url);
 
     res.status(201).json({ link: linkToApiRow(created) });
   } catch (e) {
@@ -246,12 +251,32 @@ linksRouter.patch("/:id", async (req, res) => {
       "customTitle" in body ||
       "tags" in body ||
       "notes" in body ||
-      "groupId" in body;
+      "groupId" in body ||
+      body.refreshPreview === true;
 
     if (!hasSupportedField) {
       res.status(400).json({
-        error: "At least one of customTitle, tags, notes, groupId is required",
+        error:
+          "At least one of customTitle, tags, notes, groupId, refreshPreview is required",
       });
+      return;
+    }
+
+    if (body.refreshPreview === true) {
+      const existing = await prisma.link.findUnique({
+        where: { id },
+        select: { id: true, url: true },
+      });
+      if (!existing) {
+        res.status(404).json({ error: "Link not found" });
+        return;
+      }
+      const pending = await prisma.link.update({
+        where: { id },
+        data: { metadataStatus: "pending" },
+      });
+      void enrichLinkMetadataInBackground(existing.id, existing.url);
+      res.json({ link: linkToApiRow(pending) });
       return;
     }
 

@@ -1,26 +1,134 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Dark recent.design-inspired palette */
+  --background: #0c0c0c;
+  --foreground: #f5f5f5;
+  --surface: #141414;
+  --surface-elevated: #1a1a1a;
+  --subtle: #737373;
+  --muted: #a3a3a3;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --pill: #262626;
+  --pill-hover: #333333;
+  --pill-active: #f5f5f5;
+  --pill-active-fg: #0c0c0c;
+  --focus: #f5f5f5;
+  --danger: #f87171;
+  --success: #4ade80;
+  --mind-card-radius: 12px;
+  --mind-overlay-panel: 292px;
+  --sidebar-w: 220px;
+  --content-max: 1680px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --color-surface: var(--surface);
+  --color-surface-elevated: var(--surface-elevated);
+  --color-subtle: var(--subtle);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+  --color-pill: var(--pill);
+  --color-pill-hover: var(--pill-hover);
+  --color-pill-active: var(--pill-active);
+  --color-pill-active-fg: var(--pill-active-fg);
+  --color-danger: var(--danger);
+  --color-success: var(--success);
+  --font-sans: var(--font-outfit);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  color-scheme: dark;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* recent.design-style masonry feed */
+.mind-grid {
+  column-count: 1;
+  column-gap: 0.75rem;
+}
+
+@media (min-width: 640px) {
+  .mind-grid {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 768px) {
+  .mind-grid {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mind-grid {
+    column-count: 4;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mind-grid {
+    column-count: 5;
+  }
+}
+
+@media (min-width: 1536px) {
+  .mind-grid {
+    column-count: 6;
+  }
+}
+
+.mind-card {
+  display: inline-block;
+  width: 100%;
+}
+
+.mind-card-preview {
+  min-height: 140px;
+  max-height: 520px;
+  width: 100%;
+  background: var(--surface-elevated);
+}
+
+.mind-card-title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mind-overlay-panel {
+  width: min(100%, var(--mind-overlay-panel));
+}
+
+/* Soft entrance */
+@keyframes vault-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.vault-enter {
+  animation: vault-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vault-enter {
+    animation: none;
+  }
 }

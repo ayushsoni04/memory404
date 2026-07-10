@@ -51,6 +51,140 @@ body {
   padding: 14px 16px 12px;
 }
 
+.saving-loader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #121212;
+}
+
+.saving-loader .saved-text {
+  color: #caf7e2;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: Century Gothic, CenturyGothic, AppleGothic, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.save-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Pixel wave loader */
+.pixel-loader {
+  --pl-c1: #caf7e2;
+  --pl-c2: #58b09c;
+  --pl-c3: #003a3a;
+  --pl-c4: #0c2d2a;
+  --pl-cols: 50;
+  --pl-w: 88px;
+  --pl-h: calc(var(--pl-w) / var(--pl-cols) * 2.05);
+
+  display: block;
+  width: var(--pl-w);
+  height: var(--pl-h);
+  flex-shrink: 0;
+  overflow: hidden;
+  line-height: 0;
+  font-size: 0;
+}
+
+.pixel-loader__pixels {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  height: 100%;
+}
+
+.pixel-loader__pixel {
+  box-sizing: border-box;
+  width: calc(100% / var(--pl-cols));
+  height: calc(100% / 2);
+  margin: 0;
+  opacity: 0;
+  background: var(--pl-c1);
+  box-shadow: 0 -1px 0 var(--pl-c1);
+  animation: pixel-magic 2.5s linear infinite;
+  will-change: opacity, background, box-shadow;
+}
+
+@keyframes pixel-magic {
+  0% {
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0;
+    background: var(--pl-c1);
+    box-shadow: 0 -1px 0 var(--pl-c1);
+  }
+
+  28% {
+    opacity: 1;
+  }
+
+  30% {
+    background: var(--pl-c2);
+    box-shadow: 0 -1px 0 var(--pl-c2);
+  }
+
+  50% {
+    background: var(--pl-c3);
+    box-shadow: 0 -1px 0 var(--pl-c3);
+  }
+
+  65% {
+    background: var(--pl-c4);
+    box-shadow: 0 -1px 0 var(--pl-c4);
+  }
+
+  80% {
+    background: var(--pl-c3);
+    box-shadow: 0 -1px 0 var(--pl-c3);
+  }
+
+  90% {
+    opacity: 1;
+    background: var(--pl-c2);
+    box-shadow: 0 -1px 0 var(--pl-c2);
+  }
+
+  100% {
+    opacity: 0;
+    background: var(--pl-c1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-loader__pixel {
+    animation: none !important;
+    opacity: 0.85;
+    background: var(--pl-c2);
+    box-shadow: 0 -1px 0 var(--pl-c2);
+  }
+}
+
 .error-row .saved-text {
   color: #b42318;
 }

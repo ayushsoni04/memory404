@@ -136,8 +136,7 @@ function extractPreviewImageUrl(
     (() => {
       const href = $('link[rel="image_src"]').first().attr("href");
       return absolutizeImageUrl(href, pageUrl);
-    })() ??
-    extractFaviconFromDocument($, pageUrl)
+    })()
   );
 }
 
@@ -302,11 +301,13 @@ export type LinkPageMetadata = {
   description: string;
   /** Absolute https preview image URL from og/twitter meta, or null */
   imageUrl: string | null;
+  /** Site icon from link[rel=icon] / apple-touch-icon, or null */
+  faviconUrl: string | null;
 };
 
 /**
- * Extracts title (og → twitter → <title> → h1 → URL), description, preview image.
- * Never returns null title; image may be null.
+ * Extracts title (og → twitter → <title> → h1 → URL), description, preview image, favicon.
+ * Never returns null title; image/favicon may be null.
  */
 export async function extractLinkMetadata(
   pageUrl: string,
@@ -322,6 +323,7 @@ export async function extractLinkMetadata(
       title: fallbackTitle,
       description: "",
       imageUrl: null,
+      faviconUrl: null,
     });
   }
 
@@ -332,6 +334,7 @@ export async function extractLinkMetadata(
         title: fallbackTitle,
         description: "",
         imageUrl: null,
+        faviconUrl: null,
       });
     }
 
@@ -352,17 +355,20 @@ export async function extractLinkMetadata(
     }
 
     const imageUrl = extractPreviewImageUrl($, pageUrl);
+    const faviconUrl = extractFaviconFromDocument($, pageUrl);
 
     return applyProviderMetadata(pageUrl, {
       title,
       description,
       imageUrl,
+      faviconUrl,
     });
   } catch {
     return applyProviderMetadata(pageUrl, {
       title: fallbackTitle,
       description: "",
       imageUrl: null,
+      faviconUrl: null,
     });
   }
 }

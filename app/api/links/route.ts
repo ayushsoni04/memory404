@@ -7,6 +7,7 @@ import {
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
 import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
+import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -209,9 +210,11 @@ export async function POST(request: Request) {
         tags: [],
         notes: null,
         groupId: resolved.groupId,
-        metadataStatus: "ready",
+        metadataStatus: "pending",
       },
     });
+
+    void enrichLinkMetadataInBackground(created.id, url);
 
     return NextResponse.json(
       { link: linkToApiRow(created) },

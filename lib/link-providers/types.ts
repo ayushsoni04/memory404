@@ -2,6 +2,7 @@ export type LinkMetadataShape = {
   title: string;
   description: string;
   imageUrl: string | null;
+  faviconUrl: string | null;
 };
 
 export type LinkProvider = {

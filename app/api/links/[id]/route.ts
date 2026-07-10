@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { linkToApiRow } from "@/lib/links";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
@@ -12,6 +13,7 @@ type PatchBody = {
   tags?: unknown;
   notes?: unknown;
   groupId?: unknown;
+  refreshPreview?: unknown;
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
@@ -40,13 +42,33 @@ export async function PATCH(request: Request, context: RouteContext) {
       "customTitle" in body ||
       "tags" in body ||
       "notes" in body ||
-      "groupId" in body;
+      "groupId" in body ||
+      body.refreshPreview === true;
 
     if (!hasSupportedField) {
       return NextResponse.json(
-        { error: "At least one of customTitle, tags, notes, groupId is required" },
+        {
+          error:
+            "At least one of customTitle, tags, notes, groupId, refreshPreview is required",
+        },
         { status: 400 },
       );
+    }
+
+    if (body.refreshPreview === true) {
+      const existing = await prisma.link.findUnique({
+        where: { id },
+        select: { id: true, url: true },
+      });
+      if (!existing) {
+        return NextResponse.json({ error: "Link not found" }, { status: 404 });
+      }
+      const pending = await prisma.link.update({
+        where: { id },
+        data: { metadataStatus: "pending" },
+      });
+      void enrichLinkMetadataInBackground(existing.id, existing.url);
+      return NextResponse.json({ link: linkToApiRow(pending) });
     }
 
     const updateData: Prisma.LinkUpdateInput = {};
