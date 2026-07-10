@@ -3,7 +3,7 @@
 #
 # Optional repo variables (Settings → Secrets and variables → Actions → Variables):
 #   VERCEL_APP_URL        default: https://linksavekren.vercel.app
-#   RENDER_API_URL        default: https://linksavekren-api.onrender.com
+#   RENDER_API_URL        your Render service URL (skip/soft-fail if unset or 404)
 #   SUPABASE_PROJECT_URL  e.g. https://YOUR_PROJECT.supabase.co
 
 name: Keep services alive
@@ -35,21 +35,35 @@ jobs:
           echo "Pinging ${URL}/api/health"
           curl -fsS --retry 2 --retry-delay 5 --max-time 45 \
             "${URL}/api/health"
+          echo
+          echo "Vercel OK"
 
       - name: Ping Render (backend + Supabase via DB)
         run: |
           URL="${RENDER_API_URL:-https://linksavekren-api.onrender.com}"
           echo "Pinging ${URL}/health"
-          curl -fsS --retry 2 --retry-delay 10 --max-time 120 \
-            "${URL}/health"
+          # Soft-fail: Render may not be deployed yet; Vercel health already hits the DB.
+          code=$(curl -sS -o /tmp/render-health.json -w "%{http_code}" \
+            --retry 2 --retry-delay 10 --max-time 120 \
+            "${URL}/health" || true)
+          echo "HTTP ${code}"
+          if [ "$code" = "200" ]; then
+            cat /tmp/render-health.json || true
+            echo
+            echo "Render OK"
+          else
+            echo "::warning::Render health returned ${code} (service may not be deployed). Continuing."
+          fi
 
       - name: Ping Supabase project
         run: |
           if [ -z "${SUPABASE_PROJECT_URL}" ]; then
             echo "SUPABASE_PROJECT_URL not set — skipping direct Supabase ping."
-            echo "DB activity from Vercel/Render health checks still counts."
+            echo "DB activity from Vercel health checks still counts."
             exit 0
           fi
           echo "Pinging ${SUPABASE_PROJECT_URL}/auth/v1/health"
           curl -fsS --retry 2 --retry-delay 5 --max-time 30 \
             "${SUPABASE_PROJECT_URL}/auth/v1/health"
+          echo
+          echo "Supabase OK"
