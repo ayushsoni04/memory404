@@ -1,27 +1,72 @@
 import { Prisma } from "@prisma/client";
-import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
+import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { prisma } from "@/lib/prisma";
 
-export { UNCATEGORIZED_GROUP_NAME };
+export { GENERAL_GROUP_NAME };
 
 type Db = Prisma.TransactionClient | typeof prisma;
+const LEGACY_UNCATEGORIZED_GROUP_NAME = "Uncategorized";
 
 /**
  * Returns the id of the Uncategorized group, creating it if missing.
  * Handles concurrent creates via unique constraint + retry.
  */
-export async function getOrCreateUncategorizedGroupId(
+export async function getOrCreateGeneralGroupId(
   db: Db = prisma,
 ): Promise<string> {
   const existing = await db.group.findUnique({
-    where: { name: UNCATEGORIZED_GROUP_NAME },
+    where: { name: GENERAL_GROUP_NAME },
     select: { id: true },
   });
-  if (existing) return existing.id;
+  if (existing) {
+    const legacy = await db.group.findUnique({
+      where: { name: LEGACY_UNCATEGORIZED_GROUP_NAME },
+      select: { id: true },
+    });
+    if (legacy) {
+      await db.link.updateMany({
+        where: { groupId: legacy.id },
+        data: { groupId: existing.id },
+      });
+      await db.group.updateMany({
+        where: { parentGroupId: legacy.id },
+        data: { parentGroupId: existing.id },
+      });
+      await db.group.delete({ where: { id: legacy.id } });
+    }
+    return existing.id;
+  }
+
+  const legacy = await db.group.findUnique({
+    where: { name: LEGACY_UNCATEGORIZED_GROUP_NAME },
+    select: { id: true },
+  });
+  if (legacy) {
+    try {
+      const renamed = await db.group.update({
+        where: { id: legacy.id },
+        data: { name: GENERAL_GROUP_NAME, sortOrder: 0 },
+        select: { id: true },
+      });
+      return renamed.id;
+    } catch (e) {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === "P2002"
+      ) {
+        const again = await db.group.findUnique({
+          where: { name: GENERAL_GROUP_NAME },
+          select: { id: true },
+        });
+        if (again) return again.id;
+      }
+      throw e;
+    }
+  }
 
   try {
     const created = await db.group.create({
-      data: { name: UNCATEGORIZED_GROUP_NAME },
+      data: { name: GENERAL_GROUP_NAME, sortOrder: 0 },
       select: { id: true },
     });
     return created.id;
@@ -31,7 +76,7 @@ export async function getOrCreateUncategorizedGroupId(
       e.code === "P2002"
     ) {
       const again = await db.group.findUnique({
-        where: { name: UNCATEGORIZED_GROUP_NAME },
+        where: { name: GENERAL_GROUP_NAME },
         select: { id: true },
       });
       if (again) return again.id;
@@ -40,6 +85,10 @@ export async function getOrCreateUncategorizedGroupId(
   }
 }
 
-export function isUncategorizedName(name: string): boolean {
-  return name.trim().toLowerCase() === UNCATEGORIZED_GROUP_NAME.toLowerCase();
+export function isGeneralName(name: string): boolean {
+  const normalized = name.trim().toLowerCase();
+  return (
+    normalized === GENERAL_GROUP_NAME.toLowerCase() ||
+    normalized === LEGACY_UNCATEGORIZED_GROUP_NAME.toLowerCase()
+  );
 }

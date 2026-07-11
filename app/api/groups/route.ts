@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
-import { getOrCreateUncategorizedGroupId } from "@/lib/groups";
+import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { getOrCreateGeneralGroupId } from "@/lib/groups";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -22,7 +23,7 @@ export async function GET() {
   }
 
   try {
-    await getOrCreateUncategorizedGroupId();
+    await getOrCreateGeneralGroupId();
     const groups = await prisma.group.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
@@ -106,6 +107,10 @@ export async function POST(request: Request) {
       }
     }
 
+    const general = await prisma.group.findUnique({
+      where: { name: GENERAL_GROUP_NAME },
+      select: { id: true },
+    });
     const maxOrder = await prisma.group.aggregate({
       _max: { sortOrder: true },
     });
@@ -118,7 +123,11 @@ export async function POST(request: Request) {
       Number.isInteger(body.insertAt)
     ) {
       const count = await prisma.group.count();
-      const insertAt = Math.max(0, Math.min(body.insertAt, count));
+      const minimumInsertAt = general ? 1 : 0;
+      const insertAt = Math.max(
+        minimumInsertAt,
+        Math.min(body.insertAt, count),
+      );
       sortOrder = insertAt;
       await prisma.group.updateMany({
         where: { sortOrder: { gte: insertAt } },
@@ -195,7 +204,7 @@ export async function PATCH(request: Request) {
     }
 
     const existing = await prisma.group.findMany({
-      select: { id: true },
+      select: { id: true, name: true },
     });
     const existingIds = new Set(existing.map((g) => g.id));
     if (
@@ -204,6 +213,14 @@ export async function PATCH(request: Request) {
     ) {
       return NextResponse.json(
         { error: "orderedIds must include every group exactly once" },
+        { status: 400 },
+      );
+    }
+
+    const general = existing.find((group) => group.name === GENERAL_GROUP_NAME);
+    if (general && orderedIds[0] !== general.id) {
+      return NextResponse.json(
+        { error: "General must remain first" },
         { status: 400 },
       );
     }

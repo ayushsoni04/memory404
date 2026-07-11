@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { Router } from "express";
-import { getOrCreateUncategorizedGroupId } from "@/lib/groups";
+import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { getOrCreateGeneralGroupId } from "@/lib/groups";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const groupsRouter = Router();
@@ -23,7 +24,7 @@ groupsRouter.get("/", async (_req, res) => {
   }
 
   try {
-    await getOrCreateUncategorizedGroupId();
+    await getOrCreateGeneralGroupId();
     const groups = await prisma.group.findMany({
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
@@ -97,6 +98,10 @@ groupsRouter.post("/", async (req, res) => {
       }
     }
 
+    const general = await prisma.group.findUnique({
+      where: { name: GENERAL_GROUP_NAME },
+      select: { id: true },
+    });
     const maxOrder = await prisma.group.aggregate({
       _max: { sortOrder: true },
     });
@@ -109,7 +114,10 @@ groupsRouter.post("/", async (req, res) => {
       Number.isInteger(body.insertAt)
     ) {
       const count = await prisma.group.count();
-      const insertAt = Math.max(0, Math.min(body.insertAt, count));
+      const insertAt = Math.max(
+        general ? 1 : 0,
+        Math.min(body.insertAt, count),
+      );
       sortOrder = insertAt;
       await prisma.group.updateMany({
         where: { sortOrder: { gte: insertAt } },
@@ -171,7 +179,9 @@ groupsRouter.patch("/", async (req, res) => {
       return;
     }
 
-    const existing = await prisma.group.findMany({ select: { id: true } });
+    const existing = await prisma.group.findMany({
+      select: { id: true, name: true },
+    });
     const existingIds = new Set(existing.map((g) => g.id));
     if (
       orderedIds.length !== existingIds.size ||
@@ -180,6 +190,12 @@ groupsRouter.patch("/", async (req, res) => {
       res.status(400).json({
         error: "orderedIds must include every group exactly once",
       });
+      return;
+    }
+
+    const general = existing.find((group) => group.name === GENERAL_GROUP_NAME);
+    if (general && orderedIds[0] !== general.id) {
+      res.status(400).json({ error: "General must remain first" });
       return;
     }
 

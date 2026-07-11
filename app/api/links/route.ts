@@ -1,9 +1,9 @@
 import { Prisma } from "@prisma/client";
 import { after, NextResponse } from "next/server";
-import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
+import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
-  getOrCreateUncategorizedGroupId,
-  isUncategorizedName,
+  getOrCreateGeneralGroupId,
+  isGeneralName,
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
 import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
@@ -32,9 +32,9 @@ export async function GET(request: Request) {
     let filterGroupId: string | undefined;
     if (groupIdParam) {
       filterGroupId = groupIdParam;
-    } else if (legacyGroup === "uncategorized") {
+    } else if (legacyGroup === "uncategorized" || legacyGroup === "general") {
       const inbox = await prisma.group.findUnique({
-        where: { name: UNCATEGORIZED_GROUP_NAME },
+        where: { name: GENERAL_GROUP_NAME },
         select: { id: true },
       });
       if (inbox) filterGroupId = inbox.id;
@@ -92,8 +92,8 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     typeof rawNew === "string" && rawNew.trim() ? rawNew.trim() : null;
 
   if (newName) {
-    if (isUncategorizedName(newName)) {
-      const id = await getOrCreateUncategorizedGroupId();
+    if (isGeneralName(newName)) {
+      const id = await getOrCreateGeneralGroupId();
       return { ok: true, groupId: id };
     }
     try {
@@ -133,7 +133,7 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     return { ok: true, groupId: gid };
   }
 
-  const fallback = await getOrCreateUncategorizedGroupId();
+  const fallback = await getOrCreateGeneralGroupId();
   return { ok: true, groupId: fallback };
 }
 

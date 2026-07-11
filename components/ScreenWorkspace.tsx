@@ -12,101 +12,22 @@ import {
 } from "lucide-react";
 import { DigitalScreen } from "@/components/DigitalScreen";
 import {
+  ColorField,
+  ControlSection,
+  RangeField,
+  SegmentedControl,
+  StudioButton,
+  ToggleField,
+} from "@/components/ui/studio-controls";
+import {
   DEFAULT_SCREEN_CONFIG,
   emptyPainted,
   resizePainted,
   type DigitalScreenConfig,
   type DigitalScreenContentMode,
 } from "@/lib/digital-screen";
-import { cn } from "@/lib/utils";
 
 type PaintTool = "paint" | "erase" | "toggle";
-
-function SliderField({
-  label,
-  value,
-  min,
-  max,
-  step = 1,
-  unit,
-  onChange,
-}: {
-  label: string;
-  value: number;
-  min: number;
-  max: number;
-  step?: number;
-  unit?: string;
-  onChange: (v: number) => void;
-}) {
-  return (
-    <label className="block space-y-1.5">
-      <div className="flex items-baseline justify-between gap-2 text-[12px]">
-        <span className="text-muted">{label}</span>
-        <span className="font-mono text-foreground tabular-nums">
-          {value}
-          {unit ?? ""}
-        </span>
-      </div>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(e) => onChange(Number(e.target.value))}
-        className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-pill accent-foreground"
-      />
-    </label>
-  );
-}
-
-function ColorField({
-  label,
-  value,
-  onChange,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-}) {
-  return (
-    <label className="flex items-center justify-between gap-3 text-[12px]">
-      <span className="text-muted">{label}</span>
-      <span className="flex items-center gap-2">
-        <input
-          type="color"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="size-7 cursor-pointer rounded border border-border bg-transparent p-0.5"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="w-[5.5rem] rounded-md border border-border bg-surface px-2 py-1 font-mono text-[11px] text-foreground outline-none focus:border-border-strong"
-        />
-      </span>
-    </label>
-  );
-}
-
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="space-y-3 border-b border-border pb-4 last:border-b-0 last:pb-0">
-      <h2 className="font-mono text-[11px] tracking-[0.14em] text-subtle uppercase">
-        {title}
-      </h2>
-      <div className="space-y-3">{children}</div>
-    </section>
-  );
-}
 
 const MODE_OPTIONS: { id: DigitalScreenContentMode; label: string }[] = [
   { id: "marquee", label: "Marquee" },
@@ -165,7 +86,7 @@ export function ScreenWorkspace() {
 
   return (
     <div className="mx-auto flex min-h-full w-full max-w-[var(--content-max)] flex-col gap-6 p-4 lg:flex-row lg:gap-8">
-      <aside className="flex w-full shrink-0 flex-col gap-4 lg:sticky lg:top-4 lg:h-[calc(100vh-2rem)] lg:w-[300px] lg:overflow-y-auto">
+      <aside className="flex w-full shrink-0 flex-col gap-4 lg:sticky lg:top-4 lg:h-[calc(100dvh-2rem)] lg:w-[300px] lg:overflow-y-auto">
         <div className="flex items-start justify-between gap-3">
           <div>
             <Link
@@ -183,34 +104,33 @@ export function ScreenWorkspace() {
               paint your own pixels.
             </p>
           </div>
-          <button
-            type="button"
+          <StudioButton
             onClick={resetAll}
             title="Reset all"
             aria-label="Reset all"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-transparent bg-pill text-muted transition-colors hover:bg-pill-hover hover:text-foreground"
+            className="size-7 shrink-0 p-0"
           >
             <RotateCcw className="size-3.5" strokeWidth={2} aria-hidden />
-          </button>
+          </StudioButton>
         </div>
 
         <div className="space-y-4 rounded-xl border border-border bg-surface p-4">
-          <Section title="Grid">
-            <SliderField
+          <ControlSection title="Grid">
+            <RangeField
               label="Columns"
               value={config.cols}
               min={8}
               max={96}
               onChange={(cols) => setGridSize(cols, config.rows)}
             />
-            <SliderField
+            <RangeField
               label="Rows"
               value={config.rows}
               min={5}
               max={32}
               onChange={(rows) => setGridSize(config.cols, rows)}
             />
-            <SliderField
+            <RangeField
               label="Cell size"
               value={config.cellSize}
               min={4}
@@ -218,7 +138,7 @@ export function ScreenWorkspace() {
               unit="px"
               onChange={(cellSize) => patch({ cellSize })}
             />
-            <SliderField
+            <RangeField
               label="Dot padding"
               value={Number(config.cellPaddingRatio.toFixed(2))}
               min={0.05}
@@ -226,10 +146,10 @@ export function ScreenWorkspace() {
               step={0.01}
               onChange={(cellPaddingRatio) => patch({ cellPaddingRatio })}
             />
-          </Section>
+          </ControlSection>
 
-          <Section title="Frame">
-            <SliderField
+          <ControlSection title="Frame">
+            <RangeField
               label="Frame padding"
               value={config.framePadding}
               min={0}
@@ -237,7 +157,7 @@ export function ScreenWorkspace() {
               unit="px"
               onChange={(framePadding) => patch({ framePadding })}
             />
-            <SliderField
+            <RangeField
               label="Corner radius"
               value={config.frameRadius}
               min={0}
@@ -250,18 +170,14 @@ export function ScreenWorkspace() {
               value={config.frameBg}
               onChange={(frameBg) => patch({ frameBg })}
             />
-            <label className="flex items-center justify-between gap-3 text-[12px]">
-              <span className="text-muted">Vicinity stroke</span>
-              <input
-                type="checkbox"
-                checked={config.showStroke}
-                onChange={(e) => patch({ showStroke: e.target.checked })}
-                className="size-4 accent-foreground"
-              />
-            </label>
-          </Section>
+            <ToggleField
+              label="Vicinity stroke"
+              checked={config.showStroke}
+              onChange={(showStroke) => patch({ showStroke })}
+            />
+          </ControlSection>
 
-          <Section title="Colors">
+          <ControlSection title="Colors">
             <ColorField
               label="Background"
               value={config.background}
@@ -277,19 +193,15 @@ export function ScreenWorkspace() {
               value={config.active}
               onChange={(active) => patch({ active })}
             />
-          </Section>
+          </ControlSection>
 
-          <Section title="Glow">
-            <label className="flex items-center justify-between gap-3 text-[12px]">
-              <span className="text-muted">Enable glow</span>
-              <input
-                type="checkbox"
-                checked={config.glow}
-                onChange={(e) => patch({ glow: e.target.checked })}
-                className="size-4 accent-foreground"
-              />
-            </label>
-            <SliderField
+          <ControlSection title="Glow">
+            <ToggleField
+              label="Enable glow"
+              checked={config.glow}
+              onChange={(glow) => patch({ glow })}
+            />
+            <RangeField
               label="Glow blur"
               value={Number(config.glowBlur.toFixed(1))}
               min={0}
@@ -297,35 +209,20 @@ export function ScreenWorkspace() {
               step={0.1}
               onChange={(glowBlur) => patch({ glowBlur })}
             />
-            <label className="flex items-center justify-between gap-3 text-[12px]">
-              <span className="text-muted">Hot highlight</span>
-              <input
-                type="checkbox"
-                checked={config.glowHighlight}
-                onChange={(e) => patch({ glowHighlight: e.target.checked })}
-                className="size-4 accent-foreground"
-              />
-            </label>
-          </Section>
+            <ToggleField
+              label="Hot highlight"
+              checked={config.glowHighlight}
+              onChange={(glowHighlight) => patch({ glowHighlight })}
+            />
+          </ControlSection>
 
-          <Section title="Content">
-            <div className="flex flex-wrap gap-1.5">
-              {MODE_OPTIONS.map((opt) => (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => patch({ contentMode: opt.id })}
-                  className={cn(
-                    "inline-flex h-7 items-center rounded-full px-2.5 text-[12px] transition-colors",
-                    config.contentMode === opt.id
-                      ? "bg-pill-active text-pill-active-fg"
-                      : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground",
-                  )}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
+          <ControlSection title="Content">
+            <SegmentedControl
+              ariaLabel="Content mode"
+              value={config.contentMode}
+              options={MODE_OPTIONS}
+              onChange={(contentMode) => patch({ contentMode })}
+            />
 
             {(config.contentMode === "marquee" ||
               config.contentMode === "both") && (
@@ -343,7 +240,7 @@ export function ScreenWorkspace() {
                     placeholder="LOADING"
                   />
                 </label>
-                <SliderField
+                <RangeField
                   label="Scroll speed"
                   value={Number(config.marqueeSpeed.toFixed(2))}
                   min={-2}
@@ -351,14 +248,14 @@ export function ScreenWorkspace() {
                   step={0.05}
                   onChange={(marqueeSpeed) => patch({ marqueeSpeed })}
                 />
-                <SliderField
+                <RangeField
                   label="FPS"
                   value={config.fps}
                   min={8}
                   max={60}
                   onChange={(fps) => patch({ fps })}
                 />
-                <SliderField
+                <RangeField
                   label="Letter spacing"
                   value={config.charSpacing}
                   min={0}
@@ -367,38 +264,21 @@ export function ScreenWorkspace() {
                 />
               </div>
             )}
-          </Section>
+          </ControlSection>
         </div>
       </aside>
 
       <main className="flex min-w-0 flex-1 flex-col gap-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setEditing(true)}
-              className={cn(
-                "inline-flex h-7 items-center rounded-full px-2.5 text-[12px] transition-colors",
-                editing
-                  ? "bg-pill-active text-pill-active-fg"
-                  : "bg-pill text-muted hover:bg-pill-hover",
-              )}
-            >
-              Paint mode
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(false)}
-              className={cn(
-                "inline-flex h-7 items-center rounded-full px-2.5 text-[12px] transition-colors",
-                !editing
-                  ? "bg-pill-active text-pill-active-fg"
-                  : "bg-pill text-muted hover:bg-pill-hover",
-              )}
-            >
-              Preview
-            </button>
-          </div>
+          <SegmentedControl
+            ariaLabel="Screen mode"
+            value={editing ? "paint" : "preview"}
+            options={[
+              { id: "paint", label: "Paint mode" },
+              { id: "preview", label: "Preview" },
+            ]}
+            onChange={(mode) => setEditing(mode === "paint")}
+          />
 
           <p className="font-mono text-[11px] text-subtle tabular-nums">
             {config.cols}×{config.rows} · {pixelSize.w}×{pixelSize.h}px
@@ -407,39 +287,26 @@ export function ScreenWorkspace() {
 
         {canPaint ? (
           <div className="flex flex-wrap items-center gap-2">
-            {TOOL_OPTIONS.map((opt) => {
-              const Icon = opt.icon;
-              return (
-                <button
-                  key={opt.id}
-                  type="button"
-                  onClick={() => setTool(opt.id)}
-                  className={cn(
-                    "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12px] transition-colors",
-                    tool === opt.id
-                      ? "bg-pill-active text-pill-active-fg"
-                      : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground",
-                  )}
-                >
-                  <Icon className="size-3.5" strokeWidth={2} aria-hidden />
-                  {opt.label}
-                </button>
-              );
-            })}
-            <button
-              type="button"
-              onClick={clearPaint}
-              className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[12px] text-muted transition-colors hover:bg-pill-hover hover:text-foreground"
-            >
-              Clear paint
-            </button>
+            <SegmentedControl
+              ariaLabel="Paint tool"
+              value={tool}
+              options={TOOL_OPTIONS.map((option) => {
+                const Icon = option.icon;
+                return {
+                  ...option,
+                  icon: <Icon className="size-3.5" strokeWidth={2} aria-hidden />,
+                };
+              })}
+              onChange={setTool}
+            />
+            <StudioButton onClick={clearPaint}>Clear paint</StudioButton>
             <span className="text-[12px] text-subtle">
               Drag on the screen to draw
             </span>
           </div>
         ) : null}
 
-        <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-border bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.03),transparent_65%),#0a0a0a] p-6 sm:p-10">
+        <div className="flex min-h-[320px] flex-1 items-center justify-center rounded-2xl border border-border bg-studio-stage p-6 sm:p-10">
           <DigitalScreen
             config={config}
             interactive={canPaint}

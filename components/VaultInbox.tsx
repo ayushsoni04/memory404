@@ -12,7 +12,7 @@ import {
   applyVicinityCardStrokes,
   clearVicinityCardStrokes,
 } from "@/lib/card-vicinity-stroke";
-import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
+import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import type { LinkApiRow } from "@/lib/links";
 
 const GROUP_PILL_MIN_PX = 96;
@@ -161,15 +161,15 @@ export default function VaultInbox() {
       }
       const list = Array.isArray(data.groups) ? (data.groups as GroupRow[]) : [];
       setGroups(list);
-      const inbox =
+      const general =
         list.find(
           (g) =>
             g.name.trim().toLowerCase() ===
-            UNCATEGORIZED_GROUP_NAME.toLowerCase(),
+            GENERAL_GROUP_NAME.toLowerCase(),
         ) ?? list[0];
-      if (inbox) {
-        setSelectedGroupId((prev) => prev ?? inbox.id);
-        setOpenedGroupId((prev) => prev ?? inbox.id);
+      if (general) {
+        setSelectedGroupId((prev) => prev ?? general.id);
+        setOpenedGroupId((prev) => prev ?? general.id);
       }
     } catch {
       setGroupsError("Failed to load groups");
@@ -227,10 +227,16 @@ export default function VaultInbox() {
 
   const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
 
-  const filteredGroups = (() => {
+  const generalGroup =
+    groups.find(
+      (group) =>
+        group.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase(),
+    ) ?? null;
+  const folderGroups = groups.filter((group) => group.id !== generalGroup?.id);
+  const filteredFolders = (() => {
     const q = groupSearch.trim().toLowerCase();
-    if (!q) return groups;
-    return groups.filter((g) => g.name.toLowerCase().includes(q));
+    if (!q) return folderGroups;
+    return folderGroups.filter((group) => group.name.toLowerCase().includes(q));
   })();
 
   const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
@@ -462,7 +468,8 @@ export default function VaultInbox() {
       setGroupsError("Group name cannot be empty");
       return;
     }
-    const insertAt = addingAt ?? groups.length;
+    const insertAt =
+      (addingAt ?? folderGroups.length) + (generalGroup ? 1 : 0);
     setCreatingGroup(true);
     setGroupsError(null);
     try {
@@ -546,8 +553,11 @@ export default function VaultInbox() {
     setOpenedGroupId(id);
   };
 
-  const persistGroupOrder = useCallback(async (ordered: GroupRow[]) => {
+  const persistFolderOrder = useCallback(async (orderedFolders: GroupRow[]) => {
     const previous = groups;
+    const ordered = generalGroup
+      ? [generalGroup, ...orderedFolders]
+      : orderedFolders;
     setGroups(ordered);
     try {
       const res = await fetch(apiUrl("/api/groups"), {
@@ -568,7 +578,7 @@ export default function VaultInbox() {
       setGroups(previous);
       setGroupsError("Failed to save group order");
     }
-  }, [groups]);
+  }, [generalGroup, groups]);
 
   const clearDragState = useCallback(() => {
     dragGroupIdRef.current = null;
@@ -589,20 +599,25 @@ export default function VaultInbox() {
     clearDragState();
     if (!fromId || toIndex == null || groupSearch.trim()) return;
 
-    const fromIndex = groups.findIndex((g) => g.id === fromId);
+    const fromIndex = folderGroups.findIndex((g) => g.id === fromId);
     if (fromIndex < 0) return;
 
-    const without = groups.filter((g) => g.id !== fromId);
+    const without = folderGroups.filter((g) => g.id !== fromId);
     const clamped = Math.max(0, Math.min(toIndex, without.length));
     const next = [...without];
-    next.splice(clamped, 0, groups[fromIndex]);
+    next.splice(clamped, 0, folderGroups[fromIndex]);
 
     const same =
-      next.length === groups.length &&
-      next.every((g, i) => g.id === groups[i]?.id);
+      next.length === folderGroups.length &&
+      next.every((g, i) => g.id === folderGroups[i]?.id);
     if (same) return;
-    void persistGroupOrder(next);
-  }, [clearDragState, groupSearch, groups, persistGroupOrder]);
+    void persistFolderOrder(next);
+  }, [
+    clearDragState,
+    folderGroups,
+    groupSearch,
+    persistFolderOrder,
+  ]);
 
   const setDropAt = useCallback((index: number) => {
     dropIndexRef.current = index;
@@ -659,7 +674,7 @@ export default function VaultInbox() {
   useEffect(() => {
     const onMove = (e: PointerEvent) => {
       const drag = pointerDragRef.current;
-      if (!drag) return;
+      if (!drag || e.pointerId !== drag.pointerId) return;
       lastPointerRef.current = { x: e.clientX, y: e.clientY };
       const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
       if (!dragMovedRef.current) {
@@ -678,8 +693,9 @@ export default function VaultInbox() {
       syncCarryToSlot(e.clientX, e.clientY);
     };
 
-    const onUp = () => {
-      if (!pointerDragRef.current) return;
+    const onUp = (e: PointerEvent) => {
+      const drag = pointerDragRef.current;
+      if (!drag || e.pointerId !== drag.pointerId) return;
       if (dragMovedRef.current) {
         suppressClickRef.current = true;
         commitDrop();
@@ -713,8 +729,8 @@ export default function VaultInbox() {
   const canReorderPills = !groupSearch.trim() && addingAt == null;
 
   const pillsForRow = draggingGroupId
-    ? filteredGroups.filter((g) => g.id !== draggingGroupId)
-    : filteredGroups;
+    ? filteredFolders.filter((g) => g.id !== draggingGroupId)
+    : filteredFolders;
   const activeDropIndex =
     draggingGroupId && dropIndex != null
       ? Math.max(0, Math.min(dropIndex, pillsForRow.length))
@@ -728,7 +744,7 @@ export default function VaultInbox() {
       {/* Sidebar — recent.design layout */}
       <aside className="grid grid-cols-2 items-start gap-x-4 gap-y-8 lg:fixed lg:left-[max(1rem,calc((100vw-var(--content-max))/2+1rem))] lg:top-0 lg:z-[45] lg:box-border lg:flex lg:h-dvh lg:w-[var(--sidebar-w)] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-8 lg:py-4">
         <div className="col-start-1 row-start-1 flex flex-col items-start gap-3">
-          <a
+          <Link
             href="/"
             aria-label="memory404"
             className="inline-flex items-center gap-2 text-foreground"
@@ -746,7 +762,7 @@ export default function VaultInbox() {
               />
               <rect y="20" width="32" height="12" fill="currentColor" />
             </svg>
-          </a>
+          </Link>
           <div
             role="group"
             aria-label="Grid layout"
@@ -775,7 +791,33 @@ export default function VaultInbox() {
         </div>
 
         <nav className="col-start-2 row-start-1 flex max-h-[40vh] flex-col items-start gap-1 overflow-y-auto lg:max-h-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {filteredGroups.map((g) => {
+          {generalGroup ? (() => {
+            const active =
+              generalGroup.id === openedGroupId ||
+              generalGroup.id === selectedGroupId;
+            return (
+              <button
+                key={generalGroup.id}
+                type="button"
+                onClick={() => selectGroup(generalGroup.id)}
+                className={`relative block max-w-full truncate pr-3.5 text-left text-[15px] transition-colors hover:text-foreground ${
+                  active ? "text-foreground" : "text-subtle"
+                }`}
+              >
+                {generalGroup.name}
+                {active ? (
+                  <span
+                    aria-hidden="true"
+                    className="absolute top-1/2 right-0 size-2 -translate-y-1/2 rounded-full bg-foreground"
+                  />
+                ) : null}
+              </button>
+            );
+          })() : null}
+          {generalGroup && filteredFolders.length ? (
+            <span aria-hidden className="my-2 h-px w-full bg-border" />
+          ) : null}
+          {filteredFolders.map((g) => {
             const active = g.id === openedGroupId || g.id === selectedGroupId;
             return (
               <button
@@ -796,7 +838,7 @@ export default function VaultInbox() {
               </button>
             );
           })}
-          {!filteredGroups.length && !groupsError ? (
+          {!generalGroup && !filteredFolders.length && !groupsError ? (
             <span className="text-[15px] text-subtle">Loading…</span>
           ) : null}
         </nav>
@@ -968,11 +1010,27 @@ export default function VaultInbox() {
 
           {/* Sticky group pills */}
           <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background/95 pt-3 pb-4 pr-4 backdrop-blur-md">
-            <div
-              ref={pillsRowRef}
-              data-dragging={draggingGroupId ? "true" : undefined}
-              className="group-pills-row flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-visible pt-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-            >
+            <div className="flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {generalGroup ? (
+                <button
+                  type="button"
+                  aria-pressed={generalGroup.id === openedGroupId}
+                  onClick={() => selectGroup(generalGroup.id)}
+                  className={
+                    generalGroup.id === openedGroupId ? pillActive : pillIdle
+                  }
+                >
+                  {generalGroup.name}
+                </button>
+              ) : null}
+              {generalGroup ? (
+                <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border" />
+              ) : null}
+              <div
+                ref={pillsRowRef}
+                data-dragging={draggingGroupId ? "true" : undefined}
+                className="group-pills-row flex min-w-0 items-center overflow-visible"
+              >
               {(() => {
                 const nodes: ReactNode[] = [];
                 const canShowInsert = !groupSearch.trim() && !draggingGroupId;
@@ -1042,7 +1100,9 @@ export default function VaultInbox() {
                   return (
                     <div
                       key={`gap-${index}`}
-                      className="relative h-7 w-2 shrink-0"
+                      className={`relative h-7 shrink-0 ${
+                        index === 0 ? "w-0" : "w-2"
+                      }`}
                       onMouseEnter={() => {
                         if (canShowInsert) setInsertHoverIndex(index);
                       }}
@@ -1077,7 +1137,7 @@ export default function VaultInbox() {
                   nodes.push(renderGap(i));
                   const g = pillsForRow[i];
                   if (!g) continue;
-                  const fromIndex = filteredGroups.findIndex(
+                  const fromIndex = filteredFolders.findIndex(
                     (x) => x.id === g.id,
                   );
                   const tilt =
@@ -1102,6 +1162,7 @@ export default function VaultInbox() {
                       onPointerDown={(e) => {
                         if (!canReorderPills || e.button !== 0) return;
                         const el = e.currentTarget;
+                        el.setPointerCapture(e.pointerId);
                         const width = el.getBoundingClientRect().width;
                         dragMovedRef.current = false;
                         pointerDragRef.current = {
@@ -1140,6 +1201,7 @@ export default function VaultInbox() {
 
                 return nodes;
               })()}
+              </div>
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <input

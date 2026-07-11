@@ -1,2 +1,2 @@
-/** Reserved inbox group name (stored in DB). */
-export const UNCATEGORIZED_GROUP_NAME = "Uncategorized";
+/** Permanent catch-all group name (stored in DB). */
+export const GENERAL_GROUP_NAME = "General";
