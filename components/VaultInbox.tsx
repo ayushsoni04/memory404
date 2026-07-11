@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
-import { Plus } from "lucide-react";
+import Link from "next/link";
+import { Plus, RotateCw } from "lucide-react";
 import AddLinkCard from "@/components/AddLinkCard";
 import { AppLoader } from "@/components/AppLoader";
 import LinkCard from "@/components/LinkCard";
@@ -26,14 +27,14 @@ const GRID_SIZES: { id: GridSize; label: string; title: string }[] = [
 ];
 
 function readStoredGridSize(): GridSize {
-  if (typeof window === "undefined") return "default";
+  if (typeof window === "undefined") return "large";
   try {
     const raw = window.localStorage.getItem(GRID_SIZE_KEY);
     if (raw === "compact" || raw === "default" || raw === "large") return raw;
   } catch {
     /* ignore */
   }
-  return "default";
+  return "large";
 }
 
 type GroupRow = {
@@ -107,7 +108,7 @@ export default function VaultInbox() {
     null,
   );
   const [dragSnapped, setDragSnapped] = useState(false);
-  const [gridSize, setGridSize] = useState<GridSize>("default");
+  const [gridSize, setGridSize] = useState<GridSize>("large");
   const groupInputRef = useRef<HTMLInputElement | null>(null);
   const groupSizerRef = useRef<HTMLSpanElement | null>(null);
   const [groupInputWidth, setGroupInputWidth] = useState(GROUP_PILL_MIN_PX);
@@ -904,13 +905,7 @@ export default function VaultInbox() {
                     className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg transition hover:opacity-90 disabled:opacity-50"
                   >
                     {saving ? (
-                      <AppLoader
-                        compact
-                        progressive
-                        size={72}
-                        label="Saving…"
-                        className="!bg-transparent !p-0"
-                      />
+                      <AppLoader compact progressive label="saving" />
                     ) : (
                       "Save"
                     )}
@@ -938,9 +933,17 @@ export default function VaultInbox() {
             ) : null}
           </form>
 
-          <p className="hidden text-[13px] text-subtle lg:block">
-            © {new Date().getFullYear()} memory404
-          </p>
+          <div className="hidden flex-col gap-2 lg:flex">
+            <Link
+              href="/workspace"
+              className="text-[13px] text-muted transition-colors hover:text-foreground"
+            >
+              Screen studio
+            </Link>
+            <p className="text-[13px] text-subtle">
+              © {new Date().getFullYear()} memory404
+            </p>
+          </div>
         </div>
       </aside>
 
@@ -1017,11 +1020,7 @@ export default function VaultInbox() {
                         />
                         {creatingGroup ? (
                           <span className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
-                            <AppLoader
-                              compact
-                              size={48}
-                              className="!bg-transparent !p-0"
-                            />
+                            <AppLoader compact label="loading" />
                           </span>
                         ) : null}
                       </form>
@@ -1130,9 +1129,11 @@ export default function VaultInbox() {
                       key="add-group-end"
                       type="button"
                       onClick={() => openAddGroup(pillsForRow.length)}
-                      className="ml-1 inline-flex h-7 shrink-0 items-center rounded-full border border-dashed border-muted/50 bg-transparent px-2.5 text-[13px] leading-none text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+                      aria-label="Add group"
+                      title="Add group"
+                      className="ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
                     >
-                      Add group
+                      <Plus className="size-3.5" strokeWidth={2} aria-hidden />
                     </button>,
                   );
                 }
@@ -1151,9 +1152,11 @@ export default function VaultInbox() {
               <button
                 type="button"
                 onClick={() => void loadGroups()}
-                className={pillIdle}
+                aria-label="Refresh"
+                title="Refresh"
+                className={`${pillIdle} justify-center px-2`}
               >
-                Refresh
+                <RotateCw className="size-3.5 -scale-x-100" strokeWidth={2} aria-hidden />
               </button>
             </div>
           </div>
@@ -1194,12 +1197,12 @@ export default function VaultInbox() {
               </button>
             </div>
           ) : !openedGroupId ? (
-            <div className="flex justify-center py-16">
-              <AppLoader progressive label="Loading groups…" size={120} />
+            <div className="py-6">
+              <AppLoader progressive label="loading" />
             </div>
           ) : loadingLinks ? (
-            <div className="flex justify-center py-16">
-              <AppLoader progressive label="Loading links…" size={120} />
+            <div className="py-6">
+              <AppLoader progressive label="loading" />
             </div>
           ) : fetchError ? (
             <div className="rounded-xl border border-border bg-surface p-6 text-sm text-danger">

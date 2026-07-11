@@ -103,11 +103,11 @@ export default function LinkCard({ link, onOpen }: Props) {
             <a
               href={link.url}
               target="_blank"
-              rel="noopener noreferrer"
+              rel="noreferrer"
               title={`Open ${host}`}
               aria-label={`Open original link: ${host}`}
               onClick={(e) => e.stopPropagation()}
-              className="absolute right-3 bottom-3 z-[2] flex size-7 translate-y-1 items-center justify-center rounded-full bg-white/90 text-black opacity-0 shadow-md transition duration-200 group-hover:translate-y-0 group-hover:opacity-100 hover:bg-white"
+              className="absolute right-3 bottom-3 z-10 box-border flex size-[28px] min-h-[28px] min-w-[28px] shrink-0 items-center justify-center rounded-full bg-[rgba(90,90,90,0.4)] text-white leading-none opacity-100 shadow-[0_-1px_0_rgba(255,255,255,0.35),1px_0_0_rgba(255,255,255,0.15),-1px_0_0_rgba(255,255,255,0.15),0_1px_0_rgba(255,255,255,0.3),0_1px_1px_rgba(0,0,0,0.2)] backdrop-saturate-150"
             >
               <svg
                 width="14"
@@ -127,13 +127,7 @@ export default function LinkCard({ link, onOpen }: Props) {
             </a>
             {showLoader ? (
               <span className="absolute inset-0 flex items-center justify-center bg-black/30">
-                <AppLoader
-                  compact
-                  progressive
-                  size={72}
-                  label="Capturing…"
-                  className="!p-1.5"
-                />
+                <AppLoader compact progressive label="capturing" />
               </span>
             ) : null}
           </span>
