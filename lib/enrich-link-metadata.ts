@@ -3,36 +3,46 @@ import { extractLinkMetadata } from "@/lib/metadata";
 import { capturePageScreenshotUrl } from "@/lib/screenshot";
 
 /**
- * Fetches HTML metadata + page screenshot and updates the link row.
- * Safe to fire-and-forget. On failure: still marks ready.
+ * Fetches HTML metadata quickly, marks the link ready, then optionally upgrades
+ * the preview image with a screenshot. Safe to fire-and-forget / run in `after()`.
  */
 export async function enrichLinkMetadataInBackground(
   linkId: string,
   pageUrl: string,
 ): Promise<void> {
   try {
-    const [meta, screenshotUrl] = await Promise.all([
-      extractLinkMetadata(pageUrl, pageUrl),
-      capturePageScreenshotUrl(pageUrl),
-    ]);
+    // Phase 1 — HTML meta only (seconds, not tens of seconds).
+    const meta = await extractLinkMetadata(pageUrl, pageUrl);
     const description =
       meta.description.length > 2000
         ? meta.description.slice(0, 2000)
         : meta.description;
-
-    // Prefer live page screenshot; fall back to og/twitter image.
-    const imageUrl = screenshotUrl || meta.imageUrl;
 
     await prisma.link.update({
       where: { id: linkId },
       data: {
         title: meta.title,
         description: description || null,
-        imageUrl,
+        imageUrl: meta.imageUrl,
         faviconUrl: meta.faviconUrl,
         metadataStatus: "ready",
       },
     });
+
+    // Phase 2 — screenshot upgrade when og/twitter image is missing.
+    // Never blocks "ready"; failures leave the meta image (or null) in place.
+    if (meta.imageUrl) return;
+
+    try {
+      const screenshotUrl = await capturePageScreenshotUrl(pageUrl);
+      if (!screenshotUrl) return;
+      await prisma.link.update({
+        where: { id: linkId },
+        data: { imageUrl: screenshotUrl },
+      });
+    } catch (shotErr) {
+      console.error("[enrich-link-metadata] screenshot", linkId, shotErr);
+    }
   } catch (e) {
     console.error("[enrich-link-metadata]", linkId, e);
     try {
@@ -41,7 +51,11 @@ export async function enrichLinkMetadataInBackground(
         data: { metadataStatus: "ready" },
       });
     } catch (inner) {
-      console.error("[enrich-link-metadata] status update failed", linkId, inner);
+      console.error(
+        "[enrich-link-metadata] status update failed",
+        linkId,
+        inner,
+      );
     }
   }
 }

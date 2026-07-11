@@ -4,11 +4,9 @@
  * thum.io is skipped — free tier often returns solid placeholder frames (e.g. a lone "3").
  */
 
-const FETCH_MS = 28_000;
-/** Let the target page settle before any provider captures a frame. */
-const PRE_CAPTURE_WAIT_MS = 3_000;
-const MSHOTS_RETRY_WAIT_MS = 3_000;
-const MSHOTS_MAX_ATTEMPTS = 3;
+const FETCH_MS = 12_000;
+const MSHOTS_RETRY_WAIT_MS = 2_000;
+const MSHOTS_MAX_ATTEMPTS = 2;
 /** Real page shots are rarely this small; placeholders often are. */
 const MIN_IMAGE_BYTES = 8_000;
 
@@ -180,14 +178,12 @@ export function clientScreenshotFallbackUrl(pageUrl: string): string | null {
 
 /**
  * Returns a validated screenshot URL, or null if all providers fail.
- * Always waits at least 3s before capturing so pages have time to paint.
+ * Providers load the page themselves — no local pre-wait needed.
  */
 export async function capturePageScreenshotUrl(
   pageUrl: string,
 ): Promise<string | null> {
   if (!isHttpUrl(pageUrl)) return null;
-
-  await wait(PRE_CAPTURE_WAIT_MS);
 
   const custom = process.env.SCREENSHOT_URL_TEMPLATE?.trim();
   if (custom) {

@@ -1,20 +1,30 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Outfit } from "next/font/google";
+import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const outfit = Outfit({
-  variable: "--font-outfit",
+/** Same combo as blog.maximeheckel.com: Inter + Departure Mono + Fira Code */
+const inter = Inter({
   subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+const departureMono = localFont({
+  src: "../public/fonts/DepartureMono-Regular.woff2",
+  variable: "--font-departure",
+  display: "swap",
+});
+
+const firaCode = localFont({
+  src: "../public/fonts/fira-code.woff2",
+  variable: "--font-fira",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "The Vault",
-  description: "Save and browse links — dark inspiration feed",
+  title: "Not a Bookmark",
+  description: "Save and browse links — not a bookmark",
 };
 
 export default function RootLayout({
@@ -25,7 +35,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${outfit.variable} ${geistMono.variable} dark h-full antialiased`}
+      className={`${inter.variable} ${departureMono.variable} ${firaCode.variable} dark h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
         {children}

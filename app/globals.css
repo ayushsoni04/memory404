@@ -17,7 +17,7 @@
   --focus: #f5f5f5;
   --danger: #f87171;
   --success: #4ade80;
-  --mind-card-radius: 12px;
+  --mind-card-radius: 4px;
   --mind-overlay-panel: 292px;
   --sidebar-w: 220px;
   --content-max: 1680px;
@@ -38,8 +38,8 @@
   --color-pill-active-fg: var(--pill-active-fg);
   --color-danger: var(--danger);
   --color-success: var(--success);
-  --font-sans: var(--font-outfit);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-departure), ui-monospace, monospace;
 }
 
 html {
@@ -49,43 +49,128 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "cv11" 1, "cv05" 1;
+  font-variation-settings: "opsz" auto;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* recent.design-style masonry feed */
+code,
+kbd,
+samp,
+pre,
+.font-mono {
+  font-family: var(--font-fira), var(--font-departure), ui-monospace, monospace;
+}
+
+/* recent.design-style masonry feed — density via data-grid-size */
 .mind-grid {
   column-count: 1;
   column-gap: 0.75rem;
 }
 
+/* Default — balanced */
 @media (min-width: 640px) {
-  .mind-grid {
+  .mind-grid[data-grid-size="default"] {
     column-count: 2;
   }
 }
 
 @media (min-width: 768px) {
-  .mind-grid {
+  .mind-grid[data-grid-size="default"] {
     column-count: 3;
   }
 }
 
 @media (min-width: 1024px) {
-  .mind-grid {
+  .mind-grid[data-grid-size="default"] {
     column-count: 4;
   }
 }
 
 @media (min-width: 1280px) {
-  .mind-grid {
+  .mind-grid[data-grid-size="default"] {
     column-count: 5;
   }
 }
 
 @media (min-width: 1536px) {
-  .mind-grid {
+  .mind-grid[data-grid-size="default"] {
     column-count: 6;
   }
+}
+
+/* Compact — more columns, smaller cards */
+@media (min-width: 640px) {
+  .mind-grid[data-grid-size="compact"] {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 768px) {
+  .mind-grid[data-grid-size="compact"] {
+    column-count: 4;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mind-grid[data-grid-size="compact"] {
+    column-count: 5;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mind-grid[data-grid-size="compact"] {
+    column-count: 6;
+  }
+}
+
+@media (min-width: 1536px) {
+  .mind-grid[data-grid-size="compact"] {
+    column-count: 7;
+  }
+}
+
+/* Large — fewer columns, bigger cards */
+@media (min-width: 640px) {
+  .mind-grid[data-grid-size="large"] {
+    column-count: 1;
+  }
+}
+
+@media (min-width: 768px) {
+  .mind-grid[data-grid-size="large"] {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1024px) {
+  .mind-grid[data-grid-size="large"] {
+    column-count: 2;
+  }
+}
+
+@media (min-width: 1280px) {
+  .mind-grid[data-grid-size="large"] {
+    column-count: 3;
+  }
+}
+
+@media (min-width: 1536px) {
+  .mind-grid[data-grid-size="large"] {
+    column-count: 3;
+  }
+}
+
+.mind-grid[data-grid-size="large"] {
+  column-gap: 1rem;
+}
+
+.mind-grid[data-grid-size="large"] .mind-card-preview {
+  min-height: 200px;
+  max-height: 720px;
 }
 
 .mind-card {
@@ -93,10 +178,52 @@ body {
   width: 100%;
 }
 
+.mind-card-shell {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--mind-card-radius);
+  --glow-x: 50%;
+  --glow-y: 50%;
+  --stroke-opacity: 0;
+}
+
+/* Cursor-following stroke — strength set by grid vicinity tracking */
+.mind-card-stroke {
+  pointer-events: none;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  opacity: var(--stroke-opacity, 0);
+  transition: opacity 0.15s ease;
+  background: radial-gradient(
+    160px circle at var(--glow-x) var(--glow-y),
+    rgba(245, 245, 245, 0.9),
+    rgba(245, 245, 245, 0.25) 30%,
+    transparent 58%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mind-card-stroke {
+    transition: none;
+  }
+}
+
 .mind-card-preview {
   min-height: 140px;
   max-height: 520px;
   width: 100%;
+  border-radius: var(--mind-card-radius);
   background: var(--surface-elevated);
 }
 
@@ -130,5 +257,87 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .vault-enter {
     animation: none;
+  }
+}
+
+/* Rising helix fill — bottom half of add-link card */
+.rising-helix-shell {
+  z-index: 1;
+}
+
+.rising-helix-band {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(100%);
+  animation: rising-helix-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.rising-helix-grid {
+  display: grid;
+  color: #caf7e2;
+}
+
+.rising-helix-dot {
+  display: block;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+@keyframes rising-helix-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Group pill drag — rest of row tilts; drop slot is a light dotted cradle */
+.group-pills-row[data-dragging="true"] [data-group-pill] {
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group-pill-drop-slot {
+  box-sizing: border-box;
+  border: 1.5px dashed rgba(163, 163, 163, 0.55);
+  background: transparent;
+  box-shadow: 0 6px 0 -4px rgba(163, 163, 163, 0.35);
+}
+
+.group-pill-ghost {
+  box-sizing: border-box;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid transparent;
+  background: var(--pill-active);
+  color: var(--pill-active-fg);
+  font-size: 13px;
+  line-height: 1;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+  will-change: transform, left, top;
+}
+
+.group-pill-ghost[data-snapped="true"] {
+  box-shadow: none;
+  background: var(--pill);
+  color: var(--muted);
+  border-color: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rising-helix-band {
+    animation: none;
+    transform: translateY(0);
   }
 }

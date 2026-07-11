@@ -38,6 +38,7 @@ model Link {
 model Group {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
+  sortOrder     Int      @default(0) @map("sort_order")
   parentGroupId String?  @map("parent_group_id") @db.Uuid
   parentGroup   Group?   @relation("GroupTree", fields: [parentGroupId], references: [id], onDelete: SetNull)
   childGroups   Group[]  @relation("GroupTree")
@@ -45,6 +46,7 @@ model Group {
   links         Link[]
 
   @@index([parentGroupId])
+  @@index([sortOrder])
   @@unique([name])
   @@map("groups")
 }

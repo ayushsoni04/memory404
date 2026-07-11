@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
 import {
   getOrCreateUncategorizedGroupId,
@@ -214,7 +214,8 @@ export async function POST(request: Request) {
       },
     });
 
-    void enrichLinkMetadataInBackground(created.id, url);
+    // Detach from the request so the client isn't held open by meta/screenshot work.
+    after(() => enrichLinkMetadataInBackground(created.id, url));
 
     return NextResponse.json(
       { link: linkToApiRow(created) },

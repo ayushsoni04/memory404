@@ -1,5 +1,5 @@
 import { Prisma } from "@prisma/client";
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { linkToApiRow } from "@/lib/links";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
@@ -67,7 +67,7 @@ export async function PATCH(request: Request, context: RouteContext) {
         where: { id },
         data: { metadataStatus: "pending" },
       });
-      void enrichLinkMetadataInBackground(existing.id, existing.url);
+      after(() => enrichLinkMetadataInBackground(existing.id, existing.url));
       return NextResponse.json({ link: linkToApiRow(pending) });
     }
 

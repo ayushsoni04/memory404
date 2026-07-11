@@ -8,6 +8,11 @@ export const runtime = "nodejs";
 type PostBody = {
   name?: unknown;
   parentGroupId?: unknown;
+  insertAt?: unknown;
+};
+
+type PatchBody = {
+  orderedIds?: unknown;
 };
 
 export async function GET() {
@@ -19,7 +24,7 @@ export async function GET() {
   try {
     await getOrCreateUncategorizedGroupId();
     const groups = await prisma.group.findMany({
-      orderBy: [{ name: "asc" }],
+      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
         _count: { select: { links: true } },
         links: {
@@ -38,6 +43,7 @@ export async function GET() {
       groups: groups.map((g) => ({
         id: g.id,
         name: g.name,
+        sortOrder: g.sortOrder,
         parentGroupId: g.parentGroupId,
         createdAt: g.createdAt.toISOString(),
         linksCount: g._count.links,
@@ -100,8 +106,28 @@ export async function POST(request: Request) {
       }
     }
 
+    const maxOrder = await prisma.group.aggregate({
+      _max: { sortOrder: true },
+    });
+    const nextAppend = (maxOrder._max.sortOrder ?? -1) + 1;
+
+    let sortOrder = nextAppend;
+    if (
+      typeof body.insertAt === "number" &&
+      Number.isFinite(body.insertAt) &&
+      Number.isInteger(body.insertAt)
+    ) {
+      const count = await prisma.group.count();
+      const insertAt = Math.max(0, Math.min(body.insertAt, count));
+      sortOrder = insertAt;
+      await prisma.group.updateMany({
+        where: { sortOrder: { gte: insertAt } },
+        data: { sortOrder: { increment: 1 } },
+      });
+    }
+
     const created = await prisma.group.create({
-      data: { name, parentGroupId },
+      data: { name, parentGroupId, sortOrder },
     });
 
     return NextResponse.json(
@@ -109,6 +135,7 @@ export async function POST(request: Request) {
         group: {
           id: created.id,
           name: created.name,
+          sortOrder: created.sortOrder,
           parentGroupId: created.parentGroupId,
           createdAt: created.createdAt.toISOString(),
         },
@@ -125,6 +152,76 @@ export async function POST(request: Request) {
     console.error("POST /api/groups:", e);
     return NextResponse.json(
       { error: "Failed to create group" },
+      { status: 500 },
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  const envErr = getDatabaseEnvError();
+  if (envErr) {
+    return NextResponse.json({ error: envErr }, { status: 503 });
+  }
+
+  try {
+    let body: PatchBody;
+    try {
+      body = await request.json();
+    } catch {
+      return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+    }
+
+    if (!Array.isArray(body.orderedIds) || body.orderedIds.length === 0) {
+      return NextResponse.json(
+        { error: "orderedIds must be a non-empty array of group ids" },
+        { status: 400 },
+      );
+    }
+
+    const orderedIds = body.orderedIds.filter(
+      (id): id is string => typeof id === "string" && id.trim().length > 0,
+    );
+    if (orderedIds.length !== body.orderedIds.length) {
+      return NextResponse.json(
+        { error: "orderedIds must contain only non-empty strings" },
+        { status: 400 },
+      );
+    }
+    if (new Set(orderedIds).size !== orderedIds.length) {
+      return NextResponse.json(
+        { error: "orderedIds must not contain duplicates" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.group.findMany({
+      select: { id: true },
+    });
+    const existingIds = new Set(existing.map((g) => g.id));
+    if (
+      orderedIds.length !== existingIds.size ||
+      orderedIds.some((id) => !existingIds.has(id))
+    ) {
+      return NextResponse.json(
+        { error: "orderedIds must include every group exactly once" },
+        { status: 400 },
+      );
+    }
+
+    await prisma.$transaction(
+      orderedIds.map((id, index) =>
+        prisma.group.update({
+          where: { id },
+          data: { sortOrder: index },
+        }),
+      ),
+    );
+
+    return NextResponse.json({ ok: true });
+  } catch (e) {
+    console.error("PATCH /api/groups:", e);
+    return NextResponse.json(
+      { error: "Failed to reorder groups" },
       { status: 500 },
     );
   }

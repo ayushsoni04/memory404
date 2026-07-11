@@ -8,7 +8,6 @@ import {
 import { linkTextSearchWhere } from "@/lib/link-search";
 import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
-import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const linksRouter = Router();

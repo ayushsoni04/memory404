@@ -56,10 +56,11 @@ export default function LinkCard({ link, onOpen }: Props) {
 
   return (
     <article ref={cardRef} className="mind-card mb-3 break-inside-avoid">
-      <div className="group relative rounded-xl bg-surface-elevated">
+      <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated">
+        <span className="mind-card-stroke" aria-hidden />
         <button
           type="button"
-          className="relative block w-full overflow-hidden rounded-xl text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+          className="relative z-[1] block w-full overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
           onClick={() => {
             if (cardRef.current) onOpen(link, cardRef.current);
           }}
