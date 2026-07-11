@@ -8,7 +8,7 @@ export async function GET() {
   const envErr = getDatabaseEnvError();
   if (envErr) {
     return NextResponse.json(
-      { ok: false, service: "linksavekren-web", error: envErr },
+      { ok: false, service: "memory404-web", error: envErr },
       { status: 503 },
     );
   }
@@ -17,13 +17,13 @@ export async function GET() {
     await prisma.$queryRaw`SELECT 1`;
     return NextResponse.json({
       ok: true,
-      service: "linksavekren-web",
+      service: "memory404-web",
       db: "ok",
     });
   } catch (e) {
     console.error("GET /api/health:", e);
     return NextResponse.json(
-      { ok: false, service: "linksavekren-web", db: "error" },
+      { ok: false, service: "memory404-web", db: "error" },
       { status: 503 },
     );
   }

@@ -1,6 +1,6 @@
-# Not a Bookmark Chrome Extension
+# memory404 Chrome Extension
 
-React + webpack Chrome extension (Manifest V3) to save the current tab into your Not a Bookmark app.
+React + webpack Chrome extension (Manifest V3) to save the current tab into your memory404 app.
 
 ## Features
 
@@ -10,7 +10,7 @@ React + webpack Chrome extension (Manifest V3) to save the current tab into your
   - description
   - og image
 - Lets you choose an existing group or create a new one inline
-- Configurable app URL (defaults to `http://localhost:3000`; use `https://linksavekren.vercel.app` for production)
+- Configurable app URL (defaults to `http://localhost:3000`; use `https://memory404.vercel.app` for production)
 
 ## Setup
 
@@ -36,5 +36,5 @@ npm run dev
 ## Notes
 
 - **Local:** run `npm run dev` in the project root, keep App URL as `http://localhost:3000`
-- **Production:** set App URL in the popup (⚙) to `https://linksavekren.vercel.app`
+- **Production:** set App URL in the popup (⚙) to `https://memory404.vercel.app`
 - Reload the extension in `chrome://extensions` after rebuilding

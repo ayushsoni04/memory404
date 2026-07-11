@@ -1,8 +1,8 @@
 {
-  "name": "not-a-bookmark-extension",
+  "name": "memory404-extension",
   "version": "0.1.0",
   "private": true,
-  "description": "Chrome extension for saving current tab into Not a Bookmark",
+  "description": "Chrome extension for saving current tab into memory404",
   "scripts": {
     "dev": "webpack --watch --config webpack.dev.js",
     "build": "webpack --config webpack.prod.js"

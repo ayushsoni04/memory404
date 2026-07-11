@@ -103,7 +103,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 chrome.omnibox.onInputStarted.addListener(() => {
   chrome.omnibox.setDefaultSuggestion({
     description:
-      "Not a Bookmark: type URL to <match>save &amp; open</match>, or type <match>open</match>.",
+      "memory404: type URL to <match>save &amp; open</match>, or type <match>open</match>.",
   });
 });
 
@@ -115,11 +115,11 @@ chrome.omnibox.onInputChanged.addListener((text, suggest) => {
       content: input || "open",
       description: input
         ? `Save and open: <match>${safe}</match>`
-        : "Open Not a Bookmark app",
+        : "Open memory404 app",
     },
     {
       content: "open",
-      description: "Open Not a Bookmark app only",
+      description: "Open memory404 app only",
     },
   ]);
 });

@@ -1,4 +1,4 @@
-# LinkSaveKren API (Render)
+# memory404 API (Render)
 
 Express backend for `/api/groups` and `/api/links`. Shares Prisma schema and `lib/` with the Next.js frontend.
 
@@ -31,7 +31,7 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
    - **Build:** `npm install && npm run build`
    - **Start:** `npm start`
    - **Health check path:** `/health`
-4. Add env vars: `DATABASE_URL`, `DIRECT_URL`, `CORS_ORIGINS=https://linksavekren.vercel.app`
-5. Copy the service URL (e.g. `https://linksavekren-api.onrender.com`).
+4. Add env vars: `DATABASE_URL`, `DIRECT_URL`, `CORS_ORIGINS=https://memory404.vercel.app`
+5. Copy the service URL (e.g. `https://memory404-api.onrender.com`).
 6. On Vercel, set `NEXT_PUBLIC_API_URL` to that URL and redeploy.
 7. In the Chrome extension settings (⚙), set **App URL** to the same Render URL.

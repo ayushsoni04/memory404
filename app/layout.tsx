@@ -23,8 +23,8 @@ const firaCode = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Not a Bookmark",
-  description: "Save and browse links — not a bookmark",
+  title: "memory404",
+  description: "Save and browse links — memory404",
 };
 
 export default function RootLayout({

@@ -15,7 +15,7 @@ import { UNCATEGORIZED_GROUP_NAME } from "@/lib/group-constants";
 import type { LinkApiRow } from "@/lib/links";
 
 const GROUP_PILL_MIN_PX = 96;
-const GRID_SIZE_KEY = "nab-grid-size";
+const GRID_SIZE_KEY = "memory404-grid-size";
 
 type GridSize = "compact" | "default" | "large";
 
@@ -729,7 +729,7 @@ export default function VaultInbox() {
         <div className="col-start-1 row-start-1 flex flex-col items-start gap-3">
           <a
             href="/"
-            aria-label="Not a Bookmark"
+            aria-label="memory404"
             className="inline-flex items-center gap-2 text-foreground"
           >
             <svg
@@ -939,7 +939,7 @@ export default function VaultInbox() {
           </form>
 
           <p className="hidden text-[13px] text-subtle lg:block">
-            © {new Date().getFullYear()} Not a Bookmark
+            © {new Date().getFullYear()} memory404
           </p>
         </div>
       </aside>
@@ -950,7 +950,7 @@ export default function VaultInbox() {
           <header className="-mr-4 flex flex-col gap-y-1 pr-4 pt-[17px] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4">
             <div className="flex flex-col gap-y-1 lg:min-w-0 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
               <h1 className="shrink-0 text-[15px] font-medium leading-normal text-foreground">
-                {openedGroup?.name ?? "Not a Bookmark"}
+                {openedGroup?.name ?? "memory404"}
               </h1>
               <p className="min-w-0 text-balance text-[15px] text-subtle">
                 Links you save, browsed like a dark inspiration feed.
@@ -1257,7 +1257,7 @@ export default function VaultInbox() {
         </main>
 
         <p className="mt-8 shrink-0 text-[13px] text-subtle lg:hidden">
-          © {new Date().getFullYear()} Not a Bookmark
+          © {new Date().getFullYear()} memory404
         </p>
       </div>
 

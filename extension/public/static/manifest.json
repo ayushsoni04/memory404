@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
-  "name": "Not a Bookmark Quick Save",
-  "description": "Save current tab to Not a Bookmark groups.",
+  "name": "memory404 Quick Save",
+  "description": "Save current tab to memory404 groups.",
   "version": "0.1.0",
   "action": {
     "default_title": "Save Link",
@@ -19,7 +19,7 @@
         "default": "Alt+Shift+L",
         "mac": "Option+Shift+L"
       },
-      "description": "Open Not a Bookmark Quick Save popup"
+      "description": "Open memory404 Quick Save popup"
     }
   },
   "permissions": [
@@ -33,7 +33,7 @@
   "host_permissions": [
     "http://localhost:3000/*",
     "https://localhost:3000/*",
-    "https://linksavekren.vercel.app/*",
+    "https://memory404.vercel.app/*",
     "https://*.vercel.app/*",
     "https://*.onrender.com/*",
     "https://*/*",

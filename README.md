@@ -1,13 +1,13 @@
-# Not a Bookmark
+# memory404
 
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Production
 
-- **Frontend (Vercel):** [https://linksavekren.vercel.app](https://linksavekren.vercel.app)
+- **Frontend (Vercel):** [https://memory404.vercel.app](https://memory404.vercel.app)
 - **Backend (Render):** Express API in `backend/` — see [Render setup](#backend-render) below
 
-Set `NEXT_PUBLIC_API_URL` on Vercel to your Render service URL (e.g. `https://linksavekren-api.onrender.com`) so the frontend and extension talk to Render instead of Next.js `/api` routes.
+Set `NEXT_PUBLIC_API_URL` on Vercel to your Render service URL (e.g. `https://memory404-api.onrender.com`) so the frontend and extension talk to Render instead of Next.js `/api` routes.
 
 Redeploy frontend:
 
@@ -32,7 +32,7 @@ Deploy via [Render Dashboard](https://dashboard.render.com) → **New Blueprint*
 | Start Command | `npm start` |
 | Health Check | `/health` |
 
-Env vars on Render: `DATABASE_URL`, `DIRECT_URL`, optional `CORS_ORIGINS=https://linksavekren.vercel.app`
+Env vars on Render: `DATABASE_URL`, `DIRECT_URL`, optional `CORS_ORIGINS=https://memory404.vercel.app`
 
 Local split-stack dev: run `npm run dev` (frontend) and `cd backend && npm run dev` (API), with `NEXT_PUBLIC_API_URL=http://localhost:4000` in `.env.local`.
 

@@ -312,7 +312,7 @@ function App() {
             <div className="saved-row">
               <span className="saved-text">
                 {phase === "saved"
-                  ? "Saved to Not a Bookmark"
+                  ? "Saved to memory404"
                   : "Choose a group, then save"}
               </span>
             </div>
