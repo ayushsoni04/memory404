@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { Plus, RotateCw } from "lucide-react";
 import { Reorder } from "framer-motion";
@@ -80,8 +81,28 @@ export default function VaultInbox() {
   const [newGroupNameDraft, setNewGroupNameDraft] = useState("");
   const [creatingNewGroup, setCreatingNewGroup] = useState(false);
 
-  const [links, setLinks] = useState<LinkApiRow[]>([]);
-  const [loadingLinks, setLoadingLinks] = useState(true);
+  const [links, setLinks] = useState<LinkApiRow[]>(() => {
+    try {
+      const storedGroupId = window.localStorage.getItem("memory404-opened-group-id");
+      const storedLinksCache = window.localStorage.getItem("memory404-links-cache");
+      if (storedGroupId && storedLinksCache) {
+        const cache = JSON.parse(storedLinksCache);
+        return cache[storedGroupId] || [];
+      }
+    } catch {}
+    return [];
+  });
+  const [loadingLinks, setLoadingLinks] = useState(() => {
+    try {
+      const storedGroupId = window.localStorage.getItem("memory404-opened-group-id");
+      const storedLinksCache = window.localStorage.getItem("memory404-links-cache");
+      if (storedGroupId && storedLinksCache) {
+        const cache = JSON.parse(storedLinksCache);
+        if (cache[storedGroupId]) return false;
+      }
+    } catch {}
+    return true;
+  });
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>(
     {},
@@ -90,9 +111,28 @@ export default function VaultInbox() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copyFailedId, setCopyFailedId] = useState<string | null>(null);
 
-  const [groups, setGroups] = useState<GroupRow[]>([]);
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-  const [openedGroupId, setOpenedGroupId] = useState<string | null>(null);
+  const [groups, setGroups] = useState<GroupRow[]>(() => {
+    try {
+      const stored = window.localStorage.getItem("memory404-groups-cache");
+      return stored ? JSON.parse(stored) : [];
+    } catch {
+      return [];
+    }
+  });
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
+    try {
+      return window.localStorage.getItem("memory404-opened-group-id");
+    } catch {
+      return null;
+    }
+  });
+  const [openedGroupId, setOpenedGroupId] = useState<string | null>(() => {
+    try {
+      return window.localStorage.getItem("memory404-opened-group-id");
+    } catch {
+      return null;
+    }
+  });
   const [createGroupName, setCreateGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [addingAt, setAddingAt] = useState<number | null>(null);
@@ -101,6 +141,20 @@ export default function VaultInbox() {
   const [openedLinkId, setOpenedLinkId] = useState<string | null>(null);
   const [overlayOrigin, setOverlayOrigin] = useState<DOMRect | null>(null);
   const [gridSize, setGridSize] = useState<GridSize>("large");
+  const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
+  const [linksCache, setLinksCache] = useState<Record<string, LinkApiRow[]>>(() => {
+    try {
+      const stored = window.localStorage.getItem("memory404-links-cache");
+      return stored ? JSON.parse(stored) : {};
+    } catch {
+      return {};
+    }
+  });
+
+  const linksCacheRef = useRef(linksCache);
+  useEffect(() => {
+    linksCacheRef.current = linksCache;
+  }, [linksCache]);
   const groupInputRef = useRef<HTMLInputElement | null>(null);
   const groupSizerRef = useRef<HTMLSpanElement | null>(null);
   const [groupInputWidth, setGroupInputWidth] = useState(GROUP_PILL_MIN_PX);
@@ -126,83 +180,130 @@ export default function VaultInbox() {
     [],
   );
 
-  const loadGroups = useCallback(async () => {
-    setGroupsError(null);
-    try {
-      const res = await fetch(apiUrl("/api/groups"));
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setGroupsError(
-          typeof data.error === "string" ? data.error : "Failed to load groups",
-        );
-        setGroups([]);
-        return;
+  const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
+
+  // useSWR for groups/folders
+  const { data: swrGroups, mutate: mutateGroups } = useSWR(
+    apiUrl("/api/groups"),
+    async (url) => {
+      setGroupsError(null);
+      try {
+        const res = await fetch(url);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = typeof data.error === "string" ? data.error : "Failed to load groups";
+          setGroupsError(msg);
+          throw new Error(msg);
+        }
+        return Array.isArray(data.groups) ? (data.groups as GroupRow[]) : [];
+      } catch (err: any) {
+        setGroupsError(err.message || "Failed to load groups");
+        throw err;
       }
-      const list = Array.isArray(data.groups) ? (data.groups as GroupRow[]) : [];
-      setGroups(list);
+    }
+  );
+
+  // useSWR for links of current group
+  const { data: swrLinks, mutate: mutateSWRLinks, isValidating: swrValidating } = useSWR(
+    openedGroupId ? linksListUrl(openedGroupId) : null,
+    async (url) => {
+      setFetchError(null);
+      try {
+        const res = await fetch(url);
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          const msg = typeof data.error === "string" ? data.error : "Failed to load links";
+          const hint = typeof data.hint === "string" && data.hint.trim() ? ` — ${data.hint.trim()}` : "";
+          const fullMsg = `${msg}${hint}`;
+          setFetchError(fullMsg);
+          throw new Error(fullMsg);
+        }
+        return Array.isArray(data.links) ? (data.links as LinkApiRow[]) : [];
+      } catch (err: any) {
+        setFetchError(err.message || "Failed to load links");
+        throw err;
+      }
+    },
+    {
+      revalidateOnFocus: true,
+      dedupingInterval: 2000,
+      refreshInterval: hasPendingMetadata ? 3000 : 0
+    }
+  );
+
+  // Sync SWR groups to local state
+  useEffect(() => {
+    if (swrGroups) {
+      setGroups(swrGroups);
+      try {
+        window.localStorage.setItem("memory404-groups-cache", JSON.stringify(swrGroups));
+      } catch {}
+
       const general =
-        list.find(
+        swrGroups.find(
           (g) =>
             g.name.trim().toLowerCase() ===
             GENERAL_GROUP_NAME.toLowerCase(),
-        ) ?? list[0];
+        ) ?? swrGroups[0];
       if (general) {
         setSelectedGroupId((prev) => prev ?? general.id);
-        setOpenedGroupId((prev) => prev ?? general.id);
+        setOpenedGroupId((prev) => {
+          const next = prev ?? general.id;
+          try {
+            window.localStorage.setItem("memory404-opened-group-id", next);
+          } catch {}
+          return next;
+        });
       }
-    } catch {
-      setGroupsError("Failed to load groups");
-      setGroups([]);
     }
-  }, []);
+  }, [swrGroups]);
 
-  const loadLinks = useCallback(async () => {
-    if (!openedGroupId) return;
-    setFetchError(null);
-    setLoadingLinks(true);
-    try {
-      const res = await fetch(linksListUrl(openedGroupId));
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        const msg =
-          typeof data.error === "string" ? data.error : "Failed to load links";
-        const hint =
-          typeof data.hint === "string" && data.hint.trim()
-            ? ` — ${data.hint.trim()}`
-            : "";
-        setFetchError(`${msg}${hint}`);
-        setLinks([]);
-        return;
+  // Sync SWR links to local state
+  useEffect(() => {
+    if (swrLinks) {
+      setLinks(swrLinks);
+      if (openedGroupId) {
+        setLinksCache((prev) => {
+          const next = { ...prev, [openedGroupId]: swrLinks };
+          try {
+            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
       }
-      setLinks(Array.isArray(data.links) ? data.links : []);
-    } catch {
-      setFetchError("Failed to load links");
-      setLinks([]);
-    } finally {
+    }
+  }, [swrLinks, openedGroupId]);
+
+  // Sync SWR validation status to loadingLinks
+  useEffect(() => {
+    const cached = linksCacheRef.current[openedGroupId || ""];
+    if (cached) {
       setLoadingLinks(false);
+    } else {
+      setLoadingLinks(swrValidating);
     }
-  }, [linksListUrl, openedGroupId]);
+  }, [swrValidating, openedGroupId]);
 
-  /** Poll metadata completion without full-page loading state. */
-  const refreshLinksSilently = useCallback(async () => {
-    if (!openedGroupId) return;
-    try {
-      const res = await fetch(linksListUrl(openedGroupId));
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) return;
-      if (Array.isArray(data.links)) setLinks(data.links);
-    } catch {
-      /* ignore */
+  // Maintain wrappers for manual callbacks to trigger SWR refetches
+  const loadGroups = useCallback(() => {
+    return mutateGroups();
+  }, [mutateGroups]);
+
+  const loadLinks = useCallback(() => {
+    return mutateSWRLinks();
+  }, [mutateSWRLinks]);
+
+  // Hydrate from cache instantly when switching groups
+  useEffect(() => {
+    if (openedGroupId) {
+      const cached = linksCacheRef.current[openedGroupId];
+      if (cached) {
+        setLinks(cached);
+      } else {
+        setLinks([]);
+      }
     }
-  }, [linksListUrl, openedGroupId]);
-
-  useEffect(() => {
-    void loadGroups();
-  }, [loadGroups]);
-
-  useEffect(() => {
-    if (openedGroupId) void loadLinks();
-  }, [loadLinks, openedGroupId]);
+  }, [openedGroupId]);
 
   const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
 
@@ -218,13 +319,6 @@ export default function VaultInbox() {
     return folderGroups.filter((group) => group.name.toLowerCase().includes(q));
   })();
 
-  const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
-
-  useEffect(() => {
-    if (!hasPendingMetadata) return;
-    const id = window.setInterval(() => void refreshLinksSilently(), 2000);
-    return () => window.clearInterval(id);
-  }, [hasPendingMetadata, refreshLinksSilently]);
 
   const saveLink = useCallback(
     async (
@@ -315,6 +409,42 @@ export default function VaultInbox() {
       return;
     }
 
+    let hostname = "";
+    try {
+      hostname = new URL(url).hostname;
+    } catch {
+      hostname = url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+    }
+
+    const tempId = `optimistic-${Date.now()}`;
+    const draftLink: LinkApiRow = {
+      id: tempId,
+      url,
+      title: hostname,
+      custom_title: null,
+      customTitle: null,
+      display_title: hostname,
+      description: "Saving link...",
+      image_url: "",
+      favicon_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`,
+      faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`,
+      tags: [],
+      notes: null,
+      group_id: groupId ?? "",
+      groupId: groupId ?? "",
+      metadata_status: "pending",
+      created_at: new Date().toISOString(),
+      createdAt: new Date().toISOString(),
+      isPending: true,
+    };
+
+    const originalLinks = links;
+
+    // Optimistically add to UI links array if target group is currently open
+    if (groupId === openedGroupId && !trimmedNew) {
+      setLinks((prev) => [draftLink, ...prev]);
+    }
+
     setSaving(true);
     setSaveError(null);
     try {
@@ -323,18 +453,49 @@ export default function VaultInbox() {
       });
       if (!result.ok) {
         setSaveError(result.error);
+        if (groupId === openedGroupId && !trimmedNew) {
+          setLinks(originalLinks);
+        }
         return;
       }
       resetSaveForm();
       setSavedFlash(true);
       window.setTimeout(() => setSavedFlash(false), 2500);
       const row = result.link;
+
+      // Update UI with final saved row
       if (row.groupId === openedGroupId) {
-        setLinks((prev) => [row, ...prev.filter((l) => l.id !== row.id)]);
+        setLinks((prev) => [row, ...prev.filter((l) => l.id !== tempId && l.id !== row.id)]);
       } else {
+        setLinks((prev) => prev.filter((l) => l.id !== tempId));
         void loadLinks();
       }
+
+      // Update linksCache
+      if (openedGroupId) {
+        setLinksCache((prev) => {
+          const groupLinks = prev[openedGroupId] || [];
+          const updatedGroupLinks = groupLinks.filter((l) => l.id !== tempId);
+          const next = {
+            ...prev,
+            [openedGroupId]: updatedGroupLinks
+          };
+          if (row.groupId === openedGroupId) {
+            next[openedGroupId] = [row, ...next[openedGroupId].filter((l) => l.id !== row.id)];
+          } else if (row.groupId) {
+            next[row.groupId] = [row, ...(next[row.groupId] || []).filter((l) => l.id !== row.id)];
+          }
+          try {
+            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+      }
       void loadGroups();
+    } catch {
+      if (groupId === openedGroupId && !trimmedNew) {
+        setLinks(originalLinks);
+      }
     } finally {
       setSaving(false);
     }
@@ -355,10 +516,22 @@ export default function VaultInbox() {
       delete next[id];
       return next;
     });
+
+    const originalLinks = links;
+
+    // Optimistically remove from UI state
+    setLinks((prev) => prev.filter((l) => l.id !== id));
+    if (openedLinkId === id) {
+      setOpenedLinkId(null);
+      setOverlayOrigin(null);
+    }
+
     try {
       const res = await fetch(apiUrl(`/api/links/${id}`), { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Rollback state if server returns error!
+        setLinks(originalLinks);
         const msg =
           typeof data.error === "string" ? data.error : "Failed to delete";
         const hint =
@@ -371,15 +544,26 @@ export default function VaultInbox() {
         }));
         return;
       }
-      setLinks((prev) => prev.filter((l) => l.id !== id));
-      if (openedLinkId === id) {
-        setOpenedLinkId(null);
-        setOverlayOrigin(null);
+      
+      // Update cache
+      if (openedGroupId) {
+        setLinksCache((prev) => {
+          const next = {
+            ...prev,
+            [openedGroupId]: (prev[openedGroupId] || []).filter((l) => l.id !== id),
+          };
+          try {
+            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
       }
     } catch {
+      // Rollback state if server returns error!
+      setLinks(originalLinks);
       setDeleteErrors((prev) => ({
         ...prev,
-        [id]: "Network error — try again",
+        [id]: "Network error — failed to delete",
       }));
     }
   };
@@ -407,6 +591,24 @@ export default function VaultInbox() {
       delete n[link.id];
       return n;
     });
+
+    const originalLinks = links;
+    
+    // Optimistic UI updates
+    if (nextGroupId !== openedGroupId) {
+      setLinks((prev) => prev.filter((l) => l.id !== link.id));
+      if (openedLinkId === link.id) {
+        setOpenedLinkId(null);
+        setOverlayOrigin(null);
+      }
+    } else {
+      setLinks((prev) =>
+        prev.map((l) =>
+          l.id === link.id ? { ...l, groupId: nextGroupId } : l,
+        ),
+      );
+    }
+
     try {
       const res = await fetch(apiUrl(`/api/links/${link.id}`), {
         method: "PATCH",
@@ -415,25 +617,35 @@ export default function VaultInbox() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
+        // Rollback state if server returns error!
+        setLinks(originalLinks);
         const msg =
           typeof data.error === "string" ? data.error : "Failed to move link";
         setPatchErrors((p) => ({ ...p, [link.id]: msg }));
         return;
       }
-      if (nextGroupId !== openedGroupId) {
-        setLinks((prev) => prev.filter((l) => l.id !== link.id));
-        if (openedLinkId === link.id) {
-          setOpenedLinkId(null);
-          setOverlayOrigin(null);
+      
+      const updatedLink = data.link ? (data.link as LinkApiRow) : { ...link, groupId: nextGroupId };
+      
+      // Update cache
+      setLinksCache((prev) => {
+        const next = { ...prev };
+        // Remove from old group in cache
+        if (link.groupId && next[link.groupId]) {
+          next[link.groupId] = next[link.groupId].filter((l) => l.id !== link.id);
         }
-      } else if (data.link) {
-        setLinks((prev) =>
-          prev.map((l) =>
-            l.id === link.id ? (data.link as LinkApiRow) : l,
-          ),
-        );
-      }
+        // Add to new group in cache
+        if (nextGroupId && next[nextGroupId]) {
+          next[nextGroupId] = [updatedLink, ...(next[nextGroupId].filter((l) => l.id !== link.id))];
+        }
+        try {
+          window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
+        } catch {}
+        return next;
+      });
     } catch {
+      // Rollback state if server returns error!
+      setLinks(originalLinks);
       setPatchErrors((p) => ({
         ...p,
         [link.id]: "Network error — try again",
@@ -528,6 +740,9 @@ export default function VaultInbox() {
   const selectGroup = (id: string) => {
     setSelectedGroupId(id);
     setOpenedGroupId(id);
+    try {
+      window.localStorage.setItem("memory404-opened-group-id", id);
+    } catch {}
   };
 
   const persistFolderOrder = useCallback(async (orderedFolders: GroupRow[]) => {
@@ -560,7 +775,7 @@ export default function VaultInbox() {
   const fieldClass =
     "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-border-strong focus:ring-1 focus:ring-foreground/20";
   const pillBase =
-    "inline-flex h-7 shrink-0 items-center rounded-full border border-transparent px-2.5 text-[13px] leading-none transition-colors select-none";
+    "inline-flex h-7 shrink-0 items-center rounded-full border border-transparent px-4 text-[13px] leading-none transition-colors select-none";
   const pillActive = `${pillBase} bg-pill-active text-pill-active-fg`;
   const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover`;
   const canReorderPills = !groupSearch.trim() && addingAt == null;
@@ -571,8 +786,8 @@ export default function VaultInbox() {
       className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4 min-[1712px]:border-x min-[1712px]:border-border"
     >
       {/* Sidebar — recent.design layout */}
-      <aside className="grid grid-cols-2 items-start gap-x-4 gap-y-8 lg:fixed lg:left-[max(1rem,calc((100vw-var(--content-max))/2+1rem))] lg:top-0 lg:z-[45] lg:box-border lg:flex lg:h-dvh lg:w-[var(--sidebar-w)] lg:shrink-0 lg:flex-col lg:items-stretch lg:gap-8 lg:py-4">
-        <div className="col-start-1 row-start-1 flex flex-col items-start gap-3">
+      <aside className="flex flex-col gap-6 lg:fixed lg:left-[max(1rem,calc((100vw-var(--content-max))/2+1rem))] lg:top-0 lg:z-[45] lg:box-border lg:h-dvh lg:w-[var(--sidebar-w)] lg:shrink-0 lg:items-stretch lg:gap-8 lg:py-4">
+        <div className="flex flex-col items-start gap-3">
           <Link
             href="/"
             aria-label="memory404"
@@ -619,60 +834,7 @@ export default function VaultInbox() {
           </div>
         </div>
 
-        <nav className="col-start-2 row-start-1 flex max-h-[40vh] flex-col items-start gap-1 overflow-y-auto lg:max-h-none [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          {generalGroup ? (() => {
-            const active =
-              generalGroup.id === openedGroupId ||
-              generalGroup.id === selectedGroupId;
-            return (
-              <button
-                key={generalGroup.id}
-                type="button"
-                onClick={() => selectGroup(generalGroup.id)}
-                className={`relative block max-w-full truncate pr-3.5 text-left text-[15px] transition-colors hover:text-foreground ${
-                  active ? "text-foreground" : "text-subtle"
-                }`}
-              >
-                {generalGroup.name}
-                {active ? (
-                  <span
-                    aria-hidden="true"
-                    className="absolute top-1/2 right-0 size-2 -translate-y-1/2 rounded-full bg-foreground"
-                  />
-                ) : null}
-              </button>
-            );
-          })() : null}
-          {generalGroup && filteredFolders.length ? (
-            <span aria-hidden className="my-2 h-px w-full bg-border" />
-          ) : null}
-          {filteredFolders.map((g) => {
-            const active = g.id === openedGroupId || g.id === selectedGroupId;
-            return (
-              <button
-                key={g.id}
-                type="button"
-                onClick={() => selectGroup(g.id)}
-                className={`relative block max-w-full truncate pr-3.5 text-left text-[15px] transition-colors hover:text-foreground ${
-                  active ? "text-foreground" : "text-subtle"
-                }`}
-              >
-                {g.name}
-                {active ? (
-                  <span
-                    aria-hidden="true"
-                    className="absolute top-1/2 right-0 size-2 -translate-y-1/2 rounded-full bg-foreground"
-                  />
-                ) : null}
-              </button>
-            );
-          })}
-          {!generalGroup && !filteredFolders.length && !groupsError ? (
-            <span className="text-[15px] text-subtle">Loading…</span>
-          ) : null}
-        </nav>
-
-        <div className="col-span-2 flex flex-col gap-5 lg:col-span-1 lg:mt-auto">
+        <div className="flex flex-col gap-5 lg:mt-auto">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
             {savePhase === "paste" ? (
               <>
@@ -845,27 +1007,52 @@ export default function VaultInbox() {
 
           {/* Sticky group pills */}
           <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background/95 pt-3 pb-4 pr-4 backdrop-blur-md">
-            <div className="flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            <div className="relative flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5">
+              
+              {/* Background dashed placeholder slots revealed during drag */}
+              {draggingGroupId !== null && (
+                <div className="absolute inset-0 flex items-center pointer-events-none z-0">
+                  {generalGroup ? (
+                    <div className="invisible shrink-0 px-4 text-[13px] h-7">
+                      {generalGroup.name}
+                    </div>
+                  ) : null}
+                  {generalGroup ? (
+                    <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-transparent" />
+                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {filteredFolders.map((g) => (
+                      <div
+                        key={`bg-${g.id}`}
+                        className="inline-flex h-7 shrink-0 items-center rounded-full border border-dashed border-border-strong/50 px-4 text-[13px] leading-none text-transparent select-none bg-transparent"
+                      >
+                        {g.name}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {generalGroup ? (
                 <button
                   type="button"
                   aria-pressed={generalGroup.id === openedGroupId}
                   onClick={() => selectGroup(generalGroup.id)}
-                  className={
+                  className={`z-10 relative ${
                     generalGroup.id === openedGroupId ? pillActive : pillIdle
-                  }
+                  }`}
                 >
                   {generalGroup.name}
                 </button>
               ) : null}
               {generalGroup ? (
-                <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border" />
+                <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border z-10 relative" />
               ) : null}
               <Reorder.Group
                 axis="x"
                 values={filteredFolders}
                 onReorder={persistFolderOrder}
-                className="group-pills-row flex min-w-0 items-center gap-2 overflow-visible"
+                className="group-pills-row flex min-w-0 items-center gap-2 overflow-visible z-10 relative bg-transparent"
                 as="div"
               >
                 {filteredFolders.map((g) => (
@@ -875,11 +1062,26 @@ export default function VaultInbox() {
                     as="div"
                     drag={canReorderPills ? "x" : false}
                     className="shrink-0"
+                    onDragStart={() => setDraggingGroupId(g.id)}
+                    onDragEnd={() => setDraggingGroupId(null)}
+                    whileDrag={{
+                      scale: 1.03,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                    }}
+                    transition={{
+                      type: "tween",
+                      ease: "easeInOut",
+                      duration: 0.18,
+                    }}
                   >
                     <button
                       type="button"
                       onClick={() => selectGroup(g.id)}
-                      className={g.id === openedGroupId ? pillActive : pillIdle}
+                      className={`${g.id === openedGroupId ? pillActive : pillIdle} transition-all duration-150 ${
+                        draggingGroupId === g.id
+                          ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
+                          : ""
+                      }`}
                     >
                       {g.name}
                     </button>

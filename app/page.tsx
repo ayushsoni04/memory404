@@ -1,4 +1,10 @@
-import VaultInbox from "@/components/VaultInbox";
+"use client";
+
+import dynamic from "next/dynamic";
+
+const VaultInbox = dynamic(() => import("@/components/VaultInbox"), {
+  ssr: false,
+});
 
 export default function Home() {
   return (

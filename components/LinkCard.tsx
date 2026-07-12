@@ -17,7 +17,7 @@ type Props = {
 export default function LinkCard({ link, onOpen }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
-  const pending = link.metadata_status === "pending";
+  const pending = link.metadata_status === "pending" || !!link.isPending;
   const [imgSrc, setImgSrc] = useState(link.image_url);
   const [resolving, setResolving] = useState(false);
   const resolveAttempted = useRef(false);

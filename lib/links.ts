@@ -31,6 +31,7 @@ export type LinkApiRow = {
   createdAt: string;
   /** `custom_title ?? title` */
   display_title: string;
+  isPending?: boolean;
 };
 
 /** Reliable favicon URL for any http(s) page (used when no og:image was stored). */
