@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Plus, RotateCw } from "lucide-react";
+import { Reorder } from "framer-motion";
 import AddLinkCard from "@/components/AddLinkCard";
 import { AppLoader } from "@/components/AppLoader";
 import LinkCard from "@/components/LinkCard";
@@ -99,32 +100,10 @@ export default function VaultInbox() {
   const [groupSearch, setGroupSearch] = useState("");
   const [openedLinkId, setOpenedLinkId] = useState<string | null>(null);
   const [overlayOrigin, setOverlayOrigin] = useState<DOMRect | null>(null);
-  const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
-  const [dropIndex, setDropIndex] = useState<number | null>(null);
-  const [insertHoverIndex, setInsertHoverIndex] = useState<number | null>(null);
-  const [dragPillWidth, setDragPillWidth] = useState(GROUP_PILL_MIN_PX);
-  const [dragPillLabel, setDragPillLabel] = useState("");
-  const [dragCursor, setDragCursor] = useState<{ x: number; y: number } | null>(
-    null,
-  );
-  const [dragSnapped, setDragSnapped] = useState(false);
   const [gridSize, setGridSize] = useState<GridSize>("large");
   const groupInputRef = useRef<HTMLInputElement | null>(null);
   const groupSizerRef = useRef<HTMLSpanElement | null>(null);
   const [groupInputWidth, setGroupInputWidth] = useState(GROUP_PILL_MIN_PX);
-  const dragGroupIdRef = useRef<string | null>(null);
-  const dropIndexRef = useRef<number | null>(null);
-  const dragMovedRef = useRef(false);
-  const suppressClickRef = useRef(false);
-  const pointerDragRef = useRef<{
-    id: string;
-    label: string;
-    fromIndex: number;
-    startX: number;
-    startY: number;
-    width: number;
-    pointerId: number;
-  } | null>(null);
 
   useEffect(() => {
     setGridSize(readStoredGridSize());
@@ -501,11 +480,9 @@ export default function VaultInbox() {
   };
 
   const openAddGroup = (at: number) => {
-    if (draggingGroupId) return;
     setAddingAt(at);
     setCreateGroupName("");
     setGroupsError(null);
-    setInsertHoverIndex(null);
     window.setTimeout(() => groupInputRef.current?.focus(), 30);
   };
 
@@ -580,146 +557,6 @@ export default function VaultInbox() {
     }
   }, [generalGroup, groups]);
 
-  const clearDragState = useCallback(() => {
-    dragGroupIdRef.current = null;
-    dropIndexRef.current = null;
-    pointerDragRef.current = null;
-    dragMovedRef.current = false;
-    setDraggingGroupId(null);
-    setDropIndex(null);
-    setDragPillWidth(GROUP_PILL_MIN_PX);
-    setDragPillLabel("");
-    setDragCursor(null);
-    setDragSnapped(false);
-  }, []);
-
-  const commitDrop = useCallback(() => {
-    const fromId = dragGroupIdRef.current;
-    const toIndex = dropIndexRef.current;
-    clearDragState();
-    if (!fromId || toIndex == null || groupSearch.trim()) return;
-
-    const fromIndex = folderGroups.findIndex((g) => g.id === fromId);
-    if (fromIndex < 0) return;
-
-    const without = folderGroups.filter((g) => g.id !== fromId);
-    const clamped = Math.max(0, Math.min(toIndex, without.length));
-    const next = [...without];
-    next.splice(clamped, 0, folderGroups[fromIndex]);
-
-    const same =
-      next.length === folderGroups.length &&
-      next.every((g, i) => g.id === folderGroups[i]?.id);
-    if (same) return;
-    void persistFolderOrder(next);
-  }, [
-    clearDragState,
-    folderGroups,
-    groupSearch,
-    persistFolderOrder,
-  ]);
-
-  const setDropAt = useCallback((index: number) => {
-    dropIndexRef.current = index;
-    setDropIndex(index);
-  }, []);
-
-  const pillsRowRef = useRef<HTMLDivElement | null>(null);
-
-  const lastPointerRef = useRef({ x: 0, y: 0 });
-
-  const updateDropFromClientX = useCallback(
-    (clientX: number) => {
-      const rowEl = pillsRowRef.current;
-      if (!rowEl || !dragGroupIdRef.current) return;
-      const pills = rowEl.querySelectorAll<HTMLElement>("[data-group-pill]");
-      if (!pills.length) {
-        setDropAt(0);
-        return;
-      }
-      for (let i = 0; i < pills.length; i += 1) {
-        const rect = pills[i].getBoundingClientRect();
-        if (clientX < rect.left + rect.width / 2) {
-          setDropAt(i);
-          return;
-        }
-      }
-      setDropAt(pills.length);
-    },
-    [setDropAt],
-  );
-
-  const syncCarryToSlot = useCallback((clientX: number, clientY: number) => {
-    const rowEl = pillsRowRef.current;
-    if (!rowEl || !dragGroupIdRef.current) return;
-    const slot = rowEl.querySelector<HTMLElement>("[data-drop-slot]");
-    if (slot) {
-      const r = slot.getBoundingClientRect();
-      const cx = r.left + r.width / 2;
-      const cy = r.top + r.height / 2;
-      const near = Math.hypot(clientX - cx, clientY - cy) < 56;
-      setDragSnapped(near);
-      setDragCursor(near ? { x: cx, y: cy } : { x: clientX, y: clientY });
-      return;
-    }
-    setDragSnapped(false);
-    setDragCursor({ x: clientX, y: clientY });
-  }, []);
-
-  useLayoutEffect(() => {
-    if (!draggingGroupId) return;
-    syncCarryToSlot(lastPointerRef.current.x, lastPointerRef.current.y);
-  }, [draggingGroupId, dropIndex, dragPillWidth, syncCarryToSlot]);
-
-  useEffect(() => {
-    const onMove = (e: PointerEvent) => {
-      const drag = pointerDragRef.current;
-      if (!drag || e.pointerId !== drag.pointerId) return;
-      lastPointerRef.current = { x: e.clientX, y: e.clientY };
-      const dist = Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY);
-      if (!dragMovedRef.current) {
-        if (dist < 6) return;
-        dragMovedRef.current = true;
-        dragGroupIdRef.current = drag.id;
-        setDraggingGroupId(drag.id);
-        setDragPillWidth(drag.width);
-        setDragPillLabel(drag.label);
-        setDragCursor({ x: e.clientX, y: e.clientY });
-        setDropAt(drag.fromIndex);
-        setInsertHoverIndex(null);
-        setAddingAt(null);
-      }
-      updateDropFromClientX(e.clientX);
-      syncCarryToSlot(e.clientX, e.clientY);
-    };
-
-    const onUp = (e: PointerEvent) => {
-      const drag = pointerDragRef.current;
-      if (!drag || e.pointerId !== drag.pointerId) return;
-      if (dragMovedRef.current) {
-        suppressClickRef.current = true;
-        commitDrop();
-      } else {
-        clearDragState();
-      }
-    };
-
-    window.addEventListener("pointermove", onMove);
-    window.addEventListener("pointerup", onUp);
-    window.addEventListener("pointercancel", onUp);
-    return () => {
-      window.removeEventListener("pointermove", onMove);
-      window.removeEventListener("pointerup", onUp);
-      window.removeEventListener("pointercancel", onUp);
-    };
-  }, [
-    clearDragState,
-    commitDrop,
-    setDropAt,
-    syncCarryToSlot,
-    updateDropFromClientX,
-  ]);
-
   const fieldClass =
     "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-border-strong focus:ring-1 focus:ring-foreground/20";
   const pillBase =
@@ -727,14 +564,6 @@ export default function VaultInbox() {
   const pillActive = `${pillBase} bg-pill-active text-pill-active-fg`;
   const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover`;
   const canReorderPills = !groupSearch.trim() && addingAt == null;
-
-  const pillsForRow = draggingGroupId
-    ? filteredFolders.filter((g) => g.id !== draggingGroupId)
-    : filteredFolders;
-  const activeDropIndex =
-    draggingGroupId && dropIndex != null
-      ? Math.max(0, Math.min(dropIndex, pillsForRow.length))
-      : null;
 
   return (
     <div
@@ -977,6 +806,12 @@ export default function VaultInbox() {
 
           <div className="hidden flex-col gap-2 lg:flex">
             <Link
+              href="/settings"
+              className="text-[13px] text-muted transition-colors hover:text-foreground"
+            >
+              Profile & billing
+            </Link>
+            <Link
               href="/workspace"
               className="text-[13px] text-muted transition-colors hover:text-foreground"
             >
@@ -1026,182 +861,80 @@ export default function VaultInbox() {
               {generalGroup ? (
                 <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border" />
               ) : null}
-              <div
-                ref={pillsRowRef}
-                data-dragging={draggingGroupId ? "true" : undefined}
-                className="group-pills-row flex min-w-0 items-center overflow-visible"
+              <Reorder.Group
+                axis="x"
+                values={filteredFolders}
+                onReorder={persistFolderOrder}
+                className="group-pills-row flex min-w-0 items-center gap-2 overflow-visible"
+                as="div"
               >
-              {(() => {
-                const nodes: ReactNode[] = [];
-                const canShowInsert = !groupSearch.trim() && !draggingGroupId;
-
-                const renderGap = (index: number) => {
-                  const isDropHere = activeDropIndex === index;
-                  const isAddingHere = addingAt === index;
-                  const isHoverHere =
-                    canShowInsert &&
-                    insertHoverIndex === index &&
-                    addingAt == null;
-
-                  if (isAddingHere) {
-                    return (
-                      <form
-                        key={`add-${index}`}
-                        className="relative mx-1 flex shrink-0 items-center"
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          void createGroup();
-                        }}
-                      >
-                        <span
-                          ref={groupSizerRef}
-                          aria-hidden
-                          className="pointer-events-none invisible absolute whitespace-pre px-2.5 text-[13px] leading-none"
-                        >
-                          {createGroupName || "Group"}
-                        </span>
-                        <input
-                          ref={groupInputRef}
-                          type="text"
-                          value={createGroupName}
-                          onChange={(e) => setCreateGroupName(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape") {
-                              e.preventDefault();
-                              cancelAddGroup();
-                            }
-                          }}
-                          placeholder="Group"
-                          disabled={creatingGroup}
-                          style={{ width: groupInputWidth }}
-                          className="h-7 shrink-0 rounded-full border border-dashed border-foreground/40 bg-surface px-2.5 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle transition-[width] duration-100"
-                        />
-                        {creatingGroup ? (
-                          <span className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
-                            <AppLoader compact label="loading" />
-                          </span>
-                        ) : null}
-                      </form>
-                    );
-                  }
-
-                  if (isDropHere) {
-                    return (
-                      <div
-                        key={`drop-${index}`}
-                        data-drop-slot=""
-                        aria-hidden
-                        className="group-pill-drop-slot mx-1 h-7 shrink-0 rounded-full transition-[width] duration-150"
-                        style={{ width: dragPillWidth }}
-                      />
-                    );
-                  }
-
-                  return (
-                    <div
-                      key={`gap-${index}`}
-                      className={`relative h-7 shrink-0 ${
-                        index === 0 ? "w-0" : "w-2"
-                      }`}
-                      onMouseEnter={() => {
-                        if (canShowInsert) setInsertHoverIndex(index);
-                      }}
-                      onMouseLeave={() => {
-                        setInsertHoverIndex((prev) =>
-                          prev === index ? null : prev,
-                        );
-                      }}
-                    >
-                      <div className="absolute inset-y-0 -left-1 -right-1 z-10" />
-                      {isHoverHere ? (
-                        <>
-                          <span
-                            aria-hidden
-                            className="pointer-events-none absolute inset-y-1 left-1/2 z-10 w-px -translate-x-1/2 bg-foreground/45"
-                          />
-                          <button
-                            type="button"
-                            aria-label="Add group here"
-                            onClick={() => openAddGroup(index)}
-                            className="absolute left-1/2 top-0 z-20 flex size-4 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full bg-pill-active text-pill-active-fg shadow-sm outline-none transition-transform hover:scale-110 focus-visible:ring-2 focus-visible:ring-foreground/40"
-                          >
-                            <Plus className="size-2.5" strokeWidth={2.5} />
-                          </button>
-                        </>
-                      ) : null}
-                    </div>
-                  );
-                };
-
-                for (let i = 0; i <= pillsForRow.length; i += 1) {
-                  nodes.push(renderGap(i));
-                  const g = pillsForRow[i];
-                  if (!g) continue;
-                  const fromIndex = filteredFolders.findIndex(
-                    (x) => x.id === g.id,
-                  );
-                  const tilt =
-                    draggingGroupId != null
-                      ? i % 2 === 0
-                        ? "rotate-[-4deg] translate-y-px"
-                        : "rotate-[4deg] -translate-y-px"
-                      : "";
-                  nodes.push(
+                {filteredFolders.map((g) => (
+                  <Reorder.Item
+                    key={g.id}
+                    value={g}
+                    as="div"
+                    drag={canReorderPills ? "x" : false}
+                    className="shrink-0"
+                  >
                     <button
-                      key={`pill-${g.id}`}
                       type="button"
-                      data-group-pill=""
-                      aria-pressed={g.id === openedGroupId}
-                      onClick={() => {
-                        if (suppressClickRef.current) {
-                          suppressClickRef.current = false;
-                          return;
-                        }
-                        selectGroup(g.id);
-                      }}
-                      onPointerDown={(e) => {
-                        if (!canReorderPills || e.button !== 0) return;
-                        const el = e.currentTarget;
-                        el.setPointerCapture(e.pointerId);
-                        const width = el.getBoundingClientRect().width;
-                        dragMovedRef.current = false;
-                        pointerDragRef.current = {
-                          id: g.id,
-                          label: g.name,
-                          fromIndex: Math.max(0, fromIndex),
-                          startX: e.clientX,
-                          startY: e.clientY,
-                          width: Math.max(GROUP_PILL_MIN_PX, width),
-                          pointerId: e.pointerId,
-                        };
-                      }}
-                      className={`${
-                        g.id === openedGroupId ? pillActive : pillIdle
-                      } ${canReorderPills ? "cursor-grab touch-none active:cursor-grabbing" : ""} ${tilt}`}
+                      onClick={() => selectGroup(g.id)}
+                      className={g.id === openedGroupId ? pillActive : pillIdle}
                     >
                       {g.name}
-                    </button>,
-                  );
-                }
+                    </button>
+                  </Reorder.Item>
+                ))}
+              </Reorder.Group>
 
-                if (addingAt !== pillsForRow.length) {
-                  nodes.push(
-                    <button
-                      key="add-group-end"
-                      type="button"
-                      onClick={() => openAddGroup(pillsForRow.length)}
-                      aria-label="Add group"
-                      title="Add group"
-                      className="ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
-                    >
-                      <Plus className="size-3.5" strokeWidth={2} aria-hidden />
-                    </button>,
-                  );
-                }
-
-                return nodes;
-              })()}
-              </div>
+              {addingAt !== null ? (
+                <form
+                  className="relative mx-1 flex shrink-0 items-center"
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    void createGroup();
+                  }}
+                >
+                  <span
+                    ref={groupSizerRef}
+                    aria-hidden
+                    className="pointer-events-none invisible absolute whitespace-pre px-2.5 text-[13px] leading-none"
+                  >
+                    {createGroupName || "Group"}
+                  </span>
+                  <input
+                    ref={groupInputRef}
+                    type="text"
+                    value={createGroupName}
+                    onChange={(e) => setCreateGroupName(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Escape") {
+                        e.preventDefault();
+                        cancelAddGroup();
+                      }
+                    }}
+                    placeholder="Group"
+                    disabled={creatingGroup}
+                    style={{ width: groupInputWidth }}
+                    className="h-7 shrink-0 rounded-full border border-dashed border-foreground/40 bg-surface px-2.5 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle transition-[width] duration-100"
+                  />
+                  {creatingGroup ? (
+                    <span className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
+                      <AppLoader compact label="loading" />
+                    </span>
+                  ) : null}
+                </form>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => openAddGroup(filteredFolders.length)}
+                  aria-label="Add group"
+                  title="Add group"
+                  className="ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+                >
+                  <Plus className="size-3.5" strokeWidth={2} aria-hidden />
+                </button>
+              )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
               <input
@@ -1223,28 +956,7 @@ export default function VaultInbox() {
             </div>
           </div>
 
-          {draggingGroupId && dragCursor ? (
-            <div
-              aria-hidden
-              className="group-pill-ghost"
-              data-snapped={dragSnapped ? "true" : undefined}
-              style={{
-                position: "fixed",
-                left: dragCursor.x,
-                top: dragCursor.y,
-                width: dragPillWidth,
-                zIndex: 80,
-                transform: dragSnapped
-                  ? "translate(-50%, -50%) rotate(0deg)"
-                  : "translate(-50%, -60%) rotate(-8deg)",
-                transition: dragSnapped
-                  ? "transform 0.12s ease-out, left 0.08s ease-out, top 0.08s ease-out"
-                  : "transform 0.12s ease-out",
-              }}
-            >
-              {dragPillLabel}
-            </div>
-          ) : null}
+
 
           {/* Feed body */}
           {!selectedGroupId && groupsError ? (

@@ -2,8 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
-import type { LinkApiRow } from "@/lib/links";
-import { isGoogleFaviconUrl, linkHostname } from "@/lib/links";
+import { isGoogleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import {
   isThumIoUrl,
@@ -31,7 +30,7 @@ export default function LinkCard({ link, onOpen }: Props) {
   // Bad thum.io placeholders are stripped server-side to a favicon — fetch a real shot.
   // Also replace any lingering thum.io URL still in the client.
   useEffect(() => {
-    if (pending || resolveAttempted.current) return;
+    if (pending || resolveAttempted.current || requiresLoginPlaceholder(link.url)) return;
     const needsShot =
       isThumIoUrl(imgSrc) || (!pending && isGoogleFaviconUrl(imgSrc));
     if (!needsShot) return;
@@ -76,10 +75,10 @@ export default function LinkCard({ link, onOpen }: Props) {
               decoding="async"
               draggable={false}
               className={`mind-card-preview block w-full object-cover object-top ${
-                brandThumbnailInvertInDark(link.url) ? "invert" : ""
+                !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
               } ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
-                if (resolveAttempted.current) return;
+                if (resolveAttempted.current || requiresLoginPlaceholder(link.url)) return;
                 resolveAttempted.current = true;
                 setResolving(true);
                 void resolveMicrolinkScreenshotUrl(link.url).then((next) => {

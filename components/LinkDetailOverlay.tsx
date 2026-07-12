@@ -4,7 +4,7 @@ import { useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
-import { formatRelativeTime, linkHostname } from "@/lib/links";
+import { formatRelativeTime, linkHostname, requiresLoginPlaceholder } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 
 type GroupOption = { id: string; name: string };
@@ -306,7 +306,7 @@ export default function LinkDetailOverlay({
             alt={link.display_title}
             referrerPolicy="no-referrer"
             className={`block max-h-[min(82vh,900px)] w-auto max-w-full object-contain ${
-              brandThumbnailInvertInDark(link.url) ? "invert" : ""
+              !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
             }`}
           />
         </div>

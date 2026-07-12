@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { extractLinkMetadata } from "@/lib/metadata";
 import { capturePageScreenshotUrl } from "@/lib/screenshot";
+import { requiresLoginPlaceholder } from "@/lib/links";
 
 /**
  * Fetches HTML metadata quickly, marks the link ready, then optionally upgrades
@@ -31,7 +32,7 @@ export async function enrichLinkMetadataInBackground(
 
     // Phase 2 — screenshot upgrade when og/twitter image is missing.
     // Never blocks "ready"; failures leave the meta image (or null) in place.
-    if (meta.imageUrl) return;
+    if (meta.imageUrl || requiresLoginPlaceholder(pageUrl)) return;
 
     try {
       const screenshotUrl = await capturePageScreenshotUrl(pageUrl);

@@ -44,10 +44,52 @@ export function googleFaviconUrl(linkUrl: string, size = 128): string | null {
   }
 }
 
+export function requiresLoginPlaceholder(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr.trim());
+    const host = u.hostname.toLowerCase();
+    return (
+      host === "figma.com" ||
+      host.endsWith(".figma.com") ||
+      host === "chatgpt.com" ||
+      host.endsWith(".chatgpt.com") ||
+      host === "openai.com" ||
+      host.endsWith(".openai.com") ||
+      host === "notion.so" ||
+      host.endsWith(".notion.so") ||
+      host === "notion.site" ||
+      host.endsWith(".notion.site") ||
+      host === "linear.app" ||
+      host.endsWith(".linear.app") ||
+      host === "slack.com" ||
+      host.endsWith(".slack.com") ||
+      host === "zoom.us" ||
+      host.endsWith(".zoom.us") ||
+      host === "zoom.com" ||
+      host.endsWith(".zoom.com") ||
+      host === "miro.com" ||
+      host.endsWith(".miro.com") ||
+      host === "canva.com" ||
+      host.endsWith(".canva.com") ||
+      host === "dropbox.com" ||
+      host.endsWith(".dropbox.com") ||
+      host.endsWith("sharepoint.com") ||
+      host === "onedrive.live.com" ||
+      host === "teams.live.com" ||
+      host.includes("teams.microsoft")
+    );
+  } catch {
+    return false;
+  }
+}
+
 export function effectivePreviewImageUrl(link: {
   imageUrl: string | null;
   url: string;
 }): string {
+  if (requiresLoginPlaceholder(link.url)) {
+    return "/placeholder-unicorn.jpg";
+  }
   // thum.io free tier often returns solid placeholders — never surface those.
   const stored = isThumIoUrl(link.imageUrl) ? null : link.imageUrl;
   const branded = providerPreviewIcon(link.url, stored);
