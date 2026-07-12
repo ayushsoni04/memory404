@@ -142,25 +142,53 @@ function App() {
   const [dropdownOpen, setDropdownOpen] = useState(true);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [error, setError] = useState("");
+  const [isStorageLoaded, setIsStorageLoaded] = useState(false);
   const inputRef = useRef(null);
 
+  // Load storage states (apiBase, lastSavedGroupId, cachedGroups) exactly once on mount to prevent double loading
   useEffect(() => {
-    chrome.storage.local.get(["apiBase"], (res) => {
+    chrome.storage.local.get(["apiBase", "lastSavedGroupId", "cachedGroups"], (res) => {
       const saved = typeof res.apiBase === "string" ? res.apiBase.trim() : "";
-      if (saved) setApiBase(saved);
+      if (saved) {
+        setApiBase(saved);
+      }
+      
+      if (Array.isArray(res.cachedGroups) && res.cachedGroups.length > 0) {
+        setGroups(res.cachedGroups);
+        const targetId = res.lastSavedGroupId;
+        let defaultGroup = null;
+        if (targetId) {
+          defaultGroup = res.cachedGroups.find((g) => g.id === targetId) ?? null;
+        }
+        if (!defaultGroup) {
+          defaultGroup =
+            res.cachedGroups.find(
+              (g) => g.name.trim().toLowerCase() === "uncategorized",
+            ) ?? res.cachedGroups[0] ?? null;
+        }
+        if (defaultGroup) {
+          setSelectedGroupId(defaultGroup.id);
+          setGroupQuery(defaultGroup.name);
+        }
+        setGroupsLoading(false);
+      }
+      setIsStorageLoaded(true);
     });
   }, []);
 
-  // Load groups first — do not save until the user picks a group.
+  // Background fetch/sync groups once storage has loaded
   useEffect(() => {
+    if (!isStorageLoaded) return;
+    
     const base = apiBase.trim();
     if (!base) return;
     chrome.storage.local.set({ apiBase: base });
 
     let cancelled = false;
     (async () => {
-      setPhase("pick");
-      setGroupsLoading(true);
+      if (groups.length === 0) {
+        setGroupsLoading(true);
+      }
       setError("");
       setLinkId(null);
       setCurrentGroupId(null);
@@ -168,14 +196,30 @@ function App() {
         const loadedGroups = await fetchGroups(base);
         if (cancelled) return;
         setGroups(loadedGroups);
-        const inbox =
-          loadedGroups.find(
-            (g) => g.name.trim().toLowerCase() === "uncategorized",
-          ) ?? loadedGroups[0] ?? null;
-        if (inbox) {
-          setSelectedGroupId(inbox.id);
-          setGroupQuery(inbox.name);
-        }
+        
+        // Cache groups for next instant popup load
+        chrome.storage.local.set({ cachedGroups: loadedGroups });
+
+        // Select the group to remember
+        chrome.storage.local.get(["lastSavedGroupId"], (res) => {
+          if (cancelled) return;
+          const targetId = res.lastSavedGroupId;
+          let defaultGroup = null;
+          if (targetId) {
+            defaultGroup = loadedGroups.find((g) => g.id === targetId) ?? null;
+          }
+          if (!defaultGroup) {
+            defaultGroup =
+              loadedGroups.find(
+                (g) => g.name.trim().toLowerCase() === "uncategorized",
+              ) ?? loadedGroups[0] ?? null;
+          }
+          if (defaultGroup) {
+            setSelectedGroupId(defaultGroup.id);
+            setGroupQuery(defaultGroup.name);
+          }
+        });
+        
         setTimeout(() => inputRef.current?.focus(), 50);
       } catch (e) {
         if (cancelled) return;
@@ -188,7 +232,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [apiBase]);
+  }, [apiBase, isStorageLoaded]);
 
   const filteredGroups = useMemo(() => {
     const q = groupQuery.trim().toLowerCase();
@@ -220,6 +264,12 @@ function App() {
     setGroups((prev) =>
       [...prev, created].sort((a, b) => a.name.localeCompare(b.name)),
     );
+    // Add new group to cachedGroups storage
+    chrome.storage.local.get(["cachedGroups"], (res) => {
+      const currentCache = Array.isArray(res.cachedGroups) ? res.cachedGroups : [];
+      const updatedCache = [...currentCache, created].sort((a, b) => a.name.localeCompare(b.name));
+      chrome.storage.local.set({ cachedGroups: updatedCache });
+    });
     return created;
   };
 
@@ -231,12 +281,16 @@ function App() {
     try {
       const target = await resolveTargetGroup();
       const saved = await saveCurrentTab(base, target.id);
+      const finalGroupId = saved.groupId ?? target.id;
       setLinkId(saved.linkId);
-      setCurrentGroupId(saved.groupId ?? target.id);
-      setSelectedGroupId(saved.groupId ?? target.id);
+      setCurrentGroupId(finalGroupId);
+      setSelectedGroupId(finalGroupId);
       setGroupQuery(target.name);
       setPhase("saved");
       setDropdownOpen(false);
+      
+      // Save lastSavedGroupId to chrome.storage.local to remember selection next time
+      chrome.storage.local.set({ lastSavedGroupId: finalGroupId });
     } catch (e) {
       setPhase("pick");
       setError(e instanceof Error ? e.message : "Failed to save");
