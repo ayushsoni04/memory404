@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import Link from "next/link";
 import { Plus, RotateCw } from "lucide-react";
@@ -48,6 +48,32 @@ type GroupRow = {
   sortOrder?: number;
 };
 
+const getLinkDomain = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return parsed.hostname.replace("www.", "");
+  } catch {
+    return url;
+  }
+};
+
+const getLinkType = (url: string): string => {
+  try {
+    const domain = getLinkDomain(url).toLowerCase();
+    if (domain.includes("figma.com")) return "Figma";
+    if (domain.includes("pinterest.com") || domain.includes("pin.it")) return "Pinterest";
+    if (domain.includes("dribbble.com")) return "Dribbble";
+    if (domain.includes("github.com")) return "GitHub";
+    if (domain.includes("youtube.com") || domain.includes("youtu.be")) return "YouTube";
+    if (domain.includes("twitter.com") || domain.includes("x.com")) return "Twitter/X";
+    if (domain.includes("behance.net")) return "Behance";
+    if (domain.includes("notion.so")) return "Notion";
+    return "General";
+  } catch {
+    return "General";
+  }
+};
+
 async function copyTextToClipboard(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text);
@@ -72,6 +98,23 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 
 export default function VaultInbox() {
   const pageRef = useRef<HTMLDivElement | null>(null);
+  const [sortBy, setSortBy] = useState<"newest" | "oldest" | "domain" | "details" | "type">(() => {
+    if (typeof window !== "undefined") {
+      const stored = window.localStorage.getItem("memory404-sort-by");
+      if (stored === "newest" || stored === "oldest" || stored === "domain" || stored === "details" || stored === "type") {
+        return stored as any;
+      }
+    }
+    return "newest";
+  });
+
+  const setSortByAndPersist = (val: "newest" | "oldest" | "domain" | "details" | "type") => {
+    setSortBy(val);
+    try {
+      window.localStorage.setItem("memory404-sort-by", val);
+    } catch {}
+  };
+
   const [urlInput, setUrlInput] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -174,7 +217,7 @@ export default function VaultInbox() {
 
   const linksListUrl = useCallback(
     (groupId: string | null) =>
-      groupId
+      groupId && groupId !== "all"
         ? apiUrl(`/api/links?groupId=${encodeURIComponent(groupId)}`)
         : apiUrl("/api/links"),
     [],
@@ -318,8 +361,49 @@ export default function VaultInbox() {
     if (!q) return folderGroups;
     return folderGroups.filter((group) => group.name.toLowerCase().includes(q));
   })();
-
-
+  const sortedLinks = useMemo(() => {
+    const list = [...links];
+    if (sortBy === "newest") {
+      return list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    }
+    if (sortBy === "oldest") {
+      return list.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    }
+    if (sortBy === "domain") {
+      return list.sort((a, b) => getLinkDomain(a.url).localeCompare(getLinkDomain(b.url)));
+    }
+    if (sortBy === "details") {
+      const getDetailSize = (l: LinkApiRow) => {
+        const descLen = l.description?.length ?? 0;
+        const notesLen = l.notes?.length ?? 0;
+        const titleLen = (l.customTitle ?? l.title ?? "").length;
+        return descLen + notesLen + titleLen;
+      };
+      return list.sort((a, b) => getDetailSize(b) - getDetailSize(a));
+    }
+    if (sortBy === "type") {
+      const typeOrder: Record<string, number> = {
+        "Figma": 1,
+        "Pinterest": 2,
+        "Dribbble": 3,
+        "GitHub": 4,
+        "YouTube": 5,
+        "Twitter/X": 6,
+        "Behance": 7,
+        "Notion": 8,
+        "General": 9
+      };
+      return list.sort((a, b) => {
+        const typeA = getLinkType(a.url);
+        const typeB = getLinkType(b.url);
+        const orderA = typeOrder[typeA] ?? 99;
+        const orderB = typeOrder[typeB] ?? 99;
+        if (orderA !== orderB) return orderA - orderB;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
+    return list;
+  }, [links, sortBy]);
   const saveLink = useCallback(
     async (
       url: string,
@@ -710,9 +794,9 @@ export default function VaultInbox() {
     setGroupInputWidth(Math.max(GROUP_PILL_MIN_PX, el.offsetWidth + 4));
   }, [addingAt, createGroupName]);
 
-  const openedLink = links.find((l) => l.id === openedLinkId) ?? null;
+  const openedLink = sortedLinks.find((l) => l.id === openedLinkId) ?? null;
   const openedLinkIndex = openedLink
-    ? links.findIndex((l) => l.id === openedLink.id)
+    ? sortedLinks.findIndex((l) => l.id === openedLink.id)
     : -1;
 
   const openLinkDetail = (link: LinkApiRow, originEl: HTMLElement) => {
@@ -728,13 +812,13 @@ export default function VaultInbox() {
   const goPrevLink = () => {
     if (openedLinkIndex <= 0) return;
     setOverlayOrigin(null);
-    setOpenedLinkId(links[openedLinkIndex - 1].id);
+    setOpenedLinkId(sortedLinks[openedLinkIndex - 1].id);
   };
 
   const goNextLink = () => {
-    if (openedLinkIndex < 0 || openedLinkIndex >= links.length - 1) return;
+    if (openedLinkIndex < 0 || openedLinkIndex >= sortedLinks.length - 1) return;
     setOverlayOrigin(null);
-    setOpenedLinkId(links[openedLinkIndex + 1].id);
+    setOpenedLinkId(sortedLinks[openedLinkIndex + 1].id);
   };
 
   const selectGroup = (id: string) => {
@@ -992,14 +1076,16 @@ export default function VaultInbox() {
           <header className="-mr-4 flex flex-col gap-y-1 pr-4 pt-[17px] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4">
             <div className="flex flex-col gap-y-1 lg:min-w-0 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
               <h1 className="shrink-0 text-[15px] font-medium leading-normal text-foreground">
-                {openedGroup?.name ?? "memory404"}
+                {openedGroupId === "all" ? "All Links" : (openedGroup?.name ?? "memory404")}
               </h1>
               <p className="min-w-0 text-balance text-[15px] text-subtle">
                 Links you save, browsed like a dark inspiration feed.
               </p>
             </div>
             <span className="shrink-0 text-[13px] text-subtle">
-              {openedGroup
+              {openedGroupId === "all"
+                ? `${links.length} link${links.length === 1 ? "" : "s"}`
+                : openedGroup
                 ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
                 : null}
             </span>
@@ -1032,6 +1118,18 @@ export default function VaultInbox() {
                   </div>
                 </div>
               )}
+
+              <button
+                type="button"
+                aria-pressed={openedGroupId === "all"}
+                onClick={() => selectGroup("all")}
+                className={`z-10 relative ${
+                  openedGroupId === "all" ? pillActive : pillIdle
+                }`}
+              >
+                All
+              </button>
+              <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border z-10 relative" />
 
               {generalGroup ? (
                 <button
@@ -1139,6 +1237,18 @@ export default function VaultInbox() {
               )}
             </div>
             <div className="flex shrink-0 items-center gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortByAndPersist(e.target.value as any)}
+                aria-label="Sort links"
+                className="h-7 rounded-full border border-border bg-surface px-2.5 text-[12px] font-medium text-muted outline-none focus:border-border-strong hover:text-foreground cursor-pointer"
+              >
+                <option value="newest">Newest</option>
+                <option value="oldest">Oldest</option>
+                <option value="domain">Domain</option>
+                <option value="type">Link Type</option>
+                <option value="details">Details Size</option>
+              </select>
               <input
                 type="search"
                 value={groupSearch}
@@ -1218,7 +1328,7 @@ export default function VaultInbox() {
               }}
             >
               <AddLinkCard
-                groupId={openedGroupId}
+                groupId={openedGroupId === "all" ? null : openedGroupId}
                 saveLink={saveLink}
                 onSaved={(row) => {
                   setLinks((prev) => [
@@ -1228,7 +1338,7 @@ export default function VaultInbox() {
                   void loadGroups();
                 }}
               />
-              {links.map((link) => (
+              {sortedLinks.map((link) => (
                 <LinkCard key={link.id} link={link} onOpen={openLinkDetail} />
               ))}
             </div>
