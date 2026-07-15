@@ -6,6 +6,7 @@ import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
 import { formatRelativeTime, linkHostname, requiresLoginPlaceholder } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
+import { getProxiedImageUrl } from "@/lib/screenshot";
 
 type GroupOption = { id: string; name: string };
 
@@ -302,7 +303,7 @@ export default function LinkDetailOverlay({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={link.image_url}
+            src={getProxiedImageUrl(link.image_url)}
             alt={link.display_title}
             referrerPolicy="no-referrer"
             className={`block max-h-[min(82vh,900px)] w-auto max-w-full object-contain ${

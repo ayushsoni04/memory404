@@ -5,6 +5,7 @@ import { AppLoader } from "@/components/AppLoader";
 import { isGoogleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import {
+  getProxiedImageUrl,
   isThumIoUrl,
   resolveMicrolinkScreenshotUrl,
 } from "@/lib/screenshot";
@@ -68,7 +69,7 @@ export default function LinkCard({ link, onOpen }: Props) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               key={`${link.id}-${imgSrc}`}
-              src={imgSrc || undefined}
+              src={getProxiedImageUrl(imgSrc)}
               alt=""
               loading="lazy"
               referrerPolicy="no-referrer"

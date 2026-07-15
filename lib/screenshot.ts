@@ -206,3 +206,9 @@ export async function capturePageScreenshotUrl(
 
   return (await tryMicrolink(pageUrl)) || (await tryMshots(pageUrl)) || null;
 }
+
+export function getProxiedImageUrl(url: string | null | undefined): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("/") || url.startsWith("data:")) return url;
+  return `/api/image-proxy?url=${encodeURIComponent(url)}`;
+}
