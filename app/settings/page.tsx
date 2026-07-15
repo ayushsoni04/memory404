@@ -181,17 +181,26 @@ export default function SettingsPage() {
     }
   };
 
-  // Real backup downloader
+  // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
     try {
       setIsExporting(true);
-      const res = await fetch("/api/links");
-      if (!res.ok) throw new Error("Failed to fetch links");
-      const data = await res.json();
-      const links = data.links || [];
+      const allLinks: unknown[] = [];
+      let cursor: string | null = null;
+      for (let page = 0; page < 500; page += 1) {
+        const params = new URLSearchParams({ limit: "100" });
+        if (cursor) params.set("cursor", cursor);
+        const res = await fetch(`/api/links?${params.toString()}`);
+        if (!res.ok) throw new Error("Failed to fetch links");
+        const data = await res.json();
+        const batch = Array.isArray(data.links) ? data.links : [];
+        allLinks.push(...batch);
+        if (!data.hasMore || !data.nextCursor) break;
+        cursor = data.nextCursor as string;
+      }
 
       // Download triggered client-side
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(links, null, 2));
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLinks, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
       downloadAnchor.setAttribute("download", `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`);

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import useSWRInfinite from "swr/infinite";
 import Link from "next/link";
 import { Plus, RotateCw } from "lucide-react";
 import { Reorder } from "framer-motion";
@@ -22,6 +23,15 @@ import type { LinkApiRow } from "@/lib/links";
 
 const GROUP_PILL_MIN_PX = 96;
 const GRID_SIZE_KEY = "memory404-grid-size";
+const LINKS_PAGE_SIZE = 24;
+/** Only poll metadata for recently-created pending links (avoids endless refetch). */
+const PENDING_POLL_MAX_AGE_MS = 10 * 60 * 1000;
+
+type LinksPage = {
+  links: LinkApiRow[];
+  nextCursor: string | null;
+  hasMore: boolean;
+};
 
 type GridSize = "compact" | "default" | "large";
 
@@ -127,8 +137,6 @@ export default function VaultInbox() {
   const [placeGroupId, setPlaceGroupId] = useState<string | null>(null);
   const [newGroupNameDraft, setNewGroupNameDraft] = useState("");
   const [creatingNewGroup, setCreatingNewGroup] = useState(false);
-  const [visibleCount, setVisibleCount] = useState(24);
-  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const [links, setLinks] = useState<LinkApiRow[]>(() => {
     try {
@@ -153,6 +161,10 @@ export default function VaultInbox() {
     return true;
   });
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMoreLinks, setHasMoreLinks] = useState(true);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreLockRef = useRef(false);
   const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>(
     {},
   );
@@ -183,9 +195,6 @@ export default function VaultInbox() {
     }
   });
 
-  useEffect(() => {
-    setVisibleCount(24);
-  }, [openedGroupId, sortBy]);
   const [createGroupName, setCreateGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [addingAt, setAddingAt] = useState<number | null>(null);
@@ -226,14 +235,29 @@ export default function VaultInbox() {
   };
 
   const linksListUrl = useCallback(
-    (groupId: string | null) =>
-      groupId && groupId !== "all"
-        ? apiUrl(`/api/links?groupId=${encodeURIComponent(groupId)}`)
-        : apiUrl("/api/links"),
+    (groupId: string | null, cursor?: string | null) => {
+      const params = new URLSearchParams();
+      params.set("limit", String(LINKS_PAGE_SIZE));
+      if (groupId && groupId !== "all") {
+        params.set("groupId", groupId);
+      }
+      if (cursor) params.set("cursor", cursor);
+      return apiUrl(`/api/links?${params.toString()}`);
+    },
     [],
   );
 
-  const hasPendingMetadata = links.some((l) => l.metadata_status === "pending");
+  const getLinksPageKey = useCallback(
+    (pageIndex: number, previousPageData: LinksPage | null) => {
+      if (!openedGroupId) return null;
+      if (previousPageData && !previousPageData.hasMore) return null;
+      const cursor =
+        pageIndex === 0 ? null : (previousPageData?.nextCursor ?? null);
+      if (pageIndex > 0 && !cursor) return null;
+      return linksListUrl(openedGroupId, cursor);
+    },
+    [openedGroupId, linksListUrl],
+  );
 
   // useSWR for groups/folders
   const { data: swrGroups, mutate: mutateGroups } = useSWR(
@@ -256,32 +280,48 @@ export default function VaultInbox() {
     }
   );
 
-  // useSWR for links of current group
-  const { data: swrLinks, mutate: mutateSWRLinks, isValidating: swrValidating } = useSWR(
-    openedGroupId ? linksListUrl(openedGroupId) : null,
-    async (url) => {
+  // Cursor-paginated links for the current group / All tab
+  const {
+    data: swrLinkPages,
+    error: swrLinksError,
+    mutate: mutateSWRLinks,
+    size: linkPageCount,
+    setSize: setLinkPageCount,
+    isValidating: swrValidating,
+    isLoading: swrLinksLoading,
+  } = useSWRInfinite<LinksPage>(
+    getLinksPageKey,
+    async (url: string) => {
       setFetchError(null);
-      try {
-        const res = await fetch(url);
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          const msg = typeof data.error === "string" ? data.error : "Failed to load links";
-          const hint = typeof data.hint === "string" && data.hint.trim() ? ` — ${data.hint.trim()}` : "";
-          const fullMsg = `${msg}${hint}`;
-          setFetchError(fullMsg);
-          throw new Error(fullMsg);
-        }
-        return Array.isArray(data.links) ? (data.links as LinkApiRow[]) : [];
-      } catch (err: any) {
-        setFetchError(err.message || "Failed to load links");
-        throw err;
+      const res = await fetch(url);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg =
+          typeof data.error === "string" ? data.error : "Failed to load links";
+        const hint =
+          typeof data.hint === "string" && data.hint.trim()
+            ? ` — ${data.hint.trim()}`
+            : "";
+        const fullMsg = `${msg}${hint}`;
+        setFetchError(fullMsg);
+        throw new Error(fullMsg);
       }
+      const pageLinks = Array.isArray(data.links)
+        ? (data.links as LinkApiRow[])
+        : [];
+      return {
+        links: pageLinks,
+        nextCursor:
+          typeof data.nextCursor === "string" ? data.nextCursor : null,
+        hasMore: Boolean(data.hasMore),
+      };
     },
     {
-      revalidateOnFocus: true,
+      revalidateOnFocus: false,
+      revalidateFirstPage: false,
       dedupingInterval: 2000,
-      refreshInterval: hasPendingMetadata ? 3000 : 0
-    }
+      persistSize: false,
+    },
   );
 
   // Sync SWR groups to local state
@@ -311,31 +351,121 @@ export default function VaultInbox() {
     }
   }, [swrGroups]);
 
-  // Sync SWR links to local state
+  // Flatten pages → local links + cache first page for instant group switches
   useEffect(() => {
-    if (swrLinks) {
-      setLinks(swrLinks);
-      if (openedGroupId) {
-        setLinksCache((prev) => {
-          const next = { ...prev, [openedGroupId]: swrLinks };
-          try {
-            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
-          } catch {}
-          return next;
-        });
-      }
+    if (!swrLinkPages) return;
+    const flat = swrLinkPages.flatMap((page) => page.links);
+    // Dedupe by id (optimistic rows vs server rows)
+    const seen = new Set<string>();
+    const deduped: LinkApiRow[] = [];
+    for (const link of flat) {
+      if (seen.has(link.id)) continue;
+      seen.add(link.id);
+      deduped.push(link);
     }
-  }, [swrLinks, openedGroupId]);
+    setLinks(deduped);
+    const lastPage = swrLinkPages[swrLinkPages.length - 1];
+    setHasMoreLinks(Boolean(lastPage?.hasMore));
+    if (openedGroupId) {
+      setLinksCache((prev) => {
+        // Only cache first page worth for quick paint — avoid bloating localStorage
+        const firstPage = swrLinkPages[0]?.links ?? [];
+        const next = { ...prev, [openedGroupId]: firstPage };
+        try {
+          window.localStorage.setItem(
+            "memory404-links-cache",
+            JSON.stringify(next),
+          );
+        } catch {}
+        return next;
+      });
+    }
+  }, [swrLinkPages, openedGroupId]);
 
-  // Sync SWR validation status to loadingLinks
+  useEffect(() => {
+    if (swrLinksError) {
+      const msg =
+        swrLinksError instanceof Error
+          ? swrLinksError.message
+          : "Failed to load links";
+      setFetchError(msg);
+    }
+  }, [swrLinksError]);
+
+  // Sync loading flags
   useEffect(() => {
     const cached = linksCacheRef.current[openedGroupId || ""];
-    if (cached) {
+    const hasPages = Boolean(swrLinkPages?.length);
+    if (cached?.length && !hasPages) {
       setLoadingLinks(false);
     } else {
-      setLoadingLinks(swrValidating);
+      setLoadingLinks(swrLinksLoading || (swrValidating && !hasPages));
     }
-  }, [swrValidating, openedGroupId]);
+    setLoadingMore(
+      swrValidating && linkPageCount > 1 && Boolean(swrLinkPages?.length),
+    );
+  }, [
+    swrValidating,
+    swrLinksLoading,
+    openedGroupId,
+    linkPageCount,
+    swrLinkPages,
+  ]);
+
+  // Reset page stack when group changes
+  useEffect(() => {
+    setLinkPageCount(1);
+    setHasMoreLinks(true);
+    loadMoreLockRef.current = false;
+  }, [openedGroupId, setLinkPageCount]);
+
+  // Lightweight pending-metadata poll — only recent pending IDs, never the full list
+  const pendingPollIds = useMemo(() => {
+    const cutoff = Date.now() - PENDING_POLL_MAX_AGE_MS;
+    return links
+      .filter((l) => {
+        if (l.metadata_status !== "pending") return false;
+        if (l.id.startsWith("optimistic-")) return false;
+        const created = new Date(l.createdAt).getTime();
+        return Number.isFinite(created) && created >= cutoff;
+      })
+      .map((l) => l.id)
+      .slice(0, 40);
+  }, [links]);
+
+  const pendingPollKey =
+    pendingPollIds.length > 0
+      ? apiUrl(`/api/links?ids=${pendingPollIds.join(",")}`)
+      : null;
+
+  useSWR(
+    pendingPollKey,
+    async (url: string) => {
+      const res = await fetch(url);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return [] as LinkApiRow[];
+      return Array.isArray(data.links) ? (data.links as LinkApiRow[]) : [];
+    },
+    {
+      refreshInterval: 4000,
+      revalidateOnFocus: false,
+      dedupingInterval: 3000,
+      onSuccess: (fresh) => {
+        if (!fresh.length) return;
+        const byId = new Map(fresh.map((l) => [l.id, l]));
+        void mutateSWRLinks(
+          (pages) => {
+            if (!pages) return pages;
+            return pages.map((page) => ({
+              ...page,
+              links: page.links.map((l) => byId.get(l.id) ?? l),
+            }));
+          },
+          { revalidate: false },
+        );
+      },
+    },
+  );
 
   // Maintain wrappers for manual callbacks to trigger SWR refetches
   const loadGroups = useCallback(() => {
@@ -345,6 +475,51 @@ export default function VaultInbox() {
   const loadLinks = useCallback(() => {
     return mutateSWRLinks();
   }, [mutateSWRLinks]);
+
+  const prependLinkToPages = useCallback(
+    (row: LinkApiRow) => {
+      void mutateSWRLinks(
+        (pages) => {
+          if (!pages?.length) {
+            return [
+              {
+                links: [row],
+                nextCursor: null,
+                hasMore: false,
+              },
+            ];
+          }
+          const [first, ...rest] = pages;
+          return [
+            {
+              ...first,
+              links: [
+                row,
+                ...first.links.filter((l) => l.id !== row.id),
+              ],
+            },
+            ...rest,
+          ];
+        },
+        { revalidate: false },
+      );
+    },
+    [mutateSWRLinks],
+  );
+
+  const removeLinkFromPages = useCallback(
+    (id: string) => {
+      void mutateSWRLinks(
+        (pages) =>
+          pages?.map((page) => ({
+            ...page,
+            links: page.links.filter((l) => l.id !== id),
+          })),
+        { revalidate: false },
+      );
+    },
+    [mutateSWRLinks],
+  );
 
   // Hydrate from cache instantly when switching groups
   useEffect(() => {
@@ -359,6 +534,10 @@ export default function VaultInbox() {
   }, [openedGroupId]);
 
   const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
+  const allLinksCount = useMemo(
+    () => groups.reduce((sum, g) => sum + (g.linksCount || 0), 0),
+    [groups],
+  );
 
   const generalGroup =
     groups.find(
@@ -415,33 +594,37 @@ export default function VaultInbox() {
     return list;
   }, [links, sortBy]);
 
-  const visibleLinks = useMemo(() => {
-    return sortedLinks.slice(0, visibleCount);
-  }, [sortedLinks, visibleCount]);
-
   useEffect(() => {
     clearCardRectsCache();
-  }, [visibleLinks]);
+  }, [sortedLinks]);
+
+  const loadMoreLinks = useCallback(() => {
+    if (!hasMoreLinks || loadingMore || loadMoreLockRef.current) return;
+    loadMoreLockRef.current = true;
+    void setLinkPageCount((n) => n + 1).finally(() => {
+      loadMoreLockRef.current = false;
+    });
+  }, [hasMoreLinks, loadingMore, setLinkPageCount]);
 
   useEffect(() => {
-    if (visibleCount >= sortedLinks.length) return;
+    if (!hasMoreLinks) return;
     const currentSentinel = sentinelRef.current;
     if (!currentSentinel) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0].isIntersecting) {
-          setVisibleCount((prev) => Math.min(prev + 24, sortedLinks.length));
+        if (entries[0]?.isIntersecting) {
+          loadMoreLinks();
         }
       },
-      { rootMargin: "400px" }
+      { rootMargin: "600px" },
     );
 
     observer.observe(currentSentinel);
     return () => {
       observer.unobserve(currentSentinel);
     };
-  }, [visibleCount, sortedLinks.length]);
+  }, [hasMoreLinks, loadMoreLinks, sortedLinks.length]);
 
   const saveLink = useCallback(
     async (
@@ -572,6 +755,7 @@ export default function VaultInbox() {
 
         const row = result.link;
         setLinks((prev) => [row, ...prev.filter((l) => l.id !== tempId && l.id !== row.id)]);
+        prependLinkToPages(row);
 
         // Update linksCache
         setLinksCache((prev) => {
@@ -682,6 +866,7 @@ export default function VaultInbox() {
       // Update UI with final saved row
       if (row.groupId === openedGroupId) {
         setLinks((prev) => [row, ...prev.filter((l) => l.id !== tempId && l.id !== row.id)]);
+        prependLinkToPages(row);
       } else {
         setLinks((prev) => prev.filter((l) => l.id !== tempId));
         void loadLinks();
@@ -773,6 +958,7 @@ export default function VaultInbox() {
           return next;
         });
       }
+      removeLinkFromPages(id);
     } catch {
       // Rollback state if server returns error!
       setLinks(originalLinks);
@@ -858,6 +1044,9 @@ export default function VaultInbox() {
         } catch {}
         return next;
       });
+      if (nextGroupId !== openedGroupId) {
+        removeLinkFromPages(link.id);
+      }
     } catch {
       // Rollback state if server returns error!
       setLinks(originalLinks);
@@ -929,12 +1118,6 @@ export default function VaultInbox() {
   const openedLinkIndex = openedLink
     ? sortedLinks.findIndex((l) => l.id === openedLink.id)
     : -1;
-
-  useEffect(() => {
-    if (openedLinkIndex >= 0 && openedLinkIndex >= visibleCount) {
-      setVisibleCount(openedLinkIndex + 1);
-    }
-  }, [openedLinkIndex, visibleCount]);
 
   const openLinkDetail = (link: LinkApiRow, originEl: HTMLElement) => {
     setOverlayOrigin(originEl.getBoundingClientRect());
@@ -1238,7 +1421,7 @@ export default function VaultInbox() {
             <span className="shrink-0 text-[13px] text-subtle">
               <TextSwap>
                 {openedGroupId === "all"
-                  ? `${links.length} link${links.length === 1 ? "" : "s"}`
+                  ? `${allLinksCount} link${allLinksCount === 1 ? "" : "s"}`
                   : openedGroup
                   ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
                   : ""}
@@ -1490,10 +1673,11 @@ export default function VaultInbox() {
                       row,
                       ...prev.filter((l) => l.id !== row.id),
                     ]);
+                    prependLinkToPages(row);
                     void loadGroups();
                   }}
                 />
-                {visibleLinks.map((link, index) => (
+                {sortedLinks.map((link, index) => (
                   <LinkCard
                     key={link.id}
                     link={link}
@@ -1502,7 +1686,7 @@ export default function VaultInbox() {
                   />
                 ))}
               </div>
-              {visibleCount < sortedLinks.length && (
+              {hasMoreLinks && (
                 <div ref={sentinelRef} className="mt-8 flex w-full justify-center pb-12">
                   <AppLoader compact progressive label="loading more" />
                 </div>
