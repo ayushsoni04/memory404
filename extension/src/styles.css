@@ -366,3 +366,40 @@ input:focus {
   padding: 0 12px 12px;
   color: #9ca3af;
 }
+
+/* Segmented control for save mode selection */
+.save-mode-selector {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 2px;
+  margin: 0 12px 12px;
+  gap: 2px;
+}
+
+.save-mode-btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.save-mode-btn:hover {
+  color: #111827;
+}
+
+.save-mode-btn.active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}

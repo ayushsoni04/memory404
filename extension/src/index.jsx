@@ -43,18 +43,29 @@ async function extractPageMeta(tabId) {
   return result ?? { title: null, description: null, imageUrl: null };
 }
 
-async function saveCurrentTab(apiBase, groupId) {
-  const tab = await getActiveTab();
-  if (!tab?.id || !tab.url) throw new Error("No active tab found");
+async function saveTab(apiBase, tab, groupId, isFirstGroupLink = false, groupName = null) {
+  if (!tab?.url) return null;
 
-  const meta = await extractPageMeta(tab.id);
+  let meta = { title: null, description: null, imageUrl: null };
+  if (tab.active) {
+    try {
+      meta = await extractPageMeta(tab.id);
+    } catch (e) {
+      console.warn("Failed to extract tab meta:", e);
+    }
+  }
+
   const payload = {
     url: tab.url,
     title: meta.title ?? tab.title ?? tab.url,
     description: meta.description ?? null,
     imageUrl: meta.imageUrl ?? null,
   };
-  if (groupId) payload.groupId = groupId;
+  if (isFirstGroupLink && groupName) {
+    payload.newGroupName = groupName;
+  } else if (groupId) {
+    payload.groupId = groupId;
+  }
 
   const res = await fetch(`${apiBase}/api/links`, {
     method: "POST",
@@ -63,13 +74,10 @@ async function saveCurrentTab(apiBase, groupId) {
   });
   const data = await res.json().catch(() => ({}));
   if (res.ok) {
-    return { linkId: data.link?.id, groupId: data.link?.groupId ?? groupId ?? null };
+    return data.link;
   }
   if (res.status === 409 && (data.existingId || data.link?.id)) {
-    return {
-      linkId: data.link?.id ?? data.existingId,
-      groupId: data.link?.groupId ?? groupId ?? null,
-    };
+    return data.link ?? { id: data.existingId, groupId: data.link?.groupId ?? groupId };
   }
   throw new Error(data?.error || "Failed to save");
 }
@@ -143,7 +151,27 @@ function App() {
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [error, setError] = useState("");
   const [isStorageLoaded, setIsStorageLoaded] = useState(false);
+  const [highlightedTabs, setHighlightedTabs] = useState([]);
+  const [activeTabGroup, setActiveTabGroup] = useState(null);
+  const [saveMode, setSaveMode] = useState("active");
   const inputRef = useRef(null);
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const tabs = await chrome.tabs.query({ highlighted: true, currentWindow: true });
+        setHighlightedTabs(tabs);
+
+        const activeTab = tabs.find((t) => t.active) || tabs[0];
+        if (chrome.tabGroups && activeTab && activeTab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE) {
+          const groupInfo = await chrome.tabGroups.get(activeTab.groupId);
+          setActiveTabGroup(groupInfo);
+        }
+      } catch (e) {
+        console.error("Failed to query tabs/groups:", e);
+      }
+    })();
+  }, []);
 
   // Load storage states (apiBase, lastSavedGroupId, cachedGroups) exactly once on mount to prevent double loading
   useEffect(() => {
@@ -273,6 +301,41 @@ function App() {
     return created;
   };
 
+  const handleSaveModeChange = (mode) => {
+    setSaveMode(mode);
+    if (mode === "group" && activeTabGroup && activeTabGroup.title) {
+      const existingGroup = groups.find(
+        (g) => g.name.toLowerCase() === activeTabGroup.title.trim().toLowerCase(),
+      );
+      if (existingGroup) {
+        setSelectedGroupId(existingGroup.id);
+        setGroupQuery(existingGroup.name);
+      } else {
+        setSelectedGroupId(null);
+        setGroupQuery(activeTabGroup.title.trim());
+      }
+    } else if (mode === "active" || mode === "selected") {
+      chrome.storage.local.get(["lastSavedGroupId", "cachedGroups"], (res) => {
+        const targetId = res.lastSavedGroupId;
+        const list = res.cachedGroups || groups;
+        let defaultGroup = null;
+        if (targetId) {
+          defaultGroup = list.find((g) => g.id === targetId) ?? null;
+        }
+        if (!defaultGroup) {
+          defaultGroup =
+            list.find((g) => g.name.trim().toLowerCase() === "uncategorized") ??
+            list[0] ??
+            null;
+        }
+        if (defaultGroup) {
+          setSelectedGroupId(defaultGroup.id);
+          setGroupQuery(defaultGroup.name);
+        }
+      });
+    }
+  };
+
   const saveToSelectedGroup = async () => {
     const base = apiBase.trim();
     if (!base) return;
@@ -280,15 +343,45 @@ function App() {
     setPhase("saving");
     try {
       const target = await resolveTargetGroup();
-      const saved = await saveCurrentTab(base, target.id);
-      const finalGroupId = saved.groupId ?? target.id;
-      setLinkId(saved.linkId);
+
+      let tabsToSave = [];
+      if (saveMode === "active") {
+        const activeTab = await getActiveTab();
+        if (activeTab) tabsToSave = [activeTab];
+      } else if (saveMode === "selected") {
+        tabsToSave = highlightedTabs.length > 0
+          ? highlightedTabs
+          : [await getActiveTab()];
+      } else if (saveMode === "group") {
+        if (activeTabGroup) {
+          const groupTabs = await chrome.tabs.query({ groupId: activeTabGroup.id });
+          tabsToSave = groupTabs;
+        } else {
+          tabsToSave = [await getActiveTab()];
+        }
+      }
+
+      tabsToSave = tabsToSave.filter((t) => t && t.url);
+      if (tabsToSave.length === 0) {
+        throw new Error("No tabs found to save");
+      }
+
+      let savedLink = null;
+      for (const tab of tabsToSave) {
+        const result = await saveTab(base, tab, target.id);
+        if (tab.active || !savedLink) {
+          savedLink = result;
+        }
+      }
+
+      const finalGroupId = target.id;
+      setLinkId(savedLink?.id || "multiple");
       setCurrentGroupId(finalGroupId);
       setSelectedGroupId(finalGroupId);
       setGroupQuery(target.name);
       setPhase("saved");
       setDropdownOpen(false);
-      
+
       // Save lastSavedGroupId to chrome.storage.local to remember selection next time
       chrome.storage.local.set({ lastSavedGroupId: finalGroupId });
     } catch (e) {
@@ -370,6 +463,37 @@ function App() {
                   : "Choose a group, then save"}
               </span>
             </div>
+
+            {phase === "pick" && (highlightedTabs.length > 1 || activeTabGroup) ? (
+              <div className="save-mode-selector">
+                <button
+                  type="button"
+                  className={`save-mode-btn ${saveMode === "active" ? "active" : ""}`}
+                  onClick={() => handleSaveModeChange("active")}
+                >
+                  This Tab
+                </button>
+                {highlightedTabs.length > 1 ? (
+                  <button
+                    type="button"
+                    className={`save-mode-btn ${saveMode === "selected" ? "active" : ""}`}
+                    onClick={() => handleSaveModeChange("selected")}
+                  >
+                    Selected ({highlightedTabs.length})
+                  </button>
+                ) : null}
+                {activeTabGroup ? (
+                  <button
+                    type="button"
+                    className={`save-mode-btn ${saveMode === "group" ? "active" : ""}`}
+                    onClick={() => handleSaveModeChange("group")}
+                    title={`Group: ${activeTabGroup.title || "Unnamed"}`}
+                  >
+                    Group: {activeTabGroup.title || "Unnamed"}
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
 
             <div className="group-section">
               {groupsLoading ? (
@@ -454,7 +578,11 @@ function App() {
                       disabled={!selectedGroupId && !groupQuery.trim()}
                       onClick={() => void saveToSelectedGroup()}
                     >
-                      Save to group
+                      {saveMode === "active"
+                        ? "Save tab to group"
+                        : saveMode === "selected"
+                        ? `Save ${highlightedTabs.length} tabs to group`
+                        : "Save tab group"}
                     </button>
                   ) : null}
 
@@ -463,7 +591,13 @@ function App() {
                   ) : null}
 
                   {phase === "saved" && linkId ? (
-                    <p className="assign-note">Link saved</p>
+                    <p className="assign-note">
+                      {saveMode === "active"
+                        ? "Link saved"
+                        : saveMode === "selected"
+                        ? `${highlightedTabs.length} links saved`
+                        : "Tab group saved"}
+                    </p>
                   ) : null}
 
                   {error ? <p className="field-error">{error}</p> : null}

@@ -25,6 +25,7 @@
   "permissions": [
     "tabs",
     "activeTab",
+    "tabGroups",
     "scripting",
     "storage",
     "omnibox",
