@@ -7,6 +7,13 @@ import {
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
 import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
+import {
+  decodeLinkCursor,
+  LINKS_PAGE_MAX,
+  linksCursorWhere,
+  parseLinksLimit,
+  toLinksPage,
+} from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
@@ -102,10 +109,48 @@ linksRouter.get("/", async (req, res) => {
       typeof req.query.groupId === "string" ? req.query.groupId.trim() : "";
     const legacyGroup =
       typeof req.query.group === "string" ? req.query.group.trim() : "";
-    const tagParams = (Array.isArray(req.query.tag) ? req.query.tag : req.query.tag ? [req.query.tag] : [])
+    const cursorParam =
+      typeof req.query.cursor === "string" ? req.query.cursor.trim() : "";
+    const limit = parseLinksLimit(
+      typeof req.query.limit === "string" ? req.query.limit : undefined,
+    );
+    const idsParam = (
+      Array.isArray(req.query.ids)
+        ? req.query.ids
+        : req.query.ids
+          ? [req.query.ids]
+          : []
+    )
+      .flatMap((value) => String(value).split(","))
+      .map((value) => value.trim())
+      .filter(Boolean);
+    const tagParams = (
+      Array.isArray(req.query.tag)
+        ? req.query.tag
+        : req.query.tag
+          ? [req.query.tag]
+          : []
+    )
       .flatMap((value) => String(value).split(","))
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
+
+    if (idsParam.length) {
+      const uniqueIds: string[] = Array.from(new Set(idsParam.map(String))).slice(
+        0,
+        LINKS_PAGE_MAX,
+      );
+      const rows = await prisma.link.findMany({
+        where: { id: { in: uniqueIds } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      });
+      res.json({
+        links: rows.map(linkToApiRow),
+        nextCursor: null,
+        hasMore: false,
+      });
+      return;
+    }
 
     let filterGroupId: string | undefined;
     if (groupIdParam) {
@@ -120,6 +165,15 @@ linksRouter.get("/", async (req, res) => {
       filterGroupId = legacyGroup;
     }
 
+    let cursor = null as ReturnType<typeof decodeLinkCursor>;
+    if (cursorParam) {
+      cursor = decodeLinkCursor(cursorParam);
+      if (!cursor) {
+        res.status(400).json({ error: "Invalid cursor" });
+        return;
+      }
+    }
+
     const where: Prisma.LinkWhereInput = {
       AND: [
         search.trim() ? linkTextSearchWhere(search) : {},
@@ -127,15 +181,16 @@ linksRouter.get("/", async (req, res) => {
         tagParams.length
           ? { tags: { hasSome: Array.from(new Set(tagParams)) } }
           : {},
+        linksCursorWhere(cursor),
       ],
     };
 
     const rows = await prisma.link.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
     });
-    const links: LinkApiRow[] = rows.map(linkToApiRow);
-    res.json({ links });
+    res.json(toLinksPage(rows, limit));
   } catch (e) {
     console.error("GET /api/links:", e);
     const hint = e instanceof Error ? e.message : undefined;

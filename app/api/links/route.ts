@@ -6,7 +6,14 @@ import {
   isGeneralName,
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
-import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
+import { isValidHttpUrl, linkToApiRow } from "@/lib/links";
+import {
+  decodeLinkCursor,
+  LINKS_PAGE_MAX,
+  linksCursorWhere,
+  parseLinksLimit,
+  toLinksPage,
+} from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
@@ -23,11 +30,32 @@ export async function GET(request: Request) {
     const search = searchParams.get("search") ?? searchParams.get("q") ?? "";
     const groupIdParam = searchParams.get("groupId")?.trim() ?? "";
     const legacyGroup = searchParams.get("group")?.trim() ?? "";
+    const cursorParam = searchParams.get("cursor")?.trim() ?? "";
+    const idsParam = searchParams
+      .getAll("ids")
+      .flatMap((value) => value.split(","))
+      .map((value) => value.trim())
+      .filter(Boolean);
     const tagParams = searchParams
       .getAll("tag")
       .flatMap((value) => value.split(","))
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
+    const limit = parseLinksLimit(searchParams.get("limit"));
+
+    // Lightweight status refresh for specific pending rows (no full list reload).
+    if (idsParam.length) {
+      const uniqueIds = Array.from(new Set(idsParam)).slice(0, LINKS_PAGE_MAX);
+      const rows = await prisma.link.findMany({
+        where: { id: { in: uniqueIds } },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      });
+      return NextResponse.json({
+        links: rows.map(linkToApiRow),
+        nextCursor: null,
+        hasMore: false,
+      });
+    }
 
     let filterGroupId: string | undefined;
     if (groupIdParam) {
@@ -42,6 +70,17 @@ export async function GET(request: Request) {
       filterGroupId = legacyGroup;
     }
 
+    let cursor = null as ReturnType<typeof decodeLinkCursor>;
+    if (cursorParam) {
+      cursor = decodeLinkCursor(cursorParam);
+      if (!cursor) {
+        return NextResponse.json(
+          { error: "Invalid cursor" },
+          { status: 400 },
+        );
+      }
+    }
+
     const where: Prisma.LinkWhereInput = {
       AND: [
         search.trim() ? linkTextSearchWhere(search) : {},
@@ -49,15 +88,16 @@ export async function GET(request: Request) {
         tagParams.length
           ? { tags: { hasSome: Array.from(new Set(tagParams)) } }
           : {},
+        linksCursorWhere(cursor),
       ],
     };
 
     const rows = await prisma.link.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      take: limit + 1,
     });
-    const links: LinkApiRow[] = rows.map(linkToApiRow);
-    return NextResponse.json({ links });
+    return NextResponse.json(toLinksPage(rows, limit));
   } catch (e) {
     console.error("GET /api/links:", e);
     const hint = e instanceof Error ? e.message : undefined;

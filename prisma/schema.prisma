@@ -32,6 +32,7 @@ model Link {
   createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([groupId])
+  @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@map("links")
 }
 
