@@ -15,12 +15,15 @@ interface CachedCard {
 let cachedCards: CachedCard[] = [];
 let lastScrollY = 0;
 let lastScrollX = 0;
+/** Prevents re-populating the cache more than once per frame (16ms guard). */
+let lastPopulateTime = 0;
 
 export function populateCardRectsCache(grid: HTMLElement) {
   const shells = grid.querySelectorAll<HTMLElement>(".mind-card-shell");
   cachedCards = [];
   lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
   lastScrollX = typeof window !== "undefined" ? window.scrollX : 0;
+  lastPopulateTime = Date.now();
 
   for (const shell of shells) {
     const rect = shell.getBoundingClientRect();
@@ -43,9 +46,9 @@ export function clearCardRectsCache() {
 if (typeof window !== "undefined") {
   window.addEventListener("resize", clearCardRectsCache);
   window.addEventListener("scroll", () => {
-    // If the cache is populated, we can keep it and just let applyVicinityCardStrokes compute the delta,
-    // or clear it to rebuild on next mousemove if scrolling extensively.
-    // Clearing on scroll is safe since scrolling moves elements relative to the viewport.
+    // Clear so the delta logic in applyVicinityCardStrokes picks up new positions.
+    // The 16ms guard in applyVicinityCardStrokes prevents an immediate expensive
+    // repopulate — it'll rebuild on the next mousemove after the guard expires.
     clearCardRectsCache();
   }, { passive: true });
 }
@@ -85,6 +88,10 @@ export function applyVicinityCardStrokes(
   clientY: number,
 ) {
   if (cachedCards.length === 0) {
+    // Guard: don't repopulate more than once per ~frame (16ms).
+    // This prevents layout-reflow thrashing when cache is cleared on scroll
+    // and the user immediately moves the mouse before the frame settles.
+    if (Date.now() - lastPopulateTime < 16) return;
     populateCardRectsCache(grid);
   }
 

@@ -207,8 +207,36 @@ export async function capturePageScreenshotUrl(
   return (await tryMicrolink(pageUrl)) || (await tryMshots(pageUrl)) || null;
 }
 
+/**
+ * Hostnames that serve images with permissive CORS headers and don't need
+ * proxying. Add any CDN you trust here.
+ */
+const DIRECT_SERVE_HOSTS = new Set([
+  "res.cloudinary.com",
+  "images.unsplash.com",
+  "lh3.googleusercontent.com",
+  "www.google.com",        // Google favicons
+  "s.gravatar.com",
+  "avatars.githubusercontent.com",
+  "github.com",
+  "raw.githubusercontent.com",
+  "cdn.dribbble.com",
+  "mir-s3-cdn-cf.behance.net",
+  "i.ytimg.com",           // YouTube thumbnails
+  "og.figma.com",
+  "pbs.twimg.com",
+]);
+
 export function getProxiedImageUrl(url: string | null | undefined): string | undefined {
   if (!url) return undefined;
+  // Data URIs and relative paths are always served directly
   if (url.startsWith("/") || url.startsWith("data:")) return url;
+  // Bypass proxy for trusted CDN origins — they support CORS natively
+  try {
+    const { hostname } = new URL(url);
+    if (DIRECT_SERVE_HOSTS.has(hostname)) return url;
+  } catch {
+    // Malformed URL — fall through to proxy
+  }
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
 }

@@ -27,6 +27,25 @@ const LINKS_PAGE_SIZE = 24;
 /** Only poll metadata for recently-created pending links (avoids endless refetch). */
 const PENDING_POLL_MAX_AGE_MS = 10 * 60 * 1000;
 
+/**
+ * Debounced localStorage writer — batches rapid writes into one, avoiding
+ * synchronous JSON.stringify on every SWR page load / link update.
+ */
+function makeDebouncedLocalStorageWriter(key: string, delayMs = 60) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  return (value: unknown) => {
+    if (timer !== null) clearTimeout(timer);
+    timer = setTimeout(() => {
+      timer = null;
+      try {
+        window.localStorage.setItem(key, JSON.stringify(value));
+      } catch {}
+    }, delayMs);
+  };
+}
+
+const writeLinksCacheToStorage = makeDebouncedLocalStorageWriter("memory404-links-cache", 60);
+
 type LinksPage = {
   links: LinkApiRow[];
   nextCursor: string | null;
@@ -371,12 +390,8 @@ export default function VaultInbox() {
         // Only cache first page worth for quick paint — avoid bloating localStorage
         const firstPage = swrLinkPages[0]?.links ?? [];
         const next = { ...prev, [openedGroupId]: firstPage };
-        try {
-          window.localStorage.setItem(
-            "memory404-links-cache",
-            JSON.stringify(next),
-          );
-        } catch {}
+        // Debounced — won't block rendering with synchronous JSON.stringify
+        writeLinksCacheToStorage(next);
         return next;
       });
     }
@@ -764,9 +779,7 @@ export default function VaultInbox() {
             ...prev,
             [openedGroupId]: [row, ...groupLinks.filter((l) => l.id !== tempId && l.id !== row.id)],
           };
-          try {
-            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
-          } catch {}
+          writeLinksCacheToStorage(next);
           return next;
         });
 
@@ -886,9 +899,7 @@ export default function VaultInbox() {
           } else if (row.groupId) {
             next[row.groupId] = [row, ...(next[row.groupId] || []).filter((l) => l.id !== row.id)];
           }
-          try {
-            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
-          } catch {}
+          writeLinksCacheToStorage(next);
           return next;
         });
       }
@@ -952,9 +963,7 @@ export default function VaultInbox() {
             ...prev,
             [openedGroupId]: (prev[openedGroupId] || []).filter((l) => l.id !== id),
           };
-          try {
-            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
-          } catch {}
+          writeLinksCacheToStorage(next);
           return next;
         });
       }
@@ -1039,9 +1048,7 @@ export default function VaultInbox() {
         if (nextGroupId && next[nextGroupId]) {
           next[nextGroupId] = [updatedLink, ...(next[nextGroupId].filter((l) => l.id !== link.id))];
         }
-        try {
-          window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
-        } catch {}
+        writeLinksCacheToStorage(next);
         return next;
       });
       if (nextGroupId !== openedGroupId) {
@@ -1149,31 +1156,44 @@ export default function VaultInbox() {
     } catch {}
   };
 
-  const persistFolderOrder = useCallback(async (orderedFolders: GroupRow[]) => {
+  const persistFolderOrderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistFolderOrder = useCallback((orderedFolders: GroupRow[]) => {
     const previous = groups;
     const ordered = generalGroup
       ? [generalGroup, ...orderedFolders]
       : orderedFolders;
+
+    // Optimistic update is immediate so the UI stays responsive during drag
     setGroups(ordered);
-    try {
-      const res = await fetch(apiUrl("/api/groups"), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderedIds: ordered.map((g) => g.id) }),
-      });
-      if (!res.ok) {
-        setGroups(previous);
-        const data = await res.json().catch(() => ({}));
-        setGroupsError(
-          typeof data.error === "string"
-            ? data.error
-            : "Failed to save group order",
-        );
-      }
-    } catch {
-      setGroups(previous);
-      setGroupsError("Failed to save group order");
+
+    // Debounce the API call — Framer fires onReorder on every drag frame,
+    // so without this we'd send dozens of PATCH requests per drag gesture.
+    if (persistFolderOrderTimerRef.current !== null) {
+      clearTimeout(persistFolderOrderTimerRef.current);
     }
+    persistFolderOrderTimerRef.current = setTimeout(async () => {
+      persistFolderOrderTimerRef.current = null;
+      try {
+        const res = await fetch(apiUrl("/api/groups"), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ orderedIds: ordered.map((g) => g.id) }),
+        });
+        if (!res.ok) {
+          setGroups(previous);
+          const data = await res.json().catch(() => ({}));
+          setGroupsError(
+            typeof data.error === "string"
+              ? data.error
+              : "Failed to save group order",
+          );
+        }
+      } catch {
+        setGroups(previous);
+        setGroupsError("Failed to save group order");
+      }
+    }, 300);
   }, [generalGroup, groups]);
 
   const fieldClass =

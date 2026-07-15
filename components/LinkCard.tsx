@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { memo, useEffect, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
-import { googleFaviconUrl, isGoogleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
+import { googleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import {
   getProxiedImageUrl,
-  isThumIoUrl,
   resolveMicrolinkScreenshotUrl,
 } from "@/lib/screenshot";
 
@@ -16,7 +15,7 @@ type Props = {
   priority?: boolean;
 };
 
-export default function LinkCard({ link, onOpen, priority = false }: Props) {
+function LinkCard({ link, onOpen, priority = false }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
   const pending = link.metadata_status === "pending" || !!link.isPending;
@@ -29,29 +28,9 @@ export default function LinkCard({ link, onOpen, priority = false }: Props) {
     resolveAttempted.current = false;
   }, [link.id, link.image_url]);
 
-  // Bad thum.io placeholders are stripped server-side to a favicon — fetch a real shot.
-  // Also replace any lingering thum.io URL still in the client.
-  useEffect(() => {
-    if (pending || resolveAttempted.current || requiresLoginPlaceholder(link.url)) return;
-    const needsShot =
-      isThumIoUrl(imgSrc) || (!pending && isGoogleFaviconUrl(imgSrc));
-    if (!needsShot) return;
-
-    let cancelled = false;
-    resolveAttempted.current = true;
-    setResolving(true);
-
-    void (async () => {
-      const next = await resolveMicrolinkScreenshotUrl(link.url);
-      if (cancelled) return;
-      if (next) setImgSrc(next);
-      setResolving(false);
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [imgSrc, link.url, pending]);
+  // NOTE: Proactive browser-side Microlink screenshot resolution has been removed.
+  // Images are now stored in Cloudinary server-side during metadata enrichment.
+  // The onError handler below still provides a fallback for any genuinely broken URLs.
 
   const showLoader = pending || resolving;
 
@@ -150,3 +129,10 @@ export default function LinkCard({ link, onOpen, priority = false }: Props) {
     </article>
   );
 }
+
+/**
+ * Memoized so it only re-renders when the `link` prop reference changes.
+ * This prevents 24+ re-renders on every VaultInbox state update (copiedId,
+ * openedLinkId, gridSize, etc.) that have nothing to do with individual cards.
+ */
+export default memo(LinkCard);
