@@ -13,9 +13,10 @@ import {
 type Props = {
   link: LinkApiRow;
   onOpen: (link: LinkApiRow, originEl: HTMLElement) => void;
+  priority?: boolean;
 };
 
-export default function LinkCard({ link, onOpen }: Props) {
+export default function LinkCard({ link, onOpen, priority = false }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
   const pending = link.metadata_status === "pending" || !!link.isPending;
@@ -71,7 +72,8 @@ export default function LinkCard({ link, onOpen }: Props) {
               key={`${link.id}-${imgSrc}`}
               src={getProxiedImageUrl(imgSrc)}
               alt=""
-              loading="lazy"
+              loading={priority ? "eager" : "lazy"}
+              fetchPriority={priority ? "high" : "low"}
               referrerPolicy="no-referrer"
               decoding="async"
               draggable={false}

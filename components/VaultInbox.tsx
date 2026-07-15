@@ -14,6 +14,7 @@ import { apiUrl } from "@/lib/api-base";
 import {
   applyVicinityCardStrokes,
   clearVicinityCardStrokes,
+  clearCardRectsCache,
 } from "@/lib/card-vicinity-stroke";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import type { LinkApiRow } from "@/lib/links";
@@ -415,6 +416,10 @@ export default function VaultInbox() {
   const visibleLinks = useMemo(() => {
     return sortedLinks.slice(0, visibleCount);
   }, [sortedLinks, visibleCount]);
+
+  useEffect(() => {
+    clearCardRectsCache();
+  }, [visibleLinks]);
 
   useEffect(() => {
     if (visibleCount >= sortedLinks.length) return;
@@ -1381,8 +1386,13 @@ export default function VaultInbox() {
                     void loadGroups();
                   }}
                 />
-                {visibleLinks.map((link) => (
-                  <LinkCard key={link.id} link={link} onOpen={openLinkDetail} />
+                {visibleLinks.map((link, index) => (
+                  <LinkCard
+                    key={link.id}
+                    link={link}
+                    onOpen={openLinkDetail}
+                    priority={index < 4}
+                  />
                 ))}
               </div>
               {visibleCount < sortedLinks.length && (
