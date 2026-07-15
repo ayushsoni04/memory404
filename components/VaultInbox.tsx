@@ -1057,6 +1057,57 @@ export default function VaultInbox() {
     }
   };
 
+  const updateLink = async (link: LinkApiRow, updates: Partial<LinkApiRow>) => {
+    const originalLinks = links;
+
+    // Optimistically update local UI state
+    setLinks((prev) =>
+      prev.map((l) => (l.id === link.id ? { ...l, ...updates } : l))
+    );
+
+    try {
+      const body: Record<string, any> = {};
+      if ("notes" in updates) body.notes = updates.notes;
+      if ("customTitle" in updates) body.customTitle = updates.customTitle;
+      if ("tags" in updates) body.tags = updates.tags;
+      if ("groupId" in updates) body.groupId = updates.groupId;
+
+      const res = await fetch(apiUrl(`/api/links/${link.id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setLinks(originalLinks);
+        throw new Error(data.error || "Failed to update link");
+      }
+
+      const updatedRow = data.link ? (data.link as LinkApiRow) : null;
+      if (updatedRow && openedGroupId) {
+        // Update cache
+        setLinksCache((prev) => {
+          const next = { ...prev };
+          if (next[openedGroupId]) {
+            next[openedGroupId] = next[openedGroupId].map((l) =>
+              l.id === link.id ? updatedRow : l
+            );
+          }
+          try {
+            window.localStorage.setItem(
+              "memory404-links-cache",
+              JSON.stringify(next)
+            );
+          } catch {}
+          return next;
+        });
+      }
+    } catch (err) {
+      setLinks(originalLinks);
+      throw err;
+    }
+  };
+
   const createGroup = async () => {
     const name = createGroupName.trim();
     if (!name) {
@@ -1712,6 +1763,7 @@ export default function VaultInbox() {
           onDelete={(id) => void handleDelete(id)}
           onMove={(link, groupId) => void moveLinkToGroup(link, groupId)}
           onCopy={(link) => void copyLinkUrl(link)}
+          onUpdate={updateLink}
           hasPrev={openedLinkIndex > 0}
           hasNext={openedLinkIndex >= 0 && openedLinkIndex < links.length - 1}
         />

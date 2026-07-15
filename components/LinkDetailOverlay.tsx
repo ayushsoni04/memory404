@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
@@ -21,6 +21,7 @@ type Props = {
   onDelete: (id: string) => void;
   onMove: (link: LinkApiRow, groupId: string) => void;
   onCopy: (link: LinkApiRow) => void;
+  onUpdate: (link: LinkApiRow, updates: Partial<LinkApiRow>) => Promise<void>;
   hasPrev: boolean;
   hasNext: boolean;
 };
@@ -36,6 +37,7 @@ export default function LinkDetailOverlay({
   onDelete,
   onMove,
   onCopy,
+  onUpdate,
   hasPrev,
   hasNext,
 }: Props) {
@@ -45,6 +47,29 @@ export default function LinkDetailOverlay({
   const stageRef = useRef<HTMLDivElement | null>(null);
   const closingRef = useRef(false);
   const host = linkHostname(link.url);
+
+  const [notes, setNotes] = useState(link.notes ?? "");
+  const [notesStatus, setNotesStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  useEffect(() => {
+    setNotes(link.notes ?? "");
+    setNotesStatus("idle");
+  }, [link.id, link.notes]);
+
+  const handleSaveNotes = async (val: string) => {
+    const trimmed = val.trim();
+    const nextVal = trimmed.length ? trimmed : null;
+    if (nextVal === link.notes) return;
+
+    setNotesStatus("saving");
+    try {
+      await onUpdate(link, { notes: nextVal });
+      setNotesStatus("saved");
+      window.setTimeout(() => setNotesStatus("idle"), 2000);
+    } catch {
+      setNotesStatus("error");
+    }
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -251,6 +276,30 @@ export default function LinkDetailOverlay({
               </div>
             ) : null}
           </dl>
+          <div className="mt-6 pt-5 border-t border-border flex flex-col gap-2">
+            <div className="flex items-center justify-between">
+              <label htmlFor="notes-textarea" className="text-[12px] font-medium text-subtle">
+                Notes
+              </label>
+              {notesStatus === "saving" && (
+                <span className="text-[11px] text-muted animate-pulse">Saving...</span>
+              )}
+              {notesStatus === "saved" && (
+                <span className="text-[11px] text-success font-medium">Saved!</span>
+              )}
+              {notesStatus === "error" && (
+                <span className="text-[11px] text-danger font-medium">Error saving</span>
+              )}
+            </div>
+            <textarea
+              id="notes-textarea"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              onBlur={() => handleSaveNotes(notes)}
+              placeholder="Add thoughts, description, notes..."
+              className="w-full min-h-[90px] max-h-[160px] p-3 rounded-lg border border-border bg-surface-elevated/45 text-[13px] text-foreground placeholder:text-muted/60 outline-none focus:border-border-strong resize-none transition-all duration-200"
+            />
+          </div>
 
           <div className="mt-5 flex flex-col gap-2">
             <a
