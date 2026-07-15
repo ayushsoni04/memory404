@@ -124,6 +124,8 @@ export default function VaultInbox() {
   const [placeGroupId, setPlaceGroupId] = useState<string | null>(null);
   const [newGroupNameDraft, setNewGroupNameDraft] = useState("");
   const [creatingNewGroup, setCreatingNewGroup] = useState(false);
+  const [visibleCount, setVisibleCount] = useState(24);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
 
   const [links, setLinks] = useState<LinkApiRow[]>(() => {
     try {
@@ -177,6 +179,10 @@ export default function VaultInbox() {
       return null;
     }
   });
+
+  useEffect(() => {
+    setVisibleCount(24);
+  }, [openedGroupId, sortBy]);
   const [createGroupName, setCreateGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [addingAt, setAddingAt] = useState<number | null>(null);
@@ -405,6 +411,31 @@ export default function VaultInbox() {
     }
     return list;
   }, [links, sortBy]);
+
+  const visibleLinks = useMemo(() => {
+    return sortedLinks.slice(0, visibleCount);
+  }, [sortedLinks, visibleCount]);
+
+  useEffect(() => {
+    if (visibleCount >= sortedLinks.length) return;
+    const currentSentinel = sentinelRef.current;
+    if (!currentSentinel) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          setVisibleCount((prev) => Math.min(prev + 24, sortedLinks.length));
+        }
+      },
+      { rootMargin: "400px" }
+    );
+
+    observer.observe(currentSentinel);
+    return () => {
+      observer.unobserve(currentSentinel);
+    };
+  }, [visibleCount, sortedLinks.length]);
+
   const saveLink = useCallback(
     async (
       url: string,
@@ -799,6 +830,12 @@ export default function VaultInbox() {
   const openedLinkIndex = openedLink
     ? sortedLinks.findIndex((l) => l.id === openedLink.id)
     : -1;
+
+  useEffect(() => {
+    if (openedLinkIndex >= 0 && openedLinkIndex >= visibleCount) {
+      setVisibleCount(openedLinkIndex + 1);
+    }
+  }, [openedLinkIndex, visibleCount]);
 
   const openLinkDetail = (link: LinkApiRow, originEl: HTMLElement) => {
     setOverlayOrigin(originEl.getBoundingClientRect());
@@ -1307,46 +1344,53 @@ export default function VaultInbox() {
               </button>
             </div>
           ) : (
-            <div
-              className="mind-grid"
-              data-grid-size={gridSize}
-              onPointerMove={(e) => {
-                const grid = e.currentTarget as HTMLDivElement & {
-                  __strokeX?: number;
-                  __strokeY?: number;
-                };
-                grid.__strokeX = e.clientX;
-                grid.__strokeY = e.clientY;
-                if (grid.dataset.strokeRaf) return;
-                grid.dataset.strokeRaf = "1";
-                requestAnimationFrame(() => {
-                  delete grid.dataset.strokeRaf;
-                  applyVicinityCardStrokes(
-                    grid,
-                    grid.__strokeX ?? 0,
-                    grid.__strokeY ?? 0,
-                  );
-                });
-              }}
-              onPointerLeave={(e) => {
-                clearVicinityCardStrokes(e.currentTarget);
-              }}
-            >
-              <AddLinkCard
-                groupId={openedGroupId === "all" ? null : openedGroupId}
-                saveLink={saveLink}
-                onSaved={(row) => {
-                  setLinks((prev) => [
-                    row,
-                    ...prev.filter((l) => l.id !== row.id),
-                  ]);
-                  void loadGroups();
+            <>
+              <div
+                className="mind-grid"
+                data-grid-size={gridSize}
+                onPointerMove={(e) => {
+                  const grid = e.currentTarget as HTMLDivElement & {
+                    __strokeX?: number;
+                    __strokeY?: number;
+                  };
+                  grid.__strokeX = e.clientX;
+                  grid.__strokeY = e.clientY;
+                  if (grid.dataset.strokeRaf) return;
+                  grid.dataset.strokeRaf = "1";
+                  requestAnimationFrame(() => {
+                    delete grid.dataset.strokeRaf;
+                    applyVicinityCardStrokes(
+                      grid,
+                      grid.__strokeX ?? 0,
+                      grid.__strokeY ?? 0,
+                    );
+                  });
                 }}
-              />
-              {sortedLinks.map((link) => (
-                <LinkCard key={link.id} link={link} onOpen={openLinkDetail} />
-              ))}
-            </div>
+                onPointerLeave={(e) => {
+                  clearVicinityCardStrokes(e.currentTarget);
+                }}
+              >
+                <AddLinkCard
+                  groupId={openedGroupId === "all" ? null : openedGroupId}
+                  saveLink={saveLink}
+                  onSaved={(row) => {
+                    setLinks((prev) => [
+                      row,
+                      ...prev.filter((l) => l.id !== row.id),
+                    ]);
+                    void loadGroups();
+                  }}
+                />
+                {visibleLinks.map((link) => (
+                  <LinkCard key={link.id} link={link} onOpen={openLinkDetail} />
+                ))}
+              </div>
+              {visibleCount < sortedLinks.length && (
+                <div ref={sentinelRef} className="mt-8 flex w-full justify-center pb-12">
+                  <AppLoader compact progressive label="loading more" />
+                </div>
+              )}
+            </>
           )}
         </main>
 
