@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Router } from "express";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
@@ -59,7 +60,7 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
       });
       return { ok: true, groupId: g.id };
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
         return {
           ok: false,
           status: 409,
@@ -174,7 +175,8 @@ linksRouter.get("/", async (req, res) => {
       }
     }
 
-    const where: Prisma.LinkWhereInput = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: any = {
       AND: [
         search.trim() ? linkTextSearchWhere(search) : {},
         filterGroupId ? { groupId: filterGroupId } : {},
@@ -270,15 +272,16 @@ linksRouter.post("/", async (req, res) => {
     res.status(201).json({ link: linkToApiRow(created) });
   } catch (e) {
     console.error("POST /api/links:", e);
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      if (e.code === "P2002") {
+    if (e instanceof PrismaClientKnownRequestError) {
+      const err = e as PrismaClientKnownRequestError;
+      if (err.code === "P2002") {
         res.status(409).json({ error: "A link with this URL already exists." });
         return;
       }
       res.status(500).json({
         error: "Could not save link.",
-        hint: e.message,
-        code: e.code,
+        hint: err.message,
+        code: err.code,
       });
       return;
     }
@@ -334,7 +337,8 @@ linksRouter.patch("/:id", async (req, res) => {
       return;
     }
 
-    const updateData: Prisma.LinkUpdateInput = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updateData: any = {};
 
     if ("customTitle" in body) {
       const raw = body.customTitle;
@@ -411,18 +415,19 @@ linksRouter.patch("/:id", async (req, res) => {
     res.json({ link: linkToApiRow(updated) });
   } catch (e) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
+      e instanceof PrismaClientKnownRequestError &&
+      (e as PrismaClientKnownRequestError).code === "P2025"
     ) {
       res.status(404).json({ error: "Link not found" });
       return;
     }
     console.error("PATCH /api/links/:id:", e);
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (e instanceof PrismaClientKnownRequestError) {
+      const err = e as PrismaClientKnownRequestError;
       res.status(500).json({
         error: "Could not update link.",
-        hint: e.message,
-        code: e.code,
+        hint: err.message,
+        code: err.code,
       });
       return;
     }
@@ -448,18 +453,19 @@ linksRouter.delete("/:id", async (req, res) => {
     res.json({ ok: true });
   } catch (e) {
     if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
+      e instanceof PrismaClientKnownRequestError &&
+      (e as PrismaClientKnownRequestError).code === "P2025"
     ) {
       res.status(404).json({ error: "Link not found" });
       return;
     }
     console.error("DELETE /api/links/:id:", e);
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
+    if (e instanceof PrismaClientKnownRequestError) {
+      const err = e as PrismaClientKnownRequestError;
       res.status(500).json({
         error: "Could not delete link.",
-        hint: e.message,
-        code: e.code,
+        hint: err.message,
+        code: err.code,
       });
       return;
     }

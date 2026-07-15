@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Router } from "express";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { getOrCreateGeneralGroupId } from "@/lib/groups";
@@ -98,13 +99,14 @@ groupsRouter.post("/", async (req, res) => {
       }
     }
 
-    const general = await prisma.group.findUnique({
-      where: { name: GENERAL_GROUP_NAME },
-      select: { id: true },
-    });
-    const maxOrder = await prisma.group.aggregate({
-      _max: { sortOrder: true },
-    });
+    // Parallelise two independent queries
+    const [general, maxOrder] = await Promise.all([
+      prisma.group.findUnique({
+        where: { name: GENERAL_GROUP_NAME },
+        select: { id: true },
+      }),
+      prisma.group.aggregate({ _max: { sortOrder: true } }),
+    ]);
     const nextAppend = (maxOrder._max.sortOrder ?? -1) + 1;
 
     let sortOrder = nextAppend;
@@ -139,7 +141,7 @@ groupsRouter.post("/", async (req, res) => {
       },
     });
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (e instanceof PrismaClientKnownRequestError && (e as PrismaClientKnownRequestError).code === "P2002") {
       res.status(409).json({ error: "A group with this name already exists." });
       return;
     }
@@ -199,13 +201,26 @@ groupsRouter.patch("/", async (req, res) => {
       return;
     }
 
-    await prisma.$transaction(
-      orderedIds.map((id, index) =>
-        prisma.group.update({
-          where: { id },
-          data: { sortOrder: index },
-        }),
-      ),
+    // O(1) bulk reorder: one UPDATE … SET sort_order = CASE id WHEN … END
+    // Build parameterised SQL manually to avoid N round trips
+    const params: (string | number)[] = [];
+    let whenSql = "";
+    for (let i = 0; i < orderedIds.length; i++) {
+      const paramIdx = params.length;
+      params.push(orderedIds[i], i);
+      whenSql += ` WHEN $${paramIdx + 1}::uuid THEN $${paramIdx + 2}`;
+    }
+    const idPlaceholders = orderedIds
+      .map((id, i) => {
+        const idx = params.length;
+        params.push(id);
+        return `$${idx + 1}::uuid`;
+      })
+      .join(", ");
+
+    await prisma.$executeRawUnsafe(
+      `UPDATE public.groups SET sort_order = CASE id ${whenSql} ELSE sort_order END WHERE id IN (${idPlaceholders})`,
+      ...params,
     );
 
     res.json({ ok: true });
