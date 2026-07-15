@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { extractLinkMetadata } from "@/lib/metadata";
 import { capturePageScreenshotUrl } from "@/lib/screenshot";
 import { requiresLoginPlaceholder } from "@/lib/links";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 /**
  * Fetches HTML metadata quickly, marks the link ready, then optionally upgrades
@@ -19,12 +20,20 @@ export async function enrichLinkMetadataInBackground(
         ? meta.description.slice(0, 2000)
         : meta.description;
 
+    let imageUrl = meta.imageUrl;
+    if (imageUrl) {
+      const cloudinaryUrl = await uploadImageToCloudinary(imageUrl);
+      if (cloudinaryUrl) {
+        imageUrl = cloudinaryUrl;
+      }
+    }
+
     await prisma.link.update({
       where: { id: linkId },
       data: {
         title: meta.title,
         description: description || null,
-        imageUrl: meta.imageUrl,
+        imageUrl: imageUrl || null,
         faviconUrl: meta.faviconUrl,
         metadataStatus: "ready",
       },
@@ -32,14 +41,15 @@ export async function enrichLinkMetadataInBackground(
 
     // Phase 2 — screenshot upgrade when og/twitter image is missing.
     // Never blocks "ready"; failures leave the meta image (or null) in place.
-    if (meta.imageUrl || requiresLoginPlaceholder(pageUrl)) return;
+    if (imageUrl || requiresLoginPlaceholder(pageUrl)) return;
 
     try {
       const screenshotUrl = await capturePageScreenshotUrl(pageUrl);
       if (!screenshotUrl) return;
+      const cloudinaryUrl = await uploadImageToCloudinary(screenshotUrl);
       await prisma.link.update({
         where: { id: linkId },
-        data: { imageUrl: screenshotUrl },
+        data: { imageUrl: cloudinaryUrl || screenshotUrl },
       });
     } catch (shotErr) {
       console.error("[enrich-link-metadata] screenshot", linkId, shotErr);

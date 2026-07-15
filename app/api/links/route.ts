@@ -16,6 +16,7 @@ import {
 } from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import { uploadImageToCloudinary } from "@/lib/cloudinary";
 
 export const runtime = "nodejs";
 
@@ -240,12 +241,20 @@ export async function POST(request: Request) {
         ? body.imageUrl.trim()
         : null;
 
+    let imageUrl = imageUrlFromPayload;
+    if (imageUrl) {
+      const cloudinaryUrl = await uploadImageToCloudinary(imageUrl);
+      if (cloudinaryUrl) {
+        imageUrl = cloudinaryUrl;
+      }
+    }
+
     const created = await prisma.link.create({
       data: {
         url,
         title: titleFromPayload ?? url,
         description: descriptionFromPayload,
-        imageUrl: imageUrlFromPayload,
+        imageUrl,
         customTitle: null,
         tags: [],
         notes: null,
