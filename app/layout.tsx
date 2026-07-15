@@ -130,21 +130,7 @@ export default function RootLayout({
         <link rel="preconnect" href="https://api.microlink.io" />
         <link rel="preconnect" href="https://s0.wp.com" />
 
-        {/* Preload critical font files */}
-        <link
-          rel="preload"
-          href="/fonts/DepartureMono-Regular.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
-        <link
-          rel="preload"
-          href="/fonts/fira-code.woff2"
-          as="font"
-          type="font/woff2"
-          crossOrigin="anonymous"
-        />
+
 
         {/* Structured Data (JSON-LD) */}
         <script

@@ -10,6 +10,7 @@ import { AppLoader } from "@/components/AppLoader";
 import LinkCard from "@/components/LinkCard";
 import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import TextSwap from "@/components/TextSwap";
+import ClearSearchInput from "@/components/ClearSearchInput";
 import { apiUrl } from "@/lib/api-base";
 import {
   applyVicinityCardStrokes,
@@ -119,6 +120,7 @@ export default function VaultInbox() {
 
   const [urlInput, setUrlInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [savePhase, setSavePhase] = useState<"paste" | "place">("paste");
@@ -500,7 +502,7 @@ export default function VaultInbox() {
     setSaveError(null);
   };
 
-  const handlePasteSubmit = (e: React.FormEvent) => {
+  const handlePasteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
     setSavedFlash(false);
@@ -509,7 +511,91 @@ export default function VaultInbox() {
       setSaveError("Enter a URL");
       return;
     }
-    setPlaceGroupId(openedGroupId);
+
+    // Direct save if inside a specific group (not "all")
+    if (openedGroupId && openedGroupId !== "all") {
+      setPlaceGroupId(openedGroupId);
+      setCreatingNewGroup(false);
+      setNewGroupNameDraft("");
+
+      let hostname = "";
+      try {
+        hostname = new URL(url).hostname;
+      } catch {
+        hostname = url.replace(/^https?:\/\/(www\.)?/, "").split("/")[0];
+      }
+
+      const tempId = `optimistic-${Date.now()}`;
+      const draftLink: LinkApiRow = {
+        id: tempId,
+        url,
+        title: hostname,
+        custom_title: null,
+        customTitle: null,
+        display_title: hostname,
+        description: "Saving link...",
+        image_url: "",
+        favicon_url: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`,
+        faviconUrl: `https://www.google.com/s2/favicons?domain=${encodeURIComponent(hostname)}&sz=128`,
+        tags: [],
+        notes: null,
+        group_id: openedGroupId,
+        groupId: openedGroupId,
+        metadata_status: "pending",
+        created_at: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+        isPending: true,
+      };
+
+      const originalLinks = links;
+      setLinks((prev) => [draftLink, ...prev]);
+
+      setSaving(true);
+      setSaveSuccess(false);
+
+      try {
+        const result = await saveLink(url, openedGroupId);
+        if (!result.ok) {
+          setSaveError(result.error);
+          setLinks(originalLinks);
+          setSaving(false);
+          return;
+        }
+
+        // Play success check
+        setSaveSuccess(true);
+        await new Promise((resolve) => setTimeout(resolve, 1300));
+
+        resetSaveForm();
+        setSaveSuccess(false);
+        setSaving(false);
+
+        const row = result.link;
+        setLinks((prev) => [row, ...prev.filter((l) => l.id !== tempId && l.id !== row.id)]);
+
+        // Update linksCache
+        setLinksCache((prev) => {
+          const groupLinks = prev[openedGroupId] || [];
+          const next = {
+            ...prev,
+            [openedGroupId]: [row, ...groupLinks.filter((l) => l.id !== tempId && l.id !== row.id)],
+          };
+          try {
+            window.localStorage.setItem("memory404-links-cache", JSON.stringify(next));
+          } catch {}
+          return next;
+        });
+
+        void loadGroups();
+      } catch {
+        setLinks(originalLinks);
+        setSaving(false);
+      }
+      return;
+    }
+
+    // Default flow: show group picker
+    setPlaceGroupId(null);
     setCreatingNewGroup(false);
     setNewGroupNameDraft("");
     setSavePhase("place");
@@ -568,6 +654,8 @@ export default function VaultInbox() {
 
     setSaving(true);
     setSaveError(null);
+    setSaveSuccess(false);
+
     try {
       const result = await saveLink(url, groupId ?? "", {
         newGroupName: trimmedNew || undefined,
@@ -577,11 +665,18 @@ export default function VaultInbox() {
         if (groupId === openedGroupId && !trimmedNew) {
           setLinks(originalLinks);
         }
+        setSaving(false);
         return;
       }
+
+      // Success! Play check animation
+      setSaveSuccess(true);
+      await new Promise((resolve) => setTimeout(resolve, 1300));
+
       resetSaveForm();
-      setSavedFlash(true);
-      window.setTimeout(() => setSavedFlash(false), 2500);
+      setSaveSuccess(false);
+      setSaving(false);
+
       const row = result.link;
 
       // Update UI with final saved row
@@ -599,7 +694,7 @@ export default function VaultInbox() {
           const updatedGroupLinks = groupLinks.filter((l) => l.id !== tempId);
           const next = {
             ...prev,
-            [openedGroupId]: updatedGroupLinks
+            [openedGroupId]: updatedGroupLinks,
           };
           if (row.groupId === openedGroupId) {
             next[openedGroupId] = [row, ...next[openedGroupId].filter((l) => l.id !== row.id)];
@@ -617,7 +712,6 @@ export default function VaultInbox() {
       if (groupId === openedGroupId && !trimmedNew) {
         setLinks(originalLinks);
       }
-    } finally {
       setSaving(false);
     }
   };
@@ -963,26 +1057,44 @@ export default function VaultInbox() {
 
         <div className="flex flex-col gap-5 lg:mt-auto">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            {savePhase === "paste" ? (
-              <>
+            {saving ? (
+              <div className="flex flex-col items-center justify-center py-4 w-full h-[38px]">
+                {saveSuccess ? (
+                  <div className="flex items-center gap-2">
+                    <span className="t-success-check" data-state="in" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="size-5">
+                        <path d="M20 6L9 17L4 12" style={{ strokeDasharray: 24, strokeDashoffset: 24 }} />
+                      </svg>
+                    </span>
+                    <span className="text-[12px] text-success font-medium">Link added!</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <AppLoader compact progressive label="saving" />
+                  </div>
+                )}
+              </div>
+            ) : savePhase === "paste" ? (
+              <div className="flex items-center gap-2 w-full">
                 <input
                   type="url"
                   name="url"
                   value={urlInput}
                   onChange={(e) => setUrlInput(e.target.value)}
                   placeholder="Paste a link…"
-                  className={fieldClass}
+                  className={`${fieldClass} flex-1`}
                   disabled={saving}
                   autoComplete="off"
                 />
                 <button
                   type="submit"
                   disabled={saving || !urlInput.trim()}
-                  className="inline-flex h-[38px] w-full items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg transition hover:opacity-90 disabled:opacity-50"
+                  className="flex size-[38px] min-w-[38px] items-center justify-center rounded-full bg-pill-active text-pill-active-fg hover:opacity-90 disabled:opacity-50 transition-all duration-200 outline-none cursor-pointer"
+                  aria-label="Add link"
                 >
-                  Save
+                  <Plus className="size-4" strokeWidth={2.5} />
                 </button>
-              </>
+              </div>
             ) : (
               <>
                 <p className="truncate text-[12px] text-subtle" title={urlInput}>
@@ -1004,7 +1116,7 @@ export default function VaultInbox() {
                           setNewGroupNameDraft("");
                           setPlaceGroupId(g.id);
                         }}
-                        className={`rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors ${
+                        className={`rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors cursor-pointer ${
                           active
                             ? "bg-pill-active text-pill-active-fg"
                             : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
@@ -1020,7 +1132,7 @@ export default function VaultInbox() {
                       setCreatingNewGroup(true);
                       setPlaceGroupId(null);
                     }}
-                    className={`rounded-lg border border-dashed px-2.5 py-1.5 text-left text-[13px] transition-colors ${
+                    className={`rounded-lg border border-dashed px-2.5 py-1.5 text-left text-[13px] transition-colors cursor-pointer ${
                       creatingNewGroup
                         ? "border-foreground/40 bg-surface text-foreground"
                         : "border-muted/50 bg-transparent text-muted hover:border-foreground/35 hover:text-foreground"
@@ -1050,7 +1162,7 @@ export default function VaultInbox() {
                       setNewGroupNameDraft("");
                     }}
                     disabled={saving}
-                    className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill px-3 text-sm text-muted transition hover:bg-pill-hover hover:text-foreground disabled:opacity-50"
+                    className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill px-3 text-sm text-muted transition hover:bg-pill-hover hover:text-foreground disabled:opacity-50 cursor-pointer"
                   >
                     Back
                   </button>
@@ -1062,13 +1174,9 @@ export default function VaultInbox() {
                         ? !newGroupNameDraft.trim()
                         : !placeGroupId)
                     }
-                    className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg transition hover:opacity-90 disabled:opacity-50"
+                    className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
                   >
-                    {saving ? (
-                      <AppLoader compact progressive label="saving" />
-                    ) : (
-                      "Save"
-                    )}
+                    Save
                   </button>
                 </div>
               </>
@@ -1296,12 +1404,11 @@ export default function VaultInbox() {
                 <option value="type">Link Type</option>
                 <option value="details">Details Size</option>
               </select>
-              <input
-                type="search"
+              <ClearSearchInput
                 value={groupSearch}
-                onChange={(e) => setGroupSearch(e.target.value)}
+                onChange={setGroupSearch}
                 placeholder="Search"
-                className="hidden h-7 w-28 rounded-full border border-border bg-surface px-2.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-border-strong sm:block"
+                className="hidden h-7 w-28 rounded-full border border-border bg-surface text-[13px] text-foreground outline-none focus-within:border-border-strong sm:block"
               />
               <button
                 type="button"

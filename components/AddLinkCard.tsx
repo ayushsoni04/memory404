@@ -22,6 +22,7 @@ export default function AddLinkCard({
   const [open, setOpen] = useState(false);
   const [url, setUrl] = useState("");
   const [saving, setSaving] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
@@ -52,6 +53,7 @@ export default function AddLinkCard({
 
     const gen = ++saveGen.current;
     setSaving(true);
+    setShowSuccess(false);
     setError(null);
 
     // Close the form immediately — don't hold the UI on the network round-trip.
@@ -66,16 +68,25 @@ export default function AddLinkCard({
         setOpen(true);
         setUrl(pendingUrl);
         setError(result.error);
+        setSaving(false);
         return;
       }
-      onSaved(result.link);
+      
+      // Success! Play the check animation
+      setShowSuccess(true);
+      await new Promise((resolve) => setTimeout(resolve, 1300));
+      
+      if (gen === saveGen.current) {
+        onSaved(result.link);
+        setShowSuccess(false);
+        setSaving(false);
+      }
     } catch {
       if (gen !== saveGen.current) return;
       setOpen(true);
       setUrl(pendingUrl);
       setError("Network error — try again");
-    } finally {
-      if (gen === saveGen.current) setSaving(false);
+      setSaving(false);
     }
   };
 
@@ -142,8 +153,19 @@ export default function AddLinkCard({
         ) : null}
 
         {saving ? (
-          <div className="relative z-[2] flex min-h-[140px] items-start justify-center pt-4">
-            <span className="text-[12px] text-muted">Saving…</span>
+          <div className="relative z-[2] flex min-h-[140px] flex-col items-center justify-center pt-2">
+            {showSuccess ? (
+              <div className="flex flex-col items-center gap-2">
+                <span className="t-success-check" data-state="in" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="size-10">
+                    <path d="M20 6L9 17L4 12" style={{ strokeDasharray: 24, strokeDashoffset: 24 }} />
+                  </svg>
+                </span>
+                <span className="text-[12px] text-success font-medium">Link added!</span>
+              </div>
+            ) : (
+              <span className="text-[12px] text-muted">Saving…</span>
+            )}
           </div>
         ) : null}
         </div>

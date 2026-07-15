@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
-import { isGoogleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
+import { googleFaviconUrl, isGoogleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import {
   getProxiedImageUrl,
@@ -85,7 +85,11 @@ export default function LinkCard({ link, onOpen, priority = false }: Props) {
                 resolveAttempted.current = true;
                 setResolving(true);
                 void resolveMicrolinkScreenshotUrl(link.url).then((next) => {
-                  if (next) setImgSrc(next);
+                  if (next) {
+                    setImgSrc(next);
+                  } else {
+                    setImgSrc(googleFaviconUrl(link.url) ?? "");
+                  }
                   setResolving(false);
                 });
               }}
@@ -94,7 +98,7 @@ export default function LinkCard({ link, onOpen, priority = false }: Props) {
             {link.favicon_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={link.favicon_url}
+                src={getProxiedImageUrl(link.favicon_url)}
                 alt=""
                 width={28}
                 height={28}

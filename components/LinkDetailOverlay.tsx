@@ -198,7 +198,7 @@ export default function LinkDetailOverlay({
             {link.favicon_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={link.favicon_url}
+                src={getProxiedImageUrl(link.favicon_url)}
                 alt=""
                 width={18}
                 height={18}
