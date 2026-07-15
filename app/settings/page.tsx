@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import TextSwap from "@/components/TextSwap";
 import {
   ArrowLeft,
   Check,
@@ -536,7 +537,9 @@ export default function SettingsPage() {
                   type="submit"
                   className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-all duration-200 hover:opacity-90 active:scale-95 cursor-pointer shadow-md"
                 >
-                  Save profile changes
+                  <TextSwap>
+                    {isSaved ? "Saved!" : "Save profile changes"}
+                  </TextSwap>
                 </button>
                 {isSaved && (
                   <span className="inline-flex items-center gap-1.5 text-xs text-success animate-fade-in font-mono">
