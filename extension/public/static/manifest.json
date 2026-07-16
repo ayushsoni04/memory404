@@ -1,0 +1,43 @@
+{
+  "manifest_version": 3,
+  "name": "memory404",
+  "description": "Save current tab to memory404 groups.",
+  "version": "0.1.0",
+  "action": {
+    "default_title": "Save Link",
+    "default_popup": "popup.html"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "omnibox": {
+    "keyword": "lk"
+  },
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+L",
+        "mac": "Option+Shift+L"
+      },
+      "description": "Open memory404 popup"
+    }
+  },
+  "permissions": [
+    "tabs",
+    "activeTab",
+    "tabGroups",
+    "scripting",
+    "storage",
+    "omnibox",
+    "contextMenus"
+  ],
+  "host_permissions": [
+    "http://localhost:3000/*",
+    "https://localhost:3000/*",
+    "https://memory404.vercel.app/*",
+    "https://*.vercel.app/*",
+    "https://*.onrender.com/*",
+    "https://*/*",
+    "http://*/*"
+  ]
+}

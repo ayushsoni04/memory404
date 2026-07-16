@@ -1,0 +1,405 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: #fff;
+  color: #171717;
+}
+
+.wrap {
+  width: 300px;
+  min-height: 0;
+  padding: 0;
+  background: #fff;
+}
+
+.panel {
+  position: relative;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.settings-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.settings-btn:hover {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.saved-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+}
+
+.saving-loader {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 16px;
+  background: #121212;
+}
+
+.saving-loader .saved-text {
+  color: #caf7e2;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: Century Gothic, CenturyGothic, AppleGothic, sans-serif;
+  letter-spacing: 0.02em;
+}
+
+.save-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: #111827;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+.save-btn:hover:not(:disabled) {
+  background: #1f2937;
+}
+
+.save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* Pixel wave loader */
+.pixel-loader {
+  --pl-c1: #caf7e2;
+  --pl-c2: #58b09c;
+  --pl-c3: #003a3a;
+  --pl-c4: #0c2d2a;
+  --pl-cols: 50;
+  --pl-w: 88px;
+  --pl-h: calc(var(--pl-w) / var(--pl-cols) * 2.05);
+
+  display: block;
+  width: var(--pl-w);
+  height: var(--pl-h);
+  flex-shrink: 0;
+  overflow: hidden;
+  line-height: 0;
+  font-size: 0;
+}
+
+.pixel-loader__pixels {
+  display: flex;
+  flex-wrap: wrap;
+  width: 100%;
+  height: 100%;
+}
+
+.pixel-loader__pixel {
+  box-sizing: border-box;
+  width: calc(100% / var(--pl-cols));
+  height: calc(100% / 2);
+  margin: 0;
+  opacity: 0;
+  background: var(--pl-c1);
+  box-shadow: 0 -1px 0 var(--pl-c1);
+  animation: pixel-magic 2.5s linear infinite;
+  will-change: opacity, background, box-shadow;
+}
+
+@keyframes pixel-magic {
+  0% {
+    opacity: 0;
+  }
+
+  20% {
+    opacity: 0;
+    background: var(--pl-c1);
+    box-shadow: 0 -1px 0 var(--pl-c1);
+  }
+
+  28% {
+    opacity: 1;
+  }
+
+  30% {
+    background: var(--pl-c2);
+    box-shadow: 0 -1px 0 var(--pl-c2);
+  }
+
+  50% {
+    background: var(--pl-c3);
+    box-shadow: 0 -1px 0 var(--pl-c3);
+  }
+
+  65% {
+    background: var(--pl-c4);
+    box-shadow: 0 -1px 0 var(--pl-c4);
+  }
+
+  80% {
+    background: var(--pl-c3);
+    box-shadow: 0 -1px 0 var(--pl-c3);
+  }
+
+  90% {
+    opacity: 1;
+    background: var(--pl-c2);
+    box-shadow: 0 -1px 0 var(--pl-c2);
+  }
+
+  100% {
+    opacity: 0;
+    background: var(--pl-c1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-loader__pixel {
+    animation: none !important;
+    opacity: 0.85;
+    background: var(--pl-c2);
+    box-shadow: 0 -1px 0 var(--pl-c2);
+  }
+}
+
+.error-row .saved-text {
+  color: #b42318;
+}
+
+.app-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #f3f4f6;
+  color: #374151;
+  flex-shrink: 0;
+}
+
+.saved-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.group-section {
+  border-top: 1px solid #eceff3;
+  padding: 10px 12px 12px;
+}
+
+.group-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.group-field.open {
+  background: #fafafa;
+}
+
+.group-input {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #111827;
+  font-size: 14px;
+  padding: 8px 4px 8px 8px;
+  outline: none;
+}
+
+.group-input::placeholder {
+  color: #9ca3af;
+}
+
+.chevron-btn {
+  border: 0;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 8px 4px 4px;
+  cursor: pointer;
+}
+
+.chevron-btn:hover {
+  color: #6b7280;
+}
+
+.group-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid #eceff3;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.group-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.group-option:hover,
+.group-option.active {
+  background: #f3f4f6;
+}
+
+.check {
+  color: #059669;
+  font-size: 12px;
+}
+
+.create-option {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px dashed #d1d5db;
+  border-radius: 8px;
+  background: #fafafa;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: #374151;
+  cursor: pointer;
+}
+
+.create-option:hover {
+  background: #f3f4f6;
+}
+
+.current-group,
+.assign-note,
+.field-error,
+.hint {
+  margin: 8px 2px 0;
+  font-size: 12px;
+}
+
+.current-group {
+  color: #6b7280;
+}
+
+.assign-note {
+  color: #059669;
+}
+
+.field-error {
+  color: #b42318;
+}
+
+.panel-head {
+  padding: 12px 12px 0;
+}
+
+.ghost-btn {
+  border: 0;
+  background: transparent;
+  color: #6b7280;
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+.field-label {
+  display: block;
+  font-size: 12px;
+  margin: 12px 12px 6px;
+  color: #6b7280;
+}
+
+input {
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #111827;
+  padding: 9px 10px;
+  outline: none;
+  font-size: 13px;
+}
+
+input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+}
+
+.hint {
+  padding: 0 12px 12px;
+  color: #9ca3af;
+}
+
+/* Segmented control for save mode selection */
+.save-mode-selector {
+  display: flex;
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 2px;
+  margin: 0 12px 12px;
+  gap: 2px;
+}
+
+.save-mode-btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: #4b5563;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.save-mode-btn:hover {
+  color: #111827;
+}
+
+.save-mode-btn.active {
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}

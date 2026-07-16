@@ -1,0 +1,41 @@
+services:
+  - type: web
+    name: memory404-api
+    runtime: node
+    rootDir: backend
+    plan: free          # upgrade to 'starter' for always-on (no spin-down)
+    region: singapore   # closest to ap-south-1 Supabase pooler
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    autoDeploy: true
+
+    envVars:
+      - key: NODE_ENV
+        value: production
+
+      - key: PORT
+        value: 4000
+
+      # ── New Supabase project: gucdslwlvrgwfyhmazeq ───────────────────────────
+      # Set these in Render Dashboard → Environment → Secret Files
+      # Get exact strings from: Supabase → gucdslwlvrgwfyhmazeq → Project Settings → Database
+      - key: DATABASE_URL
+        sync: false    # PgBouncer pooler — set in Render dashboard
+
+      - key: DIRECT_URL
+        sync: false    # Direct connection — set in Render dashboard
+
+      # ── CORS ─────────────────────────────────────────────────────────────────
+      - key: CORS_ORIGINS
+        value: https://memory404.vercel.app
+
+      # ── Cloudinary (image storage for link previews) ──────────────────────────
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false   # set in Render dashboard
+
+      - key: CLOUDINARY_API_KEY
+        sync: false   # set in Render dashboard
+
+      - key: CLOUDINARY_API_SECRET
+        sync: false   # set in Render dashboard
