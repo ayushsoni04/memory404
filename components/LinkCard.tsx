@@ -4,10 +4,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
 import { googleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
-import {
-  getProxiedImageUrl,
-  resolveMicrolinkScreenshotUrl,
-} from "@/lib/screenshot";
+import { getProxiedImageUrl } from "@/lib/screenshot";
 
 type Props = {
   link: LinkApiRow;
@@ -20,7 +17,6 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
   const host = linkHostname(link.url);
   const pending = link.metadata_status === "pending" || !!link.isPending;
   const [imgSrc, setImgSrc] = useState(link.image_url);
-  const [resolving, setResolving] = useState(false);
   const resolveAttempted = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -41,7 +37,7 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
   // Images are now stored in Cloudinary server-side during metadata enrichment.
   // The onError handler below still provides a fallback for any genuinely broken URLs.
 
-  const showLoader = pending || resolving;
+  const showLoader = pending;
 
   return (
     <article ref={cardRef} className="mind-card mb-3 break-inside-avoid">
@@ -73,17 +69,12 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
                 !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
               } ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
+                // Fall back directly to favicon — Microlink screenshot resolution
+                // is handled server-side; a client-side Microlink fetch per card
+                // caused up to 24 simultaneous 5-15s network calls on page load.
                 if (resolveAttempted.current || requiresLoginPlaceholder(link.url)) return;
                 resolveAttempted.current = true;
-                setResolving(true);
-                void resolveMicrolinkScreenshotUrl(link.url).then((next) => {
-                  if (next) {
-                    setImgSrc(next);
-                  } else {
-                    setImgSrc(googleFaviconUrl(link.url) ?? "");
-                  }
-                  setResolving(false);
-                });
+                setImgSrc(googleFaviconUrl(link.url) ?? "");
               }}
             />
             <span className="pointer-events-none absolute inset-0 bg-black/0 opacity-0 transition duration-200 group-hover:bg-black/40 group-hover:opacity-100" />

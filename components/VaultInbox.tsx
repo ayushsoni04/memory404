@@ -199,13 +199,7 @@ export default function VaultInbox() {
       return [];
     }
   });
-  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
-    try {
-      return window.localStorage.getItem("memory404-opened-group-id") ?? "all";
-    } catch {
-      return "all";
-    }
-  });
+  // Single source of truth — was previously duplicated as selectedGroupId + openedGroupId
   const [openedGroupId, setOpenedGroupId] = useState<string | null>(() => {
     try {
       return window.localStorage.getItem("memory404-opened-group-id") ?? "all";
@@ -221,7 +215,8 @@ export default function VaultInbox() {
   const [groupSearch, setGroupSearch] = useState("");
   const [openedLinkId, setOpenedLinkId] = useState<string | null>(null);
   const [overlayOrigin, setOverlayOrigin] = useState<DOMRect | null>(null);
-  const [gridSize, setGridSize] = useState<GridSize>("large");
+  // Lazy-init from localStorage — eliminates guaranteed layout shift on every page load
+  const [gridSize, setGridSize] = useState<GridSize>(readStoredGridSize);
   const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
   const [linksCache, setLinksCache] = useState<Record<string, LinkApiRow[]>>(() => {
     try {
@@ -240,9 +235,7 @@ export default function VaultInbox() {
   const groupSizerRef = useRef<HTMLSpanElement | null>(null);
   const [groupInputWidth, setGroupInputWidth] = useState(GROUP_PILL_MIN_PX);
 
-  useEffect(() => {
-    setGridSize(readStoredGridSize());
-  }, []);
+  // gridSize is now lazy-inited from localStorage — no effect needed
 
   const setGridSizeAndPersist = (next: GridSize) => {
     setGridSize(next);
@@ -296,7 +289,8 @@ export default function VaultInbox() {
         setGroupsError(err.message || "Failed to load groups");
         throw err;
       }
-    }
+    },
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
   );
 
   // Cursor-paginated links for the current group / All tab
@@ -358,7 +352,6 @@ export default function VaultInbox() {
             GENERAL_GROUP_NAME.toLowerCase(),
         ) ?? swrGroups[0];
       if (general) {
-        setSelectedGroupId((prev) => prev ?? "all");
         setOpenedGroupId((prev) => {
           const next = prev ?? "all";
           try {
@@ -560,11 +553,11 @@ export default function VaultInbox() {
         group.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase(),
     ) ?? null;
   const folderGroups = groups.filter((group) => group.id !== generalGroup?.id);
-  const filteredFolders = (() => {
+  const filteredFolders = useMemo(() => {
     const q = groupSearch.trim().toLowerCase();
     if (!q) return folderGroups;
     return folderGroups.filter((group) => group.name.toLowerCase().includes(q));
-  })();
+  }, [folderGroups, groupSearch]);
   const sortedLinks = useMemo(() => {
     const list = [...links];
     if (sortBy === "newest") {
@@ -609,8 +602,15 @@ export default function VaultInbox() {
     return list;
   }, [links, sortBy]);
 
+  // Only clear the rect cache when link identities/order change — not on metadata updates.
+  // This prevents a synchronous getBoundingClientRect() reflow on every pending-poll cycle.
+  const sortedLinkIdsRef = useRef<string>("");
   useEffect(() => {
-    clearCardRectsCache();
+    const ids = sortedLinks.map((l) => l.id).join(",");
+    if (ids !== sortedLinkIdsRef.current) {
+      sortedLinkIdsRef.current = ids;
+      clearCardRectsCache();
+    }
   }, [sortedLinks]);
 
   const loadMoreLinks = useCallback(() => {
@@ -632,7 +632,8 @@ export default function VaultInbox() {
           loadMoreLinks();
         }
       },
-      { rootMargin: "600px" },
+      // 200px instead of 600px — prevents next-page image burst before current page finishes painting
+      { rootMargin: "200px" },
     );
 
     observer.observe(currentSentinel);
@@ -1094,7 +1095,6 @@ export default function VaultInbox() {
       setAddingAt(null);
       await loadGroups();
       if (created?.id) {
-        setSelectedGroupId(created.id);
         setOpenedGroupId(created.id);
       }
     } catch {
@@ -1123,10 +1123,14 @@ export default function VaultInbox() {
     setGroupInputWidth(Math.max(GROUP_PILL_MIN_PX, el.offsetWidth + 4));
   }, [addingAt, createGroupName]);
 
-  const openedLink = sortedLinks.find((l) => l.id === openedLinkId) ?? null;
-  const openedLinkIndex = openedLink
-    ? sortedLinks.findIndex((l) => l.id === openedLink.id)
-    : -1;
+  const openedLink = useMemo(
+    () => sortedLinks.find((l) => l.id === openedLinkId) ?? null,
+    [sortedLinks, openedLinkId],
+  );
+  const openedLinkIndex = useMemo(
+    () => (openedLink ? sortedLinks.findIndex((l) => l.id === openedLink.id) : -1),
+    [openedLink, sortedLinks],
+  );
 
   const openLinkDetail = (link: LinkApiRow, originEl: HTMLElement) => {
     setOverlayOrigin(originEl.getBoundingClientRect());
@@ -1151,7 +1155,6 @@ export default function VaultInbox() {
   };
 
   const selectGroup = (id: string) => {
-    setSelectedGroupId(id);
     setOpenedGroupId(id);
     try {
       window.localStorage.setItem("memory404-opened-group-id", id);
@@ -1477,7 +1480,8 @@ export default function VaultInbox() {
           </header>
 
           {/* Sticky group pills */}
-          <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background/95 pt-3 pb-4 pr-4 backdrop-blur-md">
+          {/* backdrop-blur removed — triggers GPU repaint on every scroll frame */}
+          <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background pt-3 pb-4 pr-4">
             <div className="relative flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5">
               
               {/* Background dashed placeholder slots revealed during drag */}
@@ -1641,7 +1645,7 @@ export default function VaultInbox() {
 
 
           {/* Feed body */}
-          {!selectedGroupId && groupsError ? (
+          {!openedGroupId && groupsError ? (
             <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted">
               <p>Groups could not be loaded.</p>
               <button
