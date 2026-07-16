@@ -27,11 +27,60 @@ export default function AddLinkCard({
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
 
+  const [showNotesForm, setShowNotesForm] = useState(false);
+  const [notes, setNotes] = useState("");
+  const [countdown, setCountdown] = useState(5);
+  const [timerActive, setTimerActive] = useState(false);
+  const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
+
   useEffect(() => {
     if (open) {
       window.setTimeout(() => inputRef.current?.focus(), 30);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!timerActive || countdown <= 0) {
+      if (timerActive && countdown === 0) {
+        void finishFlow();
+      }
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, timerActive]);
+
+  const finishFlow = async () => {
+    if (!savedLink) return;
+    setTimerActive(false);
+    let finalLink = savedLink;
+    if (notes.trim()) {
+      try {
+        const res = await fetch(`/api/links/${savedLink.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes: notes.trim() }),
+        });
+        const data = await res.json();
+        if (res.ok && data.link) {
+          finalLink = data.link;
+        }
+      } catch (e) {
+        console.error("Failed to save notes:", e);
+      }
+    }
+    onSaved(finalLink);
+    // Reset state
+    setOpen(false);
+    setUrl("");
+    setSaving(false);
+    setShowSuccess(false);
+    setShowNotesForm(false);
+    setNotes("");
+    setSavedLink(null);
+  };
 
   const cancel = () => {
     if (saving) return;
@@ -56,17 +105,13 @@ export default function AddLinkCard({
     setShowSuccess(false);
     setError(null);
 
-    // Close the form immediately — don't hold the UI on the network round-trip.
+    // Keep the form open for the network round-trip.
     const pendingUrl = trimmed;
-    setUrl("");
-    setOpen(false);
 
     try {
       const result = await saveLink(pendingUrl, groupId);
       if (gen !== saveGen.current) return;
       if (!result.ok) {
-        setOpen(true);
-        setUrl(pendingUrl);
         setError(result.error);
         setSaving(false);
         return;
@@ -74,17 +119,18 @@ export default function AddLinkCard({
       
       // Success! Play the check animation
       setShowSuccess(true);
+      setSavedLink(result.link);
       await new Promise((resolve) => setTimeout(resolve, 1300));
       
       if (gen === saveGen.current) {
-        onSaved(result.link);
-        setShowSuccess(false);
-        setSaving(false);
+        // Instead of completing, transition to notes form
+        setUrl("");
+        setCountdown(5);
+        setTimerActive(true);
+        setShowNotesForm(true);
       }
     } catch {
       if (gen !== saveGen.current) return;
-      setOpen(true);
-      setUrl(pendingUrl);
       setError("Network error — try again");
       setSaving(false);
     }
@@ -95,9 +141,9 @@ export default function AddLinkCard({
       <div className="mind-card-shell group relative min-h-[140px] overflow-hidden rounded-[4px]">
         <span className="mind-card-stroke" aria-hidden />
         <div className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]">
-        {saving ? <RisingHelixFill active /> : null}
+        {saving && !showNotesForm ? <RisingHelixFill active /> : null}
 
-        {!open && !saving ? (
+        {!open && !saving && !showNotesForm ? (
           <button
             type="button"
             onClick={() => setOpen(true)}
@@ -109,7 +155,7 @@ export default function AddLinkCard({
           </button>
         ) : null}
 
-        {open && !saving ? (
+        {open && !saving && !showNotesForm ? (
           <form
             className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3"
             onSubmit={(e) => {
@@ -152,7 +198,7 @@ export default function AddLinkCard({
           </form>
         ) : null}
 
-        {saving ? (
+        {saving && !showNotesForm ? (
           <div className="relative z-[2] flex min-h-[140px] flex-col items-center justify-center pt-2">
             {showSuccess ? (
               <div className="flex flex-col items-center gap-2">
@@ -166,6 +212,45 @@ export default function AddLinkCard({
             ) : (
               <span className="text-[12px] text-muted">Saving…</span>
             )}
+          </div>
+        ) : null}
+
+        {showNotesForm ? (
+          <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
+            <div className="flex items-center justify-between">
+              <span className="text-[11px] text-muted">
+                {timerActive ? `Add notes (auto-done in ${countdown}s)` : "Add notes"}
+              </span>
+              {timerActive && (
+                <button
+                  type="button"
+                  onClick={() => setTimerActive(false)}
+                  className="text-[11px] text-muted hover:underline"
+                >
+                  Pause
+                </button>
+              )}
+            </div>
+            <textarea
+              value={notes}
+              onChange={(e) => {
+                setNotes(e.target.value);
+                setTimerActive(false);
+              }}
+              onFocus={() => setTimerActive(false)}
+              placeholder="Add optional notes here..."
+              rows={2}
+              className="w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40 resize-none"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={finishFlow}
+                className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg"
+              >
+                {notes.trim() ? "Save Notes" : "Done"}
+              </button>
+            </div>
           </div>
         ) : null}
         </div>

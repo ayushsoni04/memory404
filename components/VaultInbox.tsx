@@ -704,6 +704,64 @@ export default function VaultInbox() {
     setSaveError(null);
   };
 
+  const [sidebarShowNotesForm, setSidebarShowNotesForm] = useState(false);
+  const [sidebarNotesText, setSidebarNotesText] = useState("");
+  const [sidebarCountdown, setSidebarCountdown] = useState(5);
+  const [sidebarTimerActive, setSidebarTimerActive] = useState(false);
+  const [sidebarSavedLinkId, setSidebarSavedLinkId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!sidebarTimerActive || sidebarCountdown <= 0) {
+      if (sidebarTimerActive && sidebarCountdown === 0) {
+        void finishSidebarNotesFlow();
+      }
+      return;
+    }
+    const timer = setTimeout(() => {
+      setSidebarCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [sidebarCountdown, sidebarTimerActive]);
+
+  const finishSidebarNotesFlow = async () => {
+    setSidebarTimerActive(false);
+    const linkId = sidebarSavedLinkId;
+    const txt = sidebarNotesText.trim();
+    if (linkId && txt) {
+      try {
+        const res = await fetch(`/api/links/${linkId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes: txt }),
+        });
+        const data = await res.json();
+        if (res.ok && data.link) {
+          const updated = data.link as LinkApiRow;
+          setLinks((prev) => prev.map((l) => (l.id === linkId ? updated : l)));
+          if (openedGroupId) {
+            setLinksCache((prev) => {
+              const list = prev[openedGroupId] || [];
+              const next = {
+                ...prev,
+                [openedGroupId]: list.map((l) => (l.id === linkId ? updated : l)),
+              };
+              writeLinksCacheToStorage(next);
+              return next;
+            });
+          }
+        }
+      } catch (e) {
+        console.error("Failed to save sidebar notes:", e);
+      }
+    }
+    setSidebarShowNotesForm(false);
+    setSidebarNotesText("");
+    setSidebarSavedLinkId(null);
+    resetSaveForm();
+    setSaveSuccess(false);
+    setSaving(false);
+  };
+
   const handlePasteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaveError(null);
@@ -768,11 +826,7 @@ export default function VaultInbox() {
 
         // Play success check
         setSaveSuccess(true);
-        await new Promise((resolve) => setTimeout(resolve, 1300));
-
-        resetSaveForm();
-        setSaveSuccess(false);
-        setSaving(false);
+        setSidebarSavedLinkId(result.link.id);
 
         const row = result.link;
         setLinks((prev) => [row, ...prev.filter((l) => l.id !== tempId && l.id !== row.id)]);
@@ -790,6 +844,13 @@ export default function VaultInbox() {
         });
 
         void loadGroups();
+
+        await new Promise((resolve) => setTimeout(resolve, 1300));
+
+        // Transition to notes form
+        setSidebarCountdown(5);
+        setSidebarTimerActive(true);
+        setSidebarShowNotesForm(true);
       } catch {
         setLinks(originalLinks);
         setSaving(false);
@@ -878,11 +939,7 @@ export default function VaultInbox() {
 
       // Success! Play check animation
       setSaveSuccess(true);
-      await new Promise((resolve) => setTimeout(resolve, 1300));
-
-      resetSaveForm();
-      setSaveSuccess(false);
-      setSaving(false);
+      setSidebarSavedLinkId(result.link.id);
 
       const row = result.link;
 
@@ -914,6 +971,13 @@ export default function VaultInbox() {
         });
       }
       void loadGroups();
+
+      await new Promise((resolve) => setTimeout(resolve, 1300));
+
+      // Transition to notes form
+      setSidebarCountdown(5);
+      setSidebarTimerActive(true);
+      setSidebarShowNotesForm(true);
     } catch {
       if (groupId === openedGroupId && !trimmedNew) {
         setLinks(originalLinks);
@@ -1317,7 +1381,44 @@ export default function VaultInbox() {
 
         <div className="flex flex-col gap-5 lg:mt-auto">
           <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-            {saving ? (
+            {sidebarShowNotesForm ? (
+              <div className="flex flex-col gap-2 p-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted">
+                    {sidebarTimerActive
+                      ? `Add notes (closes in ${sidebarCountdown}s)`
+                      : "Add notes"}
+                  </span>
+                  {sidebarTimerActive && (
+                    <button
+                      type="button"
+                      onClick={() => setSidebarTimerActive(false)}
+                      className="text-[11px] text-muted hover:underline"
+                    >
+                      Pause
+                    </button>
+                  )}
+                </div>
+                <textarea
+                  value={sidebarNotesText}
+                  onChange={(e) => {
+                    setSidebarNotesText(e.target.value);
+                    setSidebarTimerActive(false);
+                  }}
+                  onFocus={() => setSidebarTimerActive(false)}
+                  placeholder="Optional notes..."
+                  rows={2}
+                  className={`${fieldClass} resize-none`}
+                />
+                <button
+                  type="button"
+                  onClick={finishSidebarNotesFlow}
+                  className="inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer"
+                >
+                  {sidebarNotesText.trim() ? "Save Notes" : "Done"}
+                </button>
+              </div>
+            ) : saving ? (
               <div className="flex flex-col items-center justify-center py-4 w-full h-[38px]">
                 {saveSuccess ? (
                   <div className="flex items-center gap-2">
