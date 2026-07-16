@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 
-export const dynamic = "force-dynamic";
-
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const targetUrl = searchParams.get("url");
@@ -25,10 +23,14 @@ export async function GET(req: NextRequest) {
         "User-Agent":
           "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
       },
+      next: { revalidate: 86400 },
     });
 
     if (!res.ok) {
-      return NextResponse.json({ error: "Failed to fetch remote image" }, { status: res.status });
+      return NextResponse.json(
+        { error: "Failed to fetch remote image" },
+        { status: res.status },
+      );
     }
 
     const contentType = res.headers.get("content-type") || "image/png";
@@ -36,8 +38,14 @@ export async function GET(req: NextRequest) {
 
     const headers = new Headers();
     headers.set("Content-Type", contentType);
-    // Cache for 1 year at both browser and CDN edge
-    headers.set("Cache-Control", "public, max-age=31536000, s-maxage=31536000, immutable");
+    headers.set(
+      "Cache-Control",
+      "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400",
+    );
+    headers.set(
+      "Vercel-CDN-Cache-Control",
+      "public, s-maxage=31536000, stale-while-revalidate=86400",
+    );
 
     return new Response(buffer, {
       status: 200,
@@ -49,7 +57,7 @@ export async function GET(req: NextRequest) {
         error: "Failed to proxy image",
         details: error instanceof Error ? error.message : "Unknown error",
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -4,7 +4,13 @@ import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
 import { googleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
-import { getFeedImageSrcSet, getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
+import {
+  getFeedImageSrcSet,
+  getFeedImageUrl,
+  getFeedPosterUrl,
+  getProxiedImageUrl,
+} from "@/lib/screenshot";
+import { useFeedMediaActivation } from "@/lib/use-feed-media";
 
 type Props = {
   link: LinkApiRow;
@@ -30,13 +36,18 @@ function LinkCard({
     sourceFor: string;
     url: string;
   } | null>(null);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const imgSrc =
     fallback?.sourceFor === link.image_url ? fallback.url : link.image_url;
   const feedSrc = getFeedImageUrl(imgSrc);
   const feedSrcSet = getFeedImageSrcSet(imgSrc);
-
-  // Keep src/srcSet in server-rendered HTML so the browser can discover media
-  // before hydration. Native lazy loading handles offscreen cards.
+  const posterSrc = getFeedPosterUrl(imgSrc);
+  const {
+    activated,
+    containerRef: mediaContainerRef,
+    settleLoad,
+  } = useFeedMediaActivation(Boolean(feedSrc));
+  const loaded = activated && loadedSrc === imgSrc;
 
   const showLoader = pending;
 
@@ -60,23 +71,54 @@ function LinkCard({
             if (cardRef.current) onOpen(link, cardRef.current);
           }}
         >
-          <span className="relative block w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary already supplies responsive transformed srcsets */}
+          <span
+            ref={mediaContainerRef}
+            className="mind-card-preview relative block w-full overflow-hidden"
+          >
+            {posterSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element -- tiny LQIP poster before activation
+              <img
+                src={posterSrc}
+                alt=""
+                aria-hidden
+                draggable={false}
+                decoding="async"
+                className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
+                  loaded ? "opacity-0" : "opacity-100"
+                } ${
+                  !requiresLoginPlaceholder(link.url) &&
+                  brandThumbnailInvertInDark(link.url)
+                    ? "invert"
+                    : ""
+                }`}
+              />
+            ) : null}
+            {/* eslint-disable-next-line @next/next/no-img-element -- gated src via feed media controller + Cloudinary srcset */}
             <img
               key={`${link.id}-${imgSrc}`}
-              src={feedSrc || undefined}
-              srcSet={feedSrcSet || undefined}
+              src={activated ? feedSrc : undefined}
+              srcSet={activated ? feedSrcSet : undefined}
               sizes={feedSrcSet ? imageSizes : undefined}
               alt={link.display_title}
               loading={priority ? "eager" : "lazy"}
-              fetchPriority={priority ? "high" : "auto"}
+              fetchPriority={priority ? "high" : "low"}
               referrerPolicy="no-referrer"
               decoding="async"
               draggable={false}
-              className={`mind-card-preview block w-full object-cover object-top ${
-                !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
+              onLoad={() => {
+                setLoadedSrc(imgSrc);
+                settleLoad();
+              }}
+              className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
+                loaded ? "opacity-100" : "opacity-0"
+              } ${
+                !requiresLoginPlaceholder(link.url) &&
+                brandThumbnailInvertInDark(link.url)
+                  ? "invert"
+                  : ""
               } ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
+                settleLoad();
                 // Fall back directly to favicon — Microlink screenshot resolution
                 // is handled server-side; a client-side Microlink fetch per card
                 // caused up to 24 simultaneous 5-15s network calls on page load.

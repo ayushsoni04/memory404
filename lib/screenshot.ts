@@ -244,7 +244,10 @@ export function getProxiedImageUrl(url: string | null | undefined): string | und
 const CLOUDINARY_UPLOAD_MARKER = "/image/upload/";
 const FEED_IMAGE_WIDTHS = [320, 480, 640, 960] as const;
 
-function getCloudinaryImageUrl(url: string, width: number): string | null {
+function withCloudinaryTransform(
+  url: string,
+  transform: string,
+): string | null {
   try {
     const parsed = new URL(url);
     if (
@@ -254,15 +257,27 @@ function getCloudinaryImageUrl(url: string, width: number): string | null {
       return null;
     }
 
-    const transform = `f_auto,q_auto:eco,c_limit,w_${width}/`;
+    // Replace any existing transform segment so we never stack transforms.
+    const matched = parsed.pathname.match(
+      /^(.*?\/image\/upload\/)(?:.+\/)?(v\d+\/.+)$/,
+    );
+    if (matched) {
+      parsed.pathname = `${matched[1]}${transform}/${matched[2]}`;
+      return parsed.toString();
+    }
+
     parsed.pathname = parsed.pathname.replace(
       CLOUDINARY_UPLOAD_MARKER,
-      `${CLOUDINARY_UPLOAD_MARKER}${transform}`,
+      `${CLOUDINARY_UPLOAD_MARKER}${transform}/`,
     );
     return parsed.toString();
   } catch {
     return null;
   }
+}
+
+function getCloudinaryImageUrl(url: string, width: number): string | null {
+  return withCloudinaryTransform(url, `f_auto,q_auto:eco,c_limit,w_${width}`);
 }
 
 /**
@@ -275,6 +290,17 @@ export function getFeedImageUrl(
 ): string | undefined {
   if (!url) return undefined;
   return getCloudinaryImageUrl(url, width) ?? getProxiedImageUrl(url);
+}
+
+/** Tiny blurred Cloudinary poster for cards before high-res activation. */
+export function getFeedPosterUrl(
+  url: string | null | undefined,
+): string | undefined {
+  if (!url) return undefined;
+  return (
+    withCloudinaryTransform(url, "f_auto,q_auto,e_blur:1000,c_limit,w_40") ??
+    undefined
+  );
 }
 
 export function getFeedImageSrcSet(

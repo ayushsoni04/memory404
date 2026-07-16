@@ -18,6 +18,10 @@ let lastScrollY = 0;
 let lastScrollX = 0;
 /** Prevents re-populating the cache more than once per frame (16ms guard). */
 let lastPopulateTime = 0;
+/** True while the user is actively scrolling — skip stroke work to free main thread. */
+let scrollActive = false;
+let scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
+const SCROLL_IDLE_MS = 120;
 
 export function populateCardRectsCache(grid: HTMLElement) {
   const shells = grid.querySelectorAll<HTMLElement>(".mind-card-shell");
@@ -46,12 +50,22 @@ export function clearCardRectsCache() {
 
 if (typeof window !== "undefined") {
   window.addEventListener("resize", clearCardRectsCache);
-  window.addEventListener("scroll", () => {
-    // Clear so the delta logic in applyVicinityCardStrokes picks up new positions.
-    // The 16ms guard in applyVicinityCardStrokes prevents an immediate expensive
-    // repopulate — it'll rebuild on the next mousemove after the guard expires.
-    clearCardRectsCache();
-  }, { passive: true });
+  window.addEventListener(
+    "scroll",
+    () => {
+      scrollActive = true;
+      if (scrollIdleTimer !== null) clearTimeout(scrollIdleTimer);
+      scrollIdleTimer = setTimeout(() => {
+        scrollActive = false;
+        scrollIdleTimer = null;
+      }, SCROLL_IDLE_MS);
+      // Clear so the delta logic in applyVicinityCardStrokes picks up new positions.
+      // The 16ms guard in applyVicinityCardStrokes prevents an immediate expensive
+      // repopulate — it'll rebuild on the next mousemove after the guard expires.
+      clearCardRectsCache();
+    },
+    { passive: true },
+  );
 }
 
 export function applyShellStroke(
@@ -88,6 +102,13 @@ export function applyVicinityCardStrokes(
   clientX: number,
   clientY: number,
 ) {
+  if (
+    scrollActive ||
+    (typeof document !== "undefined" && document.hidden)
+  ) {
+    return;
+  }
+
   if (cachedCards.length === 0) {
     // Guard: don't repopulate more than once per ~frame (16ms).
     // This prevents layout-reflow thrashing when cache is cleared on scroll
