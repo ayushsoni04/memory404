@@ -5,7 +5,7 @@
   "description": "Chrome extension for saving current tab into memory404",
   "scripts": {
     "dev": "webpack --watch --config webpack.dev.js",
-    "build": "webpack --config webpack.prod.js"
+    "build": "webpack --config webpack.prod.js && zip -r -9 memory404-extension.zip dist"
   },
   "dependencies": {
     "react": "^18.3.1",
