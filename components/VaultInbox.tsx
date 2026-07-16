@@ -1655,17 +1655,10 @@ export default function VaultInbox() {
           ) : !openedGroupId || loadingLinks ? (
             <div className="mind-grid" data-grid-size={gridSize}>
               {Array.from({ length: 12 }).map((_, i) => {
-                const aspectRatios = [
-                  "aspect-[16/10]",
-                  "aspect-[4/3]",
-                  "aspect-[16/12]",
-                  "aspect-[16/9]",
-                ];
-                const ratio = aspectRatios[i % aspectRatios.length];
                 return (
                   <div key={i} className="mb-3 break-inside-avoid animate-pulse">
                     <div className="rounded-[4px] bg-surface-elevated p-[1px] border border-border/30">
-                      <div className={`w-full ${ratio} rounded-[4px] bg-neutral-800/30`} />
+                      <div className="w-full aspect-[16/10] rounded-[4px] bg-neutral-800/30" />
                     </div>
                     <div className="mt-2 px-0.5 space-y-1">
                       <div className="h-3.5 w-4/5 rounded bg-neutral-800/40" />

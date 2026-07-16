@@ -222,8 +222,7 @@ pre,
 }
 
 .mind-card-preview {
-  min-height: 140px;
-  max-height: 520px;
+  aspect-ratio: 16 / 10;
   width: 100%;
   border-radius: var(--mind-card-radius);
   background: var(--surface-elevated);

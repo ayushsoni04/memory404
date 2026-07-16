@@ -10,6 +10,7 @@ interface CachedCard {
   bottom: number;
   width: number;
   height: number;
+  lastOpacity?: string;
 }
 
 let cachedCards: CachedCard[] = [];
@@ -109,16 +110,24 @@ export function applyVicinityCardStrokes(
     const dist = Math.hypot(clientX - clampedX, clientY - clampedY);
 
     if (dist > VICINITY_PX) {
-      card.shell.style.setProperty("--stroke-opacity", "0");
+      if (card.lastOpacity !== "0") {
+        card.shell.style.setProperty("--stroke-opacity", "0");
+        card.lastOpacity = "0";
+      }
       continue;
     }
 
     const strength = Math.max(0, 1 - dist / VICINITY_PX);
-    const xPct = ((clientX - left) / Math.max(card.width, 1)) * 100;
-    const yPct = ((clientY - top) / Math.max(card.height, 1)) * 100;
+    const strengthStr = strength.toFixed(3);
+    const xPct = (((clientX - left) / Math.max(card.width, 1)) * 100).toFixed(1);
+    const yPct = (((clientY - top) / Math.max(card.height, 1)) * 100).toFixed(1);
+
     card.shell.style.setProperty("--glow-x", `${xPct}%`);
     card.shell.style.setProperty("--glow-y", `${yPct}%`);
-    card.shell.style.setProperty("--stroke-opacity", String(strength));
+    if (card.lastOpacity !== strengthStr) {
+      card.shell.style.setProperty("--stroke-opacity", strengthStr);
+      card.lastOpacity = strengthStr;
+    }
   }
 }
 

@@ -22,11 +22,20 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
   const [imgSrc, setImgSrc] = useState(link.image_url);
   const [resolving, setResolving] = useState(false);
   const resolveAttempted = useRef(false);
+  const [loaded, setLoaded] = useState(false);
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   useEffect(() => {
     setImgSrc(link.image_url);
     resolveAttempted.current = false;
+    setLoaded(false);
   }, [link.id, link.image_url]);
+
+  useEffect(() => {
+    if (imgRef.current?.complete) {
+      setLoaded(true);
+    }
+  }, [imgSrc]);
 
   // NOTE: Proactive browser-side Microlink screenshot resolution has been removed.
   // Images are now stored in Cloudinary server-side during metadata enrichment.
@@ -48,6 +57,7 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
           <span className="relative block w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
+              ref={imgRef}
               key={`${link.id}-${imgSrc}`}
               src={getProxiedImageUrl(imgSrc)}
               alt=""
@@ -56,7 +66,10 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
               referrerPolicy="no-referrer"
               decoding="async"
               draggable={false}
-              className={`mind-card-preview block w-full object-cover object-top ${
+              onLoad={() => setLoaded(true)}
+              className={`mind-card-preview block w-full object-cover object-top transition-opacity duration-350 ease-out ${
+                loaded ? "opacity-100" : "opacity-0"
+              } ${
                 !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
               } ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
