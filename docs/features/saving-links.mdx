@@ -1,0 +1,93 @@
+---
+title: "Saving links"
+description: "Save URLs from the web app, extension, or omnibox with automatic metadata enrichment."
+keywords: ["save links", "add links", "paste URL"]
+---
+
+Save links from the web app sidebar, the Chrome extension, or the omnibox quick-save keyword.
+
+## Save from the web app
+
+### Direct save (group view)
+
+When viewing a specific group, paste a URL in the sidebar input and press Enter. The link saves directly to that group.
+
+### Two-phase save (All view)
+
+When viewing **All**, saving follows a two-step flow:
+
+<Steps>
+  <Step title="Paste URL">
+    Enter a URL in the sidebar input.
+  </Step>
+  <Step title="Pick a group">
+    Choose an existing group or type a new group name.
+  </Step>
+  <Step title="Confirm">
+    The link saves with an optimistic card in the grid.
+  </Step>
+</Steps>
+
+### Inline add card
+
+Click the **+** card in the link grid to add a link directly within the current group view.
+
+## What happens after save
+
+1. A card appears immediately with `metadata_status: pending`
+2. Background enrichment fetches title, description, favicon, and preview image
+3. The UI polls pending links every 4 seconds until `metadata_status: ready`
+4. An optional notes form appears for 5 seconds after save
+
+## Duplicate detection
+
+URLs are globally unique across all groups. Saving a duplicate URL returns a `409` error with the existing link ID.
+
+```json
+{
+  "error": "A link with this URL already exists.",
+  "existingId": "uuid",
+  "link": { ... }
+}
+```
+
+## Request body
+
+```bash
+curl -X POST http://localhost:3000/api/links \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com",
+    "groupId": "uuid",
+    "title": "Optional title from extension",
+    "description": "Optional description",
+    "imageUrl": "https://example.com/og-image.png"
+  }'
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `url` | Yes | Valid `http` or `https` URL |
+| `groupId` | No | Target group UUID |
+| `newGroupName` | No | Create a new group with this name |
+| `title` | No | Pre-filled title (from extension) |
+| `description` | No | Pre-filled description |
+| `imageUrl` | No | Pre-filled preview image |
+
+<Note>
+If neither `groupId` nor `newGroupName` is provided, the link saves to the **General** group.
+</Note>
+
+## Link detail overlay
+
+Click any card to open the detail overlay. From here you can:
+
+- Copy the URL
+- Move to another group
+- Edit custom title, tags, and notes
+- Navigate between links with arrow keys
+- Delete (soft-delete to Trash)
+
+## Drag to trash
+
+Drag any link card onto the **Trash** drop zone in the sidebar to soft-delete it.

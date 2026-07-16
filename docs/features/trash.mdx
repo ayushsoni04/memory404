@@ -1,0 +1,113 @@
+---
+title: "Trash"
+description: "Recover or permanently delete soft-deleted links and groups within a 30-day retention window."
+keywords: ["trash", "delete", "restore", "soft delete"]
+---
+
+Deleted links and groups go to Trash instead of being permanently removed. Items stay in Trash for 30 days before they can be purged.
+
+<Warning>
+Trash endpoints are only available on Next.js API routes (`app/api/trash/`). They are not served by the Express backend on Render.
+</Warning>
+
+## How soft-delete works
+
+Both `links` and `groups` have a `deleted_at` timestamp:
+
+- `null` — active item
+- non-null — item is in Trash
+
+Deleting a group also soft-deletes all its active links with the same timestamp, enabling batch restore.
+
+## Trash page
+
+Navigate to `/trash` to see all deleted items. Each entry shows:
+
+- Item type (link or group)
+- Title and preview
+- Days remaining before permanent deletion
+- Restore and delete actions
+
+## Restore a link
+
+```bash
+curl -X PATCH http://localhost:3000/api/trash/links/{id}
+```
+
+Response: `{ "ok": true }`
+
+## Restore a group
+
+Restores the group and all links that were batch-deleted with it (within a ±2 second window).
+
+```bash
+curl -X PATCH http://localhost:3000/api/trash/groups/{id}
+```
+
+## Permanent delete
+
+```bash
+# Delete a single link
+curl -X DELETE http://localhost:3000/api/trash/links/{id}
+
+# Delete a single group (and all its links)
+curl -X DELETE http://localhost:3000/api/trash/groups/{id}
+```
+
+## Empty trash
+
+Delete all items in Trash:
+
+```bash
+curl -X DELETE http://localhost:3000/api/trash
+```
+
+Purge only expired items (older than 30 days):
+
+```bash
+curl -X DELETE "http://localhost:3000/api/trash?expiredOnly=1"
+```
+
+Response:
+
+```json
+{
+  "ok": true,
+  "deletedLinks": 5,
+  "deletedGroups": 1
+}
+```
+
+## List trash items
+
+```bash
+curl http://localhost:3000/api/trash
+```
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "type": "link",
+      "id": "uuid",
+      "url": "https://example.com",
+      "title": "Example",
+      "displayTitle": "Example",
+      "imageUrl": "/images/preview.png",
+      "faviconUrl": "/favicon.ico",
+      "groupId": "uuid",
+      "groupName": "Design",
+      "deletedAt": "2026-07-01T00:00:00.000Z",
+      "daysLeft": 23
+    }
+  ]
+}
+```
+
+## UI interactions
+
+- **Drag to trash** — drag a link card onto the Trash drop zone in the sidebar
+- **Delete from overlay** — use the delete action in the link detail overlay
+- **Delete group** — delete a group from the sidebar (cascades to its links)

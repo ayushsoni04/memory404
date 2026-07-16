@@ -1,0 +1,49 @@
+---
+title: "Stats"
+description: "Retrieve link counts, group density, and activity data."
+---
+
+<Warning>
+Stats endpoint is only available on Next.js API routes.
+</Warning>
+
+## Get stats
+
+```
+GET /api/stats
+```
+
+### Response
+
+```json
+{
+  "success": true,
+  "totalLinks": 156,
+  "totalGroups": 8,
+  "linksByGroup": [
+    { "id": "uuid", "name": "General", "count": 42 },
+    { "id": "uuid", "name": "Design", "count": 31 }
+  ],
+  "linkFrequency": [
+    { "date": "2026-07-01", "count": 3 },
+    { "date": "2026-07-02", "count": 7 }
+  ]
+}
+```
+
+### Fields
+
+| Field | Description |
+|-------|-------------|
+| `totalLinks` | Count of active (non-deleted) links |
+| `totalGroups` | Count of active groups |
+| `linksByGroup` | Link count per group |
+| `linkFrequency` | Daily link creation counts for contribution grid |
+
+### Usage
+
+The stats endpoint powers the **Stats & activity** section in Settings (`/settings`), including the contribution grid visualization.
+
+```bash
+curl http://localhost:3000/api/stats
+```

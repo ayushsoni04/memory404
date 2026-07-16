@@ -1,0 +1,47 @@
+---
+title: "Omnibox"
+description: "Quick-save links from the Chrome address bar using the lk keyword."
+keywords: ["omnibox", "address bar", "quick save"]
+---
+
+The omnibox integration lets you save links or open the app directly from Chrome's address bar.
+
+## Activate
+
+Type `lk` in the address bar, then press **Tab** to enter omnibox mode.
+
+## Commands
+
+| Input | Action |
+|-------|--------|
+| `lk` + Tab + URL | Save the URL and open the app |
+| `lk` + Tab + `open` | Open the memory404 app only |
+
+## Examples
+
+```
+lk [Tab] https://figma.com/file/abc123
+→ Saves the Figma URL and opens memory404
+
+lk [Tab] open
+→ Opens memory404 without saving
+```
+
+## Suggestions
+
+While typing in omnibox mode, Chrome shows suggestions:
+
+- **Save and open** — save the entered URL
+- **Open memory404 app only** — navigate to the app
+
+## How it works
+
+The background service worker (`background.js`) handles omnibox input:
+
+1. Parse the entered text
+2. If it's a URL, POST to `/api/links` with the last-used group
+3. Open a new tab to the memory404 app
+
+<Note>
+Omnibox saves use the last saved group ID from `chrome.storage.local`. Change your default group by saving from the popup first.
+</Note>

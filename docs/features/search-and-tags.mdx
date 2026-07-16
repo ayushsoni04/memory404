@@ -1,0 +1,96 @@
+---
+title: "Search and tags"
+description: "Filter links by text search and tags via the API."
+keywords: ["search", "tags", "filter", "query"]
+---
+
+Search and tag filtering are available through the links API. The web UI currently exposes group name search in the sidebar; full link text search is API-ready.
+
+## Text search
+
+Search across title, custom title, description, URL, and notes:
+
+```bash
+curl "http://localhost:3000/api/links?search=figma"
+```
+
+Both `search` and `q` query parameters work:
+
+```bash
+curl "http://localhost:3000/api/links?q=design+system"
+```
+
+Search is case-insensitive.
+
+## Tag filtering
+
+Filter by one or more tags (OR logic via `hasSome`):
+
+```bash
+curl "http://localhost:3000/api/links?tag=design&tag=ui"
+```
+
+Tags are normalized to lowercase on write.
+
+## Combine filters
+
+Search, group, tag, and pagination filters work together:
+
+```bash
+curl "http://localhost:3000/api/links?groupId=uuid&search=component&tag=react&limit=12"
+```
+
+## Pagination
+
+Links use cursor-based pagination:
+
+```bash
+# First page
+curl "http://localhost:3000/api/links?limit=24"
+
+# Next page
+curl "http://localhost:3000/api/links?limit=24&cursor=base64cursor"
+```
+
+Response includes pagination metadata:
+
+```json
+{
+  "links": [...],
+  "nextCursor": "eyJjcmVhdGVkQXQiI...",
+  "hasMore": true
+}
+```
+
+| Parameter | Default | Range | Description |
+|-----------|---------|-------|-------------|
+| `limit` | 24 | 1–100 | Items per page |
+| `cursor` | — | — | Base64url cursor from previous response |
+
+## Status polling
+
+Fetch specific links by ID (used for metadata status updates):
+
+```bash
+curl "http://localhost:3000/api/links?ids=uuid1,uuid2"
+```
+
+## Sort options (UI)
+
+The web app supports these sort modes in the grid:
+
+| Sort | Description |
+|------|-------------|
+| Newest | `createdAt` descending (default) |
+| Oldest | `createdAt` ascending |
+| Domain | Alphabetical by hostname |
+| Details | By content length |
+| Type | By provider (Figma, Pinterest, etc.) |
+
+## Update tags
+
+```bash
+curl -X PATCH http://localhost:3000/api/links/{id} \
+  -H "Content-Type: application/json" \
+  -d '{ "tags": ["design", "ui", "inspiration"] }'
+```

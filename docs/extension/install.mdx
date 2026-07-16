@@ -1,0 +1,84 @@
+---
+title: "Install extension"
+description: "Build and load the memory404 Chrome extension for one-click link saving."
+keywords: ["chrome extension", "install", "browser extension"]
+---
+
+The memory404 Chrome extension lets you save tabs from any page with one click.
+
+## Build from source
+
+```bash
+cd extension
+npm install
+npm run build
+```
+
+The built extension is in `extension/dist/`.
+
+## Load in Chrome
+
+<Steps>
+  <Step title="Open extensions">
+    Navigate to `chrome://extensions/` in Chrome.
+  </Step>
+  <Step title="Enable developer mode">
+    Toggle **Developer mode** in the top-right corner.
+  </Step>
+  <Step title="Load unpacked">
+    Click **Load unpacked** and select the `extension/dist` folder.
+  </Step>
+  <Step title="Configure App URL">
+    Open the extension popup, go to Settings, and set the App URL:
+    - Local: `http://localhost:3000`
+    - Production: `https://memory404.vercel.app`
+  </Step>
+</Steps>
+
+## Extension details
+
+| Property | Value |
+|----------|-------|
+| Manifest version | 3 |
+| Name | memory404 |
+| Version | 0.1.0 |
+| Default shortcut | `Alt+Shift+L` / `Option+Shift+L` |
+| Omnibox keyword | `lk` |
+
+## Permissions
+
+| Permission | Purpose |
+|------------|---------|
+| `tabs` | Read active tab URL and title |
+| `activeTab` | Access current tab content |
+| `tabGroups` | Save entire Chrome tab groups |
+| `scripting` | Extract Open Graph metadata from pages |
+| `storage` | Cache groups and last-saved group ID |
+| `omnibox` | Quick-save from address bar |
+| `contextMenus` | Right-click save options |
+
+## Host permissions
+
+The extension can communicate with:
+
+- `localhost:3000` (local dev)
+- `memory404.vercel.app` (production)
+- `*.vercel.app` and `*.onrender.com` (deployed environments)
+- All `http(s)://` URLs (for metadata extraction)
+
+## Verify installation
+
+1. Click the memory404 icon in the toolbar
+2. The popup should load your groups from the API
+3. Save the current tab to confirm the connection
+
+<Tip>
+If groups fail to load, check that the App URL in extension settings matches your running server and that CORS allows `chrome-extension://` origins.
+</Tip>
+
+## Next steps
+
+- [Popup](/extension/popup) — save modes and group picker
+- [Omnibox](/extension/omnibox) — quick-save from the address bar
+- [Context menus](/extension/context-menus) — right-click save options
+- [Keyboard shortcuts](/extension/keyboard-shortcuts) — hotkey reference

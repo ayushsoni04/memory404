@@ -1,0 +1,68 @@
+---
+title: "Keep-alive"
+description: "Prevent free tier services from sleeping with scheduled health pings."
+keywords: ["keep-alive", "cron", "free tier", "github actions"]
+---
+
+Free tier hosting services sleep when idle. memory404 uses GitHub Actions and in-process pings to stay warm.
+
+## Problem
+
+| Service | Sleep threshold | Impact |
+|---------|----------------|--------|
+| Render (free) | ~15 min idle | 30–60s cold start on first request |
+| Supabase (free) | ~7 days idle | Project pauses, requires manual resume |
+| Vercel | Stays warm | Cold starts possible without pings |
+
+## GitHub Actions workflow
+
+The workflow at `.github/workflows/keep-alive.yml` pings services on a schedule:
+
+| Service | Schedule | Endpoint |
+|---------|----------|----------|
+| Render | Every 14 minutes | `{RENDER_API_URL}/health` |
+| Vercel | Every 14 minutes | `{VERCEL_APP_URL}/api/health` |
+| Supabase | Daily | `{SUPABASE_PROJECT_URL}/auth/v1/health` |
+
+### Setup
+
+Set these as GitHub repository variables:
+
+| Variable | Example |
+|----------|---------|
+| `VERCEL_APP_URL` | `https://memory404.vercel.app` |
+| `RENDER_API_URL` | `https://memory404-api.onrender.com` |
+| `SUPABASE_PROJECT_URL` | `https://gucdslwlvrgwfyhmazeq.supabase.co` |
+
+### Manual trigger
+
+Go to **Actions → Keep services alive → Run workflow** in GitHub.
+
+## In-process keep-alive
+
+The Express server runs a DB ping every 3 days via `lib/keep-alive.ts`. This prevents Supabase from pausing due to database inactivity.
+
+```typescript
+// Pings SELECT 1 every 3 days
+startKeepAlive();
+```
+
+Stopped gracefully on SIGTERM during Render shutdown.
+
+## Render upgrade
+
+For production reliability, upgrade Render to the **Starter** plan ($7/mo) for always-on with no spin-down.
+
+## Monitoring
+
+Verify keep-alive is working:
+
+```bash
+# Check Render uptime in health response
+curl https://memory404-api.onrender.com/health
+
+# Response includes uptime in seconds
+{ "ok": true, "uptime": 86400.5 }
+```
+
+If uptime resets frequently, the service is spinning down between pings.

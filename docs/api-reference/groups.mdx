@@ -1,0 +1,105 @@
+---
+title: "Groups"
+description: "Create, list, reorder, and delete link groups via the REST API."
+---
+
+## List groups
+
+```
+GET /api/groups
+```
+
+### Response
+
+```json
+{
+  "groups": [
+    {
+      "id": "uuid",
+      "name": "General",
+      "sortOrder": 0,
+      "parentGroupId": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "linksCount": 42,
+      "previewTitles": ["Title 1", "Title 2", "Title 3"]
+    }
+  ]
+}
+```
+
+Next.js filters out soft-deleted groups (`deletedAt: null`).
+
+---
+
+## Create group
+
+```
+POST /api/groups
+```
+
+### Request body
+
+```json
+{
+  "name": "Design inspiration",
+  "parentGroupId": "uuid",
+  "insertAt": 1
+}
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Unique group name |
+| `parentGroupId` | No | Parent group for nesting |
+| `insertAt` | No | Sort position (shifts existing groups) |
+
+### Responses
+
+| Status | Body |
+|--------|------|
+| `201` | `{ "group": { id, name, sortOrder, parentGroupId, createdAt } }` |
+| `409` | Group name already exists |
+
+---
+
+## Reorder groups
+
+```
+PATCH /api/groups
+```
+
+### Request body
+
+```json
+{
+  "orderedIds": ["general-uuid", "group-2-uuid", "group-3-uuid"]
+}
+```
+
+<Warning>
+Must include every group exactly once. General group must be first.
+</Warning>
+
+### Response
+
+```json
+{ "ok": true }
+```
+
+---
+
+## Delete group
+
+```
+DELETE /api/groups/:id
+```
+
+Next.js only. Soft-deletes the group and all its active links.
+
+### Responses
+
+| Status | Meaning |
+|--------|---------|
+| `200` | `{ "ok": true }` |
+| `403` | Cannot delete General group |
+| `409` | Group already in Trash |

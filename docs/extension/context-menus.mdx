@@ -1,0 +1,43 @@
+---
+title: "Context menus"
+description: "Right-click to save pages, links, and tab groups to memory404."
+keywords: ["context menu", "right click", "save"]
+---
+
+Right-click anywhere in Chrome to access memory404 save options.
+
+## Menu structure
+
+All options appear under the **Add to LK** parent menu:
+
+| Menu item | Context | Action |
+|-----------|---------|--------|
+| **Just Save** | Page, link, selection, tab | Open popup (or save with last group) |
+| **Save & Open** | Page, link, selection, tab | Save and open the app |
+| **Save Selected Tabs** | Page, link, selection, tab | Save all highlighted tabs |
+| **Save Current Tab Group** | Page, link, selection, tab | Create group from Chrome tab group name and save all tabs |
+
+## Contexts
+
+The menu appears when right-clicking on:
+
+- A web page
+- A link
+- Selected text
+- A browser tab
+
+## Save current tab group
+
+This option is unique to context menus:
+
+1. Reads the name of the current Chrome tab group
+2. Creates a memory404 group with that name (if it doesn't exist)
+3. Saves all tabs in the Chrome tab group to the new group
+
+<Tip>
+Use this to quickly import an entire research session from a Chrome tab group into memory404.
+</Tip>
+
+## Fallback behavior
+
+If the popup cannot open (e.g., restricted page), **Just Save** falls back to saving with the last-used group ID directly via the background worker.

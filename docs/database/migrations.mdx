@@ -1,0 +1,85 @@
+---
+title: "Migrations"
+description: "Manage database schema changes with Prisma Migrate."
+keywords: ["migrations", "prisma", "database"]
+---
+
+Schema changes are managed with Prisma Migrate. Migration files live in `prisma/migrations/`.
+
+## Commands
+
+| Command | Purpose |
+|---------|---------|
+| `npm run db:migrate` | Create and apply migration (dev) |
+| `npm run db:deploy` | Apply pending migrations (production) |
+| `npm run db:generate` | Regenerate Prisma Client |
+| `npm run db:studio` | Open Prisma Studio GUI |
+| `npm run db:pull` | Pull schema from database |
+
+## Development workflow
+
+<Steps>
+  <Step title="Edit schema">
+    Modify `prisma/schema.prisma`.
+  </Step>
+  <Step title="Create migration">
+    ```bash
+    npm run db:migrate
+    ```
+    Prisma prompts for a migration name and generates SQL in `prisma/migrations/`.
+  </Step>
+  <Step title="Verify">
+    ```bash
+    npm run db:studio
+    ```
+  </Step>
+</Steps>
+
+## Production deployment
+
+Migrations run automatically during the Vercel build:
+
+```bash
+prisma migrate deploy && prisma generate && next build
+```
+
+For manual deployment:
+
+```bash
+npm run db:deploy
+```
+
+<Warning>
+Always use `DIRECT_URL` (port 5432) for migrations. The pooler URL (`DATABASE_URL`, port 6543) does not support DDL operations.
+</Warning>
+
+## Migration history
+
+| Migration | Description |
+|-----------|-------------|
+| `20260405120000_init` | Initial schema (links, groups) |
+| `20260405200000_link_metadata_and_custom_title` | Metadata fields and custom titles |
+| `20260408183000_add_group_parent_tree` | Parent group nesting |
+| `20260712090000_rename_uncategorized_to_general` | Rename default group |
+| `20260715160000_links_created_at_cursor_index` | Cursor pagination index |
+| `20260716010000_add_perf_indexes` | Performance indexes |
+
+## Baseline existing database
+
+If connecting to an existing database:
+
+```bash
+npm run db:resolve-baseline
+```
+
+This marks the init migration as applied without running it.
+
+## Reset (development only)
+
+```bash
+npx prisma migrate reset
+```
+
+<Danger>
+This drops all data and re-applies all migrations. Never run in production.
+</Danger>

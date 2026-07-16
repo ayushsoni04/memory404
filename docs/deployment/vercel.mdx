@@ -1,0 +1,67 @@
+---
+title: "Vercel"
+description: "Deploy the memory404 Next.js frontend to Vercel."
+keywords: ["vercel", "frontend", "deploy"]
+---
+
+Deploy the Next.js frontend to Vercel for production hosting.
+
+## Deploy
+
+### From CLI
+
+```bash
+npx vercel --prod
+```
+
+### From dashboard
+
+1. Import the GitHub repository at [vercel.com/new](https://vercel.com/new)
+2. Framework preset: **Next.js**
+3. Build command: `prisma migrate deploy && prisma generate && next build`
+4. Set environment variables (see below)
+
+## Environment variables
+
+Set these in **Vercel → Project → Settings → Environment Variables**:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | Supabase pooler URL (port 6543) |
+| `DIRECT_URL` | Yes | Supabase direct URL (port 5432) |
+| `NEXT_PUBLIC_API_URL` | Yes | Render API URL |
+| `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | No | Supabase publishable key |
+| `CLOUDINARY_CLOUD_NAME` | No | Image upload |
+| `CLOUDINARY_API_KEY` | No | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | No | Cloudinary signing secret |
+
+### Production values
+
+```bash
+NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
+DATABASE_URL=postgresql://postgres.REF:PASSWORD@HOST:6543/postgres?pgbouncer=true
+DIRECT_URL=postgresql://postgres.REF:PASSWORD@HOST:5432/postgres
+```
+
+## What Vercel serves
+
+| Route | Handler |
+|-------|---------|
+| `/` | Main link vault |
+| `/settings` | Settings page |
+| `/trash` | Trash management |
+| `/workspace` | Screen editor |
+| `/api/*` | Next.js Route Handlers (trash, stats, image-proxy, health) |
+
+## Redeploy
+
+```bash
+npx vercel --prod
+```
+
+Or push to the connected Git branch for automatic deployment.
+
+## Custom domain
+
+Add a custom domain in **Vercel → Project → Settings → Domains**. Update `CORS_ORIGINS` on Render to include the new domain.

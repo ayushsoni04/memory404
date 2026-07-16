@@ -1,0 +1,61 @@
+---
+title: "Introduction"
+description: "memory404 is a personal link vault and visual inspiration inbox for saving, organizing, and browsing URLs."
+keywords: ["memory404", "link vault", "bookmark manager", "inspiration inbox"]
+---
+
+memory404 is a personal link vault and visual inspiration inbox. Save URLs from anywhere on the web, organize them into groups, and browse them in a masonry-style grid with rich previews.
+
+<Columns cols={2}>
+  <Card title="Save anything" icon="bookmark" href="/features/saving-links">
+    Paste a URL or use the Chrome extension to capture tabs with automatic metadata enrichment.
+  </Card>
+  <Card title="Organize with groups" icon="folder" href="/features/groups">
+    Create folders, drag to reorder, and nest groups in a tree structure.
+  </Card>
+  <Card title="Rich previews" icon="image" href="/features/metadata">
+    Automatic titles, favicons, and screenshots with provider-specific branding.
+  </Card>
+  <Card title="Chrome extension" icon="puzzle" href="/extension/install">
+    Save tabs from the popup, omnibox, context menus, or keyboard shortcuts.
+  </Card>
+</Columns>
+
+## What you can do
+
+- **Save links** from the web app, Chrome extension, or omnibox quick-save
+- **Browse** a visual card grid with infinite scroll and detail overlays
+- **Organize** links into hierarchical groups with drag-and-drop reordering
+- **Recover** deleted items from Trash within a 30-day retention window
+- **Export** your data as JSON from Settings
+
+## Production URLs
+
+| Service | URL |
+|---------|-----|
+| Web app | [memory404.vercel.app](https://memory404.vercel.app) |
+| API | [memory404-api.onrender.com](https://memory404-api.onrender.com) |
+
+## Tech stack
+
+| Layer | Technology |
+|-------|------------|
+| Frontend | Next.js 16, React 19, Tailwind CSS 4 |
+| Backend API | Express on Render |
+| Database | PostgreSQL on Supabase via Prisma |
+| Extension | Chrome Manifest V3 |
+| Images | Cloudinary, Microlink, mShots |
+
+## Next steps
+
+<Steps>
+  <Step title="Quickstart">
+    Run memory404 locally in under five minutes. See [Quickstart](/quickstart).
+  </Step>
+  <Step title="Install the extension">
+    Load the Chrome extension for one-click saving. See [Install extension](/extension/install).
+  </Step>
+  <Step title="Explore the API">
+    Integrate with the REST API. See [API overview](/api-reference/overview).
+  </Step>
+</Steps>

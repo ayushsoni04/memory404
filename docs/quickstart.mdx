@@ -1,0 +1,125 @@
+---
+title: "Quickstart"
+description: "Run memory404 locally and save your first link in under five minutes."
+keywords: ["quickstart", "setup", "local development"]
+---
+
+Get memory404 running locally and save your first link.
+
+## Prerequisites
+
+- Node.js 20+
+- A Supabase project with PostgreSQL (or local Postgres)
+- npm
+
+## 1. Clone and install
+
+```bash
+git clone https://github.com/ayushsoni/memory404.git
+cd memory404
+npm install
+```
+
+## 2. Configure environment
+
+Copy the environment template and fill in your database credentials:
+
+```bash
+cp env.template .env.local
+```
+
+At minimum, set these variables in `.env.local`:
+
+```bash
+DATABASE_URL="postgresql://postgres.YOUR_REF:PASSWORD@HOST:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.YOUR_REF:PASSWORD@HOST:5432/postgres"
+```
+
+Get connection strings from **Supabase → Project Settings → Database**.
+
+## 3. Run database migrations
+
+```bash
+npm run db:deploy
+```
+
+## 4. Start the development server
+
+<Tabs>
+  <Tab title="Single stack (Next.js API)">
+    ```bash
+    npm run dev
+    ```
+
+    Open [http://localhost:3000](http://localhost:3000). API routes run on the same origin at `/api/*`.
+  </Tab>
+  <Tab title="Split stack (Express API)">
+    ```bash
+    # Terminal 1 — frontend
+    npm run dev
+
+    # Terminal 2 — backend
+    npm run backend:dev
+    ```
+
+    Add to `.env.local`:
+
+    ```bash
+    NEXT_PUBLIC_API_URL=http://localhost:4000
+    ```
+  </Tab>
+</Tabs>
+
+## 5. Save your first link
+
+<Steps>
+  <Step title="Paste a URL">
+    In the sidebar, paste any `https://` URL into the input field and press Enter.
+  </Step>
+  <Step title="Pick a group">
+    If you are on the All view, choose an existing group or type a new group name.
+  </Step>
+  <Step title="Wait for metadata">
+    The card appears immediately with a pending state. Preview images and titles enrich in the background within a few seconds.
+  </Step>
+</Steps>
+
+## 6. Install the Chrome extension (optional)
+
+```bash
+cd extension
+npm install
+npm run build
+```
+
+Load the unpacked extension from `extension/dist` in **Chrome → Extensions → Load unpacked**.
+
+<Note>
+Set the extension App URL to `http://localhost:3000` in the popup settings panel.
+</Note>
+
+## Verify the setup
+
+```bash
+# Health check (Next.js)
+curl http://localhost:3000/api/health
+
+# Health check (Express, if running split stack)
+curl http://localhost:4000/health
+```
+
+A healthy response looks like:
+
+```json
+{
+  "ok": true,
+  "service": "memory404-web",
+  "db": "ok"
+}
+```
+
+## Next steps
+
+- [Architecture overview](/architecture/overview) — understand how the pieces fit together
+- [Install extension](/extension/install) — capture links from any tab
+- [Environment variables](/deployment/environment-variables) — full configuration reference

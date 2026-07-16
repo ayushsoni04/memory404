@@ -1,0 +1,106 @@
+{
+  "$schema": "https://mintlify.com/docs.json",
+  "theme": "maple",
+  "name": "memory404",
+  "description": "Personal link vault and visual inspiration inbox",
+  "colors": {
+    "primary": "#8B5CF6",
+    "light": "#A78BFA",
+    "dark": "#6D28D9"
+  },
+  "logo": {
+    "light": "/logo/light.svg",
+    "dark": "/logo/dark.svg"
+  },
+  "favicon": "/favicon.svg",
+  "navbar": {
+    "links": [
+      {
+        "label": "App",
+        "href": "https://memory404.vercel.app"
+      },
+      {
+        "label": "GitHub",
+        "href": "https://github.com/ayushsoni/memory404"
+      }
+    ],
+    "primary": {
+      "type": "button",
+      "label": "Open app",
+      "href": "https://memory404.vercel.app"
+    }
+  },
+  "navigation": {
+    "groups": [
+      {
+        "group": "Getting started",
+        "pages": [
+          "index",
+          "quickstart",
+          "architecture/overview"
+        ]
+      },
+      {
+        "group": "Features",
+        "pages": [
+          "features/saving-links",
+          "features/groups",
+          "features/trash",
+          "features/metadata",
+          "features/search-and-tags",
+          "features/screen-editor"
+        ]
+      },
+      {
+        "group": "Chrome extension",
+        "pages": [
+          "extension/install",
+          "extension/popup",
+          "extension/omnibox",
+          "extension/context-menus",
+          "extension/keyboard-shortcuts"
+        ]
+      },
+      {
+        "group": "API reference",
+        "pages": [
+          "api-reference/overview",
+          "api-reference/links",
+          "api-reference/groups",
+          "api-reference/trash",
+          "api-reference/stats",
+          "api-reference/health"
+        ]
+      },
+      {
+        "group": "Deployment",
+        "pages": [
+          "deployment/overview",
+          "deployment/vercel",
+          "deployment/render",
+          "deployment/supabase",
+          "deployment/environment-variables",
+          "deployment/keep-alive"
+        ]
+      },
+      {
+        "group": "Database",
+        "pages": [
+          "database/schema",
+          "database/migrations"
+        ]
+      },
+      {
+        "group": "Development",
+        "pages": [
+          "development/local-setup"
+        ]
+      }
+    ]
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/ayushsoni/memory404"
+    }
+  }
+}

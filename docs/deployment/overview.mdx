@@ -1,0 +1,77 @@
+---
+title: "Deployment overview"
+description: "Production architecture with Vercel, Render, and Supabase."
+keywords: ["deployment", "production", "hosting"]
+---
+
+memory404 runs as a three-service stack in production.
+
+## Architecture
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│ Chrome Extension│────▶│  Render Express  │────▶│ Supabase Postgres│
+└────────┬────────┘     └────────▲─────────┘     └─────────────────┘
+         │                       │
+         │              NEXT_PUBLIC_API_URL
+         ▼                       │
+┌─────────────────┐              │
+│ Vercel Next.js  │──────────────┘
+│ memory404.vercel│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐     ┌─────────────────┐
+│   Cloudinary    │     │ Microlink/mShots │
+└─────────────────┘     └─────────────────┘
+```
+
+## Services
+
+| Service | Platform | URL | Purpose |
+|---------|----------|-----|---------|
+| Frontend | Vercel | memory404.vercel.app | Next.js web app |
+| API | Render | memory404-api.onrender.com | Express backend |
+| Database | Supabase | — | PostgreSQL |
+| Images | Cloudinary | — | Preview image storage |
+
+## Deployment guides
+
+<Columns cols={2}>
+  <Card title="Vercel" icon="globe" href="/deployment/vercel">
+    Deploy the Next.js frontend.
+  </Card>
+  <Card title="Render" icon="server" href="/deployment/render">
+    Deploy the Express API.
+  </Card>
+  <Card title="Supabase" icon="database" href="/deployment/supabase">
+    Set up PostgreSQL.
+  </Card>
+  <Card title="Environment variables" icon="settings" href="/deployment/environment-variables">
+    Full configuration reference.
+  </Card>
+</Columns>
+
+## Build command
+
+```bash
+prisma migrate deploy && prisma generate && next build
+```
+
+## Split-stack configuration
+
+Set on Vercel:
+
+```bash
+NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
+```
+
+This routes all client API calls to Render instead of same-origin Next.js routes.
+
+<Warning>
+With split-stack, trash, stats, and image-proxy endpoints are only available if you also route those through Next.js or add them to Express.
+</Warning>
+
+## Keep-alive
+
+Free tier services sleep when idle. GitHub Actions pings prevent spin-down. See [Keep-alive](/deployment/keep-alive).

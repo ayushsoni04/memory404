@@ -1,0 +1,123 @@
+---
+title: "Links"
+description: "Create, list, update, and delete links via the REST API."
+---
+
+## List links
+
+```
+GET /api/links
+```
+
+### Query parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `limit` | number | Items per page (1–100, default 24) |
+| `cursor` | string | Pagination cursor from previous response |
+| `groupId` | uuid | Filter by group |
+| `group` | string | Legacy: `general`, `uncategorized`, or uuid |
+| `search` / `q` | string | Text search across metadata |
+| `tag` | string[] | Filter by tags (repeatable) |
+| `ids` | string[] | Fetch specific IDs (status poll) |
+
+### Response
+
+```json
+{
+  "links": [LinkApiRow],
+  "nextCursor": "string | null",
+  "hasMore": true
+}
+```
+
+### Example
+
+```bash
+curl "http://localhost:3000/api/links?limit=12&groupId=uuid&search=figma"
+```
+
+---
+
+## Create link
+
+```
+POST /api/links
+```
+
+### Request body
+
+```json
+{
+  "url": "https://example.com",
+  "groupId": "uuid",
+  "newGroupName": "My group",
+  "title": "Optional title",
+  "description": "Optional description",
+  "imageUrl": "https://example.com/og.png"
+}
+```
+
+### Responses
+
+| Status | Body |
+|--------|------|
+| `201` | `{ "link": LinkApiRow }` |
+| `400` | Invalid URL or body |
+| `409` | Duplicate URL with `existingId` |
+| `503` | Database not configured |
+
+---
+
+## Update link
+
+```
+PATCH /api/links/:id
+```
+
+### Request body
+
+At least one field required:
+
+```json
+{
+  "customTitle": "My custom title",
+  "tags": ["design", "ui"],
+  "notes": "Personal notes",
+  "groupId": "uuid",
+  "refreshPreview": true
+}
+```
+
+| Field | Description |
+|-------|-------------|
+| `customTitle` | User override for display title |
+| `tags` | Array of lowercase tag strings |
+| `notes` | Personal notes |
+| `groupId` | Move to another group |
+| `refreshPreview` | Re-run metadata enrichment |
+
+### Response
+
+```json
+{ "link": LinkApiRow }
+```
+
+---
+
+## Delete link
+
+```
+DELETE /api/links/:id
+```
+
+| Implementation | Behavior |
+|----------------|----------|
+| Next.js | Soft-delete (sets `deletedAt`) |
+| Express | Hard-delete |
+
+### Response
+
+```json
+{ "ok": true, "link": LinkApiRow }
+```

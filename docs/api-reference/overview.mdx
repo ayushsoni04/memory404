@@ -1,0 +1,111 @@
+---
+title: "API overview"
+description: "REST API reference for memory404 links, groups, trash, and stats."
+keywords: ["API", "REST", "endpoints"]
+---
+
+memory404 exposes a REST API for managing links and groups. The API is available through two implementations depending on your deployment.
+
+## Base URLs
+
+| Environment | Base URL |
+|-------------|----------|
+| Local (Next.js) | `http://localhost:3000/api` |
+| Local (Express) | `http://localhost:4000/api` |
+| Production (Render) | `https://memory404-api.onrender.com/api` |
+
+Set `NEXT_PUBLIC_API_URL` to point the frontend and extension at the Render API in production.
+
+## Dual implementation
+
+<Warning>
+Not all endpoints are available on both servers. Use Next.js routes for trash, stats, and image-proxy.
+</Warning>
+
+| Endpoint | Next.js | Express |
+|----------|---------|---------|
+| `GET/POST /api/links` | Yes | Yes |
+| `PATCH/DELETE /api/links/:id` | Soft-delete | Hard-delete |
+| `GET/POST/PATCH /api/groups` | Yes | Yes |
+| `DELETE /api/groups/:id` | Yes | No |
+| `GET/PATCH/DELETE /api/trash/*` | Yes | No |
+| `GET /api/stats` | Yes | No |
+| `GET /api/image-proxy` | Yes | No |
+| `GET /api/health` or `/health` | Yes | Yes |
+
+## Error format
+
+All errors return JSON:
+
+```json
+{
+  "error": "Human-readable message",
+  "hint": "Optional technical detail",
+  "code": "Optional Prisma error code"
+}
+```
+
+## Rate limiting (Express)
+
+| Limiter | Limit | Scope |
+|---------|-------|-------|
+| Global | 300 req/min | All routes |
+| Write | 30 req/min | `/api/links` mutations |
+
+Rate limiting is disabled in local development (`NODE_ENV !== production`).
+
+## CORS (Express)
+
+Allowed origins:
+
+- `http://localhost:3000`
+- `https://memory404.vercel.app`
+- `chrome-extension://*` (extension)
+- `*.vercel.app`
+
+Additional origins via `CORS_ORIGINS` environment variable.
+
+## Endpoints
+
+<Columns cols={2}>
+  <Card title="Links" icon="link" href="/api-reference/links">
+    Create, list, update, and delete links.
+  </Card>
+  <Card title="Groups" icon="folder" href="/api-reference/groups">
+    Manage link groups and reordering.
+  </Card>
+  <Card title="Trash" icon="trash" href="/api-reference/trash">
+    Restore and permanently delete items.
+  </Card>
+  <Card title="Stats" icon="chart-bar" href="/api-reference/stats">
+    Link counts and activity data.
+  </Card>
+</Columns>
+
+## Link object shape
+
+All link endpoints return this shape (with both snake_case and camelCase aliases):
+
+```json
+{
+  "id": "uuid",
+  "url": "https://example.com",
+  "title": "System title",
+  "custom_title": null,
+  "customTitle": null,
+  "display_title": "Display title",
+  "description": "Page description",
+  "image_url": "https://res.cloudinary.com/...",
+  "favicon_url": "https://example.com/favicon.ico",
+  "faviconUrl": "https://example.com/favicon.ico",
+  "tags": ["design"],
+  "notes": null,
+  "group_id": "uuid",
+  "groupId": "uuid",
+  "metadata_status": "ready",
+  "created_at": "2026-07-01T00:00:00.000Z",
+  "createdAt": "2026-07-01T00:00:00.000Z",
+  "deleted_at": null,
+  "deletedAt": null
+}
+```

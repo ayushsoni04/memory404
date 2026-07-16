@@ -1,0 +1,57 @@
+---
+title: "Screen editor"
+description: "Configure a digital LED dot-matrix display for visual experiments and loaders."
+keywords: ["screen editor", "LED", "dot matrix", "workspace"]
+---
+
+The screen editor at `/workspace` lets you configure a digital LED dot-matrix display. It is a visual experimentation tool and is not connected to saved links.
+
+## Access
+
+Navigate to [memory404.vercel.app/workspace](https://memory404.vercel.app/workspace) or click the workspace link in the main app navigation.
+
+## Display modes
+
+| Mode | Description |
+|------|-------------|
+| Marquee | Scrolling text animation |
+| Paint | Freehand dot painting |
+| Both | Marquee and paint combined |
+
+## Controls
+
+<AccordionGroup>
+  <Accordion title="Grid settings">
+    - **Grid size** — number of rows and columns
+    - **Cell size** — pixel size of each dot
+    - **Dot padding** — spacing between dots
+  </Accordion>
+  <Accordion title="Colors">
+    - **Dot color** — active dot color
+    - **Background color** — display background
+    - **Frame color** — outer frame border
+  </Accordion>
+  <Accordion title="Paint tools">
+    - **Paint** — set dots on
+    - **Erase** — clear dots
+    - **Toggle** — flip dot state on click
+  </Accordion>
+</AccordionGroup>
+
+## Components
+
+| Component | Role |
+|-----------|------|
+| `ScreenWorkspace` | Layout shell with controls panel |
+| `DigitalScreen` | LED dot-matrix renderer |
+| `studio-controls` | UI controls for grid and color settings |
+
+## Use cases
+
+- Branded loading animations (`AppLoader`, `PixelWaveLoader`)
+- Visual experiments with dot-matrix aesthetics
+- Prototyping display layouts
+
+<Note>
+The screen editor shares the dot-matrix visual language used in the app loader and Chrome extension loading states.
+</Note>

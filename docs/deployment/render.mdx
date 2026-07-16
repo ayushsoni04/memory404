@@ -1,0 +1,76 @@
+---
+title: "Render"
+description: "Deploy the memory404 Express API to Render."
+keywords: ["render", "backend", "express", "API"]
+---
+
+Deploy the Express backend to Render for production API hosting.
+
+## Blueprint deploy
+
+The repo includes `render.yaml` for one-click deployment:
+
+1. Go to [Render Dashboard](https://dashboard.render.com)
+2. Click **New Blueprint**
+3. Connect the memory404 repository
+4. Render reads `render.yaml` and creates the service
+
+## Manual deploy
+
+| Setting | Value |
+|---------|-------|
+| Root Directory | `backend` |
+| Build Command | `npm install && npm run build` |
+| Start Command | `npm start` |
+| Health Check Path | `/health` |
+| Plan | Free (or Starter for always-on) |
+
+## Environment variables
+
+Set in **Render → Service → Environment**:
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `DATABASE_URL` | Yes | Supabase pooler URL |
+| `DIRECT_URL` | Yes | Supabase direct URL |
+| `NODE_ENV` | Yes | `production` |
+| `PORT` | Yes | `4000` |
+| `CORS_ORIGINS` | Yes | `https://memory404.vercel.app` |
+| `CLOUDINARY_CLOUD_NAME` | No | Image storage |
+| `CLOUDINARY_API_KEY` | No | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | No | Cloudinary signing secret |
+
+## What Render serves
+
+| Route | Handler |
+|-------|---------|
+| `/health` | Health check with DB ping |
+| `/api/groups` | Group CRUD and reorder |
+| `/api/links` | Link CRUD (hard-delete) |
+
+## Middleware
+
+- **CORS** — localhost, Vercel, chrome-extension origins
+- **Rate limiting** — 300 req/min global, 30 req/min on link writes
+- **Compression** — gzip for responses > 1 KB
+- **Request timeout** — 30 seconds
+- **Keep-alive** — DB ping every 3 days (Supabase free tier)
+
+## Free tier behavior
+
+Render free web services spin down after ~15 minutes of inactivity. First request after sleep takes 30–60 seconds to respond.
+
+<Tip>
+Upgrade to Starter plan for always-on, or use [Keep-alive](/deployment/keep-alive) GitHub Actions to ping every 14 minutes.
+</Tip>
+
+## Local development
+
+```bash
+cd backend
+npm install
+npm run dev
+# http://localhost:4000
+```
+
+Pair with the frontend using `NEXT_PUBLIC_API_URL=http://localhost:4000`.

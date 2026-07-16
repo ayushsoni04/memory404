@@ -1,0 +1,78 @@
+---
+title: "Supabase"
+description: "Set up PostgreSQL on Supabase for memory404."
+keywords: ["supabase", "postgresql", "database"]
+---
+
+memory404 uses Supabase-hosted PostgreSQL with Prisma as the ORM.
+
+## Create a project
+
+1. Go to [supabase.com](https://supabase.com) and create a new project
+2. Note your project reference ID and database password
+
+## Connection strings
+
+Get both URLs from **Supabase → Project Settings → Database**:
+
+### Pooler URL (app queries)
+
+```
+postgresql://postgres.PROJECT_REF:PASSWORD@HOST:6543/postgres?pgbouncer=true
+```
+
+Set as `DATABASE_URL`. Used by Prisma for all application queries.
+
+### Direct URL (migrations)
+
+```
+postgresql://postgres.PROJECT_REF:PASSWORD@HOST:5432/postgres
+```
+
+Set as `DIRECT_URL`. Used by Prisma Migrate for schema changes.
+
+<Warning>
+Always use the pooler URL for `DATABASE_URL` and the direct URL for `DIRECT_URL`. Swapping them causes connection errors.
+</Warning>
+
+## Run migrations
+
+```bash
+# Development
+npm run db:migrate
+
+# Production (CI/CD)
+npm run db:deploy
+```
+
+## Prisma Studio
+
+Inspect data locally:
+
+```bash
+npm run db:studio
+```
+
+Opens Prisma Studio at `http://localhost:5555`.
+
+## Free tier
+
+Supabase free projects pause after ~7 days of inactivity. Mitigations:
+
+- GitHub Actions daily ping (see [Keep-alive](/deployment/keep-alive))
+- In-process DB keep-alive in the Express server (every 3 days)
+
+## Auth (optional)
+
+Supabase auth is wired but not enforced. To enable in the future:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your_key
+```
+
+The middleware in `utils/supabase/` refreshes sessions but does not gate routes.
+
+## Schema
+
+See [Database schema](/database/schema) for table definitions and relationships.

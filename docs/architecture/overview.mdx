@@ -1,0 +1,94 @@
+---
+title: "Architecture overview"
+description: "How memory404's frontend, backend, database, and extension work together."
+keywords: ["architecture", "system design", "deployment"]
+---
+
+memory404 uses a split-stack architecture in production: a Next.js frontend on Vercel and an Express API on Render, both connected to Supabase PostgreSQL.
+
+## System diagram
+
+```mermaid
+flowchart TD
+    subgraph clients [Clients]
+        Web[Next.js Web App]
+        Ext[Chrome Extension]
+    end
+
+    subgraph hosting [Hosting]
+        Vercel[Vercel - Frontend]
+        Render[Render - Express API]
+    end
+
+    subgraph data [Data and services]
+        DB[(Supabase PostgreSQL)]
+        CDN[Cloudinary]
+        SS[Microlink / mShots]
+    end
+
+    Web --> Vercel
+    Ext --> Render
+    Vercel -->|NEXT_PUBLIC_API_URL| Render
+    Vercel -->|local /api routes| DB
+    Render --> DB
+    Vercel --> CDN
+    Render --> CDN
+    Vercel --> SS
+```
+
+## Components
+
+### Frontend (Next.js)
+
+The web app at `/` renders `VaultInbox` — the main link vault interface. Additional routes:
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Main link inbox |
+| `/settings` | Profile, stats, data export |
+| `/trash` | Soft-deleted items |
+| `/workspace` | LED screen editor |
+
+Data fetching uses **SWR** and **SWR Infinite** for cursor-based pagination.
+
+### Backend API (Express)
+
+In production, the Express server on Render handles `/api/groups` and `/api/links` writes. The frontend routes API calls through `NEXT_PUBLIC_API_URL`.
+
+In local development, Next.js Route Handlers at `app/api/` can serve the same endpoints without running Express.
+
+<Warning>
+Next.js and Express are not identical. Trash, stats, image-proxy, and soft-delete behavior are only available on Next.js routes. See [API overview](/api-reference/overview).
+</Warning>
+
+### Database (Supabase + Prisma)
+
+PostgreSQL with two tables: `links` and `groups`. Prisma manages migrations and the ORM layer. Connection uses a pooler URL (`DATABASE_URL`, port 6543) for queries and a direct URL (`DIRECT_URL`, port 5432) for migrations.
+
+### Chrome extension
+
+Manifest V3 extension that communicates with the API to save tabs. Supports popup UI, omnibox, context menus, and keyboard shortcuts.
+
+### Image pipeline
+
+When a link is saved:
+
+1. **Phase 1** — Fetch HTML, parse Open Graph and meta tags via Cheerio
+2. **Provider rules** — Apply branded icons and title parsing for Figma, Notion, GitHub, and others
+3. **Upload** — Store preview images on Cloudinary
+4. **Phase 2** — If no preview image exists, capture a screenshot via Microlink or mShots
+
+## API routing
+
+The client resolves API base URL in `lib/api-base.ts`:
+
+- `NEXT_PUBLIC_API_URL` set → requests go to Render
+- `NEXT_PUBLIC_API_URL` empty → same-origin `/api/*` (Next.js routes)
+
+## Authentication
+
+Supabase auth middleware is wired for session refresh but **does not gate routes**. The app currently operates as a single-workspace vault without enforced user authentication.
+
+## Free tier keep-alive
+
+Render free services sleep after ~15 minutes of inactivity. Supabase free projects pause after ~7 days. GitHub Actions and in-process DB pings mitigate this. See [Keep-alive](/deployment/keep-alive).

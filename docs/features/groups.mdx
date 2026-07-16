@@ -1,0 +1,107 @@
+---
+title: "Groups"
+description: "Organize links into folders with drag-to-reorder, nested trees, and preview titles."
+keywords: ["groups", "folders", "organization"]
+---
+
+Groups are folders that organize your saved links. Every link belongs to exactly one group.
+
+## General group
+
+A default **General** group is auto-created on first load. It:
+
+- Always appears first in the sidebar (displayed as **All** in the extension)
+- Cannot be deleted
+- Must remain first when reordering groups
+
+## Create a group
+
+### From the sidebar
+
+Type a new group name in the group picker when saving a link, or use the inline create flow in the sidebar.
+
+### Via API
+
+```bash
+curl -X POST http://localhost:3000/api/groups \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Design inspiration",
+    "insertAt": 1
+  }'
+```
+
+| Field | Required | Description |
+|-------|----------|-------------|
+| `name` | Yes | Unique group name |
+| `parentGroupId` | No | UUID of parent group for nesting |
+| `insertAt` | No | Sort position (0-indexed) |
+
+## Reorder groups
+
+Drag group pills in the sidebar to reorder. This sends a `PATCH` request with the full ordered list:
+
+```bash
+curl -X PATCH http://localhost:3000/api/groups \
+  -H "Content-Type: application/json" \
+  -d '{
+    "orderedIds": ["general-uuid", "group-2-uuid", "group-3-uuid"]
+  }'
+```
+
+<Warning>
+`orderedIds` must include every group exactly once. The General group must be first.
+</Warning>
+
+## Nested groups
+
+The database schema supports parent-child group relationships via `parentGroupId`. This enables tree structures for deeper organization.
+
+## Group sidebar
+
+The sidebar shows:
+
+- Group name and link count
+- Preview titles from the 3 most recent links
+- Search filter for group names
+
+<Note>
+Group search filters folder names only. Full-text link search is available via the API but not yet exposed in the main UI.
+</Note>
+
+## Delete a group
+
+Deleting a group soft-deletes the group and all its active links to Trash. Links share the same `deletedAt` timestamp for batch restore.
+
+```bash
+curl -X DELETE http://localhost:3000/api/groups/{id}
+```
+
+| Status | Meaning |
+|--------|---------|
+| `403` | Cannot delete the General group |
+| `409` | Group is already in Trash |
+
+## List groups
+
+```bash
+curl http://localhost:3000/api/groups
+```
+
+Response:
+
+```json
+{
+  "groups": [
+    {
+      "id": "uuid",
+      "name": "General",
+      "sortOrder": 0,
+      "parentGroupId": null,
+      "createdAt": "2026-01-01T00:00:00.000Z",
+      "linksCount": 42,
+      "previewTitles": ["Figma design", "Notion doc", "GitHub repo"]
+    }
+  ]
+}
+```

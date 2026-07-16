@@ -1,0 +1,89 @@
+---
+title: "Environment variables"
+description: "Complete reference for all memory404 environment variables."
+keywords: ["environment", "configuration", "env vars"]
+---
+
+## Required
+
+### Database
+
+| Variable | Where | Description |
+|----------|-------|-------------|
+| `DATABASE_URL` | Next.js + Express | PgBouncer pooler URL (`?pgbouncer=true`, port 6543) |
+| `DIRECT_URL` | Next.js + Express | Direct Postgres URL (port 5432, for migrations) |
+
+```bash
+DATABASE_URL="postgresql://postgres.REF:PASSWORD@HOST:6543/postgres?pgbouncer=true"
+DIRECT_URL="postgresql://postgres.REF:PASSWORD@HOST:5432/postgres"
+```
+
+## Frontend
+
+| Variable | Where | Description |
+|----------|-------|-------------|
+| `NEXT_PUBLIC_API_URL` | Vercel | Render API base URL. Empty = same-origin `/api` |
+| `NEXT_PUBLIC_SUPABASE_URL` | Vercel | Supabase project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Vercel | Supabase publishable key |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel | Legacy fallback anon JWT |
+
+### Production example
+
+```bash
+NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
+NEXT_PUBLIC_SUPABASE_URL=https://gucdslwlvrgwfyhmazeq.supabase.co
+```
+
+## Backend (Express)
+
+| Variable | Where | Description |
+|----------|-------|-------------|
+| `PORT` | Render | Server port (default `4000`) |
+| `NODE_ENV` | Render | `production` |
+| `CORS_ORIGINS` | Render | Comma-separated extra allowed origins |
+
+```bash
+CORS_ORIGINS=https://memory404.vercel.app
+```
+
+## Optional
+
+| Variable | Where | Description |
+|----------|-------|-------------|
+| `SCREENSHOT_URL_TEMPLATE` | Next.js + Express | Override screenshot provider URL |
+| `CLOUDINARY_CLOUD_NAME` | Next.js + Render | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Next.js + Render | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Next.js + Render | Cloudinary signing secret |
+
+### Screenshot override
+
+```bash
+SCREENSHOT_URL_TEMPLATE=https://image.thum.io/get/width/1200/noanimate/{url}
+```
+
+## GitHub Actions
+
+Set as repository variables for keep-alive workflows:
+
+| Variable | Purpose |
+|----------|---------|
+| `VERCEL_APP_URL` | Ping Vercel frontend |
+| `RENDER_API_URL` | Ping Render API health |
+| `SUPABASE_PROJECT_URL` | Ping Supabase (`https://xxx.supabase.co`) |
+
+## Template file
+
+Copy `env.template` to `.env.local` for local development:
+
+```bash
+cp env.template .env.local
+```
+
+## Variable resolution
+
+| Context | API base URL |
+|---------|-------------|
+| `NEXT_PUBLIC_API_URL` empty | Same-origin `/api/*` (Next.js) |
+| `NEXT_PUBLIC_API_URL` set | External URL (Render) |
+
+Resolved in `lib/api-base.ts`.

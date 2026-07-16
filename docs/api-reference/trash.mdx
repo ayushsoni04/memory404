@@ -1,0 +1,116 @@
+---
+title: "Trash"
+description: "List, restore, and permanently delete trashed links and groups."
+---
+
+<Warning>
+Trash endpoints are only available on Next.js API routes. They are not served by the Express backend.
+</Warning>
+
+## List trash items
+
+```
+GET /api/trash
+```
+
+### Response
+
+```json
+{
+  "items": [
+    {
+      "type": "group",
+      "id": "uuid",
+      "name": "Old project",
+      "linksCount": 5,
+      "deletedAt": "2026-07-01T00:00:00.000Z",
+      "daysLeft": 23
+    },
+    {
+      "type": "link",
+      "id": "uuid",
+      "url": "https://example.com",
+      "title": "Example",
+      "displayTitle": "Example",
+      "imageUrl": "/images/preview.png",
+      "faviconUrl": "/favicon.ico",
+      "groupId": "uuid",
+      "groupName": "Design",
+      "deletedAt": "2026-07-01T00:00:00.000Z",
+      "daysLeft": 23
+    }
+  ]
+}
+```
+
+---
+
+## Restore link
+
+```
+PATCH /api/trash/links/:id
+```
+
+### Response
+
+```json
+{ "ok": true }
+```
+
+---
+
+## Permanent delete link
+
+```
+DELETE /api/trash/links/:id
+```
+
+---
+
+## Restore group
+
+```
+PATCH /api/trash/groups/:id
+```
+
+Restores the group and all links batch-deleted with it (±2 second window).
+
+### Response
+
+```json
+{ "ok": true }
+```
+
+---
+
+## Permanent delete group
+
+```
+DELETE /api/trash/groups/:id
+```
+
+Permanently deletes the group and all its links.
+
+---
+
+## Empty trash
+
+```
+DELETE /api/trash
+```
+
+### Query parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `expiredOnly=1` | Purge only items older than 30 days |
+
+### Response
+
+```json
+{
+  "ok": true,
+  "deletedLinks": 5,
+  "deletedGroups": 1
+}
+```

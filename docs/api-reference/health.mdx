@@ -1,0 +1,85 @@
+---
+title: "Health"
+description: "Health check endpoints for monitoring service and database status."
+---
+
+## Next.js health check
+
+```
+GET /api/health
+```
+
+### Response (healthy)
+
+```json
+{
+  "ok": true,
+  "service": "memory404-web",
+  "db": "ok"
+}
+```
+
+### Response (unhealthy)
+
+```json
+{
+  "ok": false,
+  "service": "memory404-web",
+  "db": "error"
+}
+```
+
+Status code: `503`
+
+---
+
+## Express health check
+
+```
+GET /health
+```
+
+### Response (healthy)
+
+```json
+{
+  "ok": true,
+  "service": "memory404-api",
+  "db": "ok",
+  "uptime": 3600.5
+}
+```
+
+### Response (database not configured)
+
+```json
+{
+  "ok": false,
+  "service": "memory404-api",
+  "error": "DATABASE_URL is not set"
+}
+```
+
+Status code: `503`
+
+---
+
+## Monitoring
+
+Health checks are used by:
+
+| Service | Check path | Interval |
+|---------|------------|----------|
+| Render | `/health` | On deploy + external pings |
+| GitHub Actions | `/health`, `/api/health` | Every 14 minutes |
+| Vercel | `/api/health` | Every 14 minutes |
+
+See [Keep-alive](/deployment/keep-alive) for the full keep-alive strategy.
+
+```bash
+# Check Next.js
+curl http://localhost:3000/api/health
+
+# Check Express
+curl http://localhost:4000/health
+```

@@ -1,0 +1,140 @@
+---
+title: "Local setup"
+description: "Development environment setup for memory404 contributors."
+keywords: ["development", "local", "contributing"]
+---
+
+Set up a local development environment for memory404.
+
+## Prerequisites
+
+- Node.js 20+
+- npm
+- PostgreSQL (via Supabase or local)
+- Chrome (for extension development)
+
+## Clone and install
+
+```bash
+git clone https://github.com/ayushsoni/memory404.git
+cd memory404
+npm install
+```
+
+`postinstall` runs `prisma generate` automatically.
+
+## Environment
+
+```bash
+cp env.template .env.local
+```
+
+Fill in `DATABASE_URL` and `DIRECT_URL` from your Supabase project.
+
+## Database
+
+```bash
+npm run db:deploy    # Apply migrations
+npm run db:studio    # Open data browser
+```
+
+## Development modes
+
+### Single stack (recommended for most work)
+
+```bash
+npm run dev
+# http://localhost:3000
+```
+
+All API routes served by Next.js at `/api/*`. Includes trash, stats, and image-proxy.
+
+### Split stack (production-like)
+
+```bash
+# Terminal 1
+npm run dev
+
+# Terminal 2
+npm run backend:dev
+```
+
+Add to `.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:4000
+```
+
+## Extension development
+
+```bash
+cd extension
+npm install
+npm run dev    # Watch mode
+# or
+npm run build  # Production build
+```
+
+Load `extension/dist` as unpacked in Chrome. Set App URL to `http://localhost:3000`.
+
+## Scripts
+
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Next.js dev server |
+| `npm run backend:dev` | Start Express API on port 4000 |
+| `npm run build` | Production build with migrations |
+| `npm run lint` | Run ESLint |
+| `npm run test:metadata` | Test metadata enrichment pipeline |
+| `npm run db:migrate` | Create and apply migration |
+| `npm run db:deploy` | Apply migrations (production) |
+| `npm run db:generate` | Regenerate Prisma Client |
+| `npm run db:studio` | Open Prisma Studio |
+
+## Project structure
+
+```
+memory404/
+├── app/                  # Next.js App Router pages and API routes
+│   ├── page.tsx          # Main vault (VaultInbox)
+│   ├── settings/         # Settings page
+│   ├── trash/            # Trash page
+│   ├── workspace/        # Screen editor
+│   └── api/              # Next.js Route Handlers
+├── backend/              # Express API (Render production)
+├── components/           # React components
+├── extension/            # Chrome MV3 extension
+├── lib/                  # Shared utilities
+│   ├── link-providers/   # Provider-specific metadata rules
+│   ├── enrich-link-metadata.ts
+│   └── api-base.ts       # API URL resolution
+├── prisma/               # Schema and migrations
+└── docs/                 # Mintlify documentation
+```
+
+## Linting
+
+```bash
+npm run lint
+```
+
+ESLint with `eslint-config-next` for Next.js conventions.
+
+## Testing metadata
+
+```bash
+npm run test:metadata
+```
+
+Runs `scripts/test-metadata.ts` to verify the enrichment pipeline against sample URLs.
+
+## Mintlify docs
+
+Preview documentation locally:
+
+```bash
+cd docs
+npx mint dev
+```
+
+Requires the Mintlify CLI (`npm i -g mint`).

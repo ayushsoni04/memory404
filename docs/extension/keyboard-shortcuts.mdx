@@ -1,0 +1,50 @@
+---
+title: "Keyboard shortcuts"
+description: "Hotkeys for opening the memory404 extension popup."
+keywords: ["keyboard", "shortcut", "hotkey"]
+---
+
+Open the memory404 popup from anywhere in Chrome with a keyboard shortcut.
+
+## Default shortcut
+
+| Platform | Shortcut |
+|----------|----------|
+| Windows / Linux | `Alt+Shift+L` |
+| macOS | `Option+Shift+L` |
+
+## Customize
+
+<Steps>
+  <Step title="Open shortcuts">
+    Navigate to `chrome://extensions/shortcuts` in Chrome.
+  </Step>
+  <Step title="Find memory404">
+    Locate **memory404** in the extension list.
+  </Step>
+  <Step title="Set shortcut">
+    Click the pencil icon and press your preferred key combination.
+  </Step>
+</Steps>
+
+## Manifest definition
+
+The shortcut is registered as `_execute_action` in the extension manifest:
+
+```json
+{
+  "commands": {
+    "_execute_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+L",
+        "mac": "Option+Shift+L"
+      },
+      "description": "Open memory404 popup"
+    }
+  }
+}
+```
+
+<Note>
+Chrome may override suggested shortcuts if they conflict with browser or system hotkeys. Check `chrome://extensions/shortcuts` to verify the active binding.
+</Note>
