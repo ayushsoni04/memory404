@@ -225,14 +225,18 @@ export async function PATCH(request: Request) {
       );
     }
 
-    await prisma.$transaction(
-      orderedIds.map((id, index) =>
-        prisma.group.update({
-          where: { id },
-          data: { sortOrder: index },
-        }),
-      ),
-    );
+    // Single batched UPDATE via unnest — O(1) DB round-trips instead of N.
+    // Builds: UPDATE groups SET sort_order = v.idx FROM (SELECT unnest($ids), generate_subscripts-1) WHERE id = v.id
+    await prisma.$executeRaw`
+      UPDATE "groups"
+      SET "sort_order" = v.idx
+      FROM (
+        SELECT
+          unnest(${orderedIds}::uuid[]) AS gid,
+          (generate_subscripts(${orderedIds}::uuid[], 1) - 1) AS idx
+      ) AS v
+      WHERE "groups"."id" = v.gid
+    `;
 
     return NextResponse.json({ ok: true });
   } catch (e) {

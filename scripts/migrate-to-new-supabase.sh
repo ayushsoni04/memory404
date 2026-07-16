@@ -23,10 +23,12 @@ NEW_REF="gucdslwlvrgwfyhmazeq"
 
 # ── Connection strings ────────────────────────────────────────────────────────
 OLD_DIRECT="postgresql://postgres:${OLD_PASS}@db.${OLD_REF}.supabase.co:5432/postgres?sslmode=require"
-NEW_DIRECT="postgresql://postgres:${NEW_PASS}@db.${NEW_REF}.supabase.co:5432/postgres?sslmode=require"
 
-# PgBouncer pooler (for runtime / Prisma client) — port 6543
-NEW_POOLER="postgresql://postgres.${NEW_REF}:${NEW_PASS}@aws-0-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=10&pgbouncer=true"
+# Direct port 5432 is blocked, so we use session mode on the pooler host (port 5432) as DIRECT_URL for migrations.
+NEW_DIRECT="postgresql://postgres.${NEW_REF}:${NEW_PASS}@aws-1-ap-south-1.pooler.supabase.com:5432/postgres?sslmode=require"
+
+# PgBouncer transaction mode pooler (port 6543) as DATABASE_URL for runtime.
+NEW_POOLER="postgresql://postgres.${NEW_REF}:${NEW_PASS}@aws-1-ap-south-1.pooler.supabase.com:6543/postgres?sslmode=require&connect_timeout=10&pgbouncer=true"
 
 echo ""
 echo "══════════════════════════════════════════════════════"
@@ -38,7 +40,7 @@ echo ""
 
 # ── Step 1: Run Prisma migrations on new project ─────────────────────────────
 echo "▶ Step 1/3 — Running Prisma migrations on new project…"
-DATABASE_URL="$NEW_DIRECT" \
+DATABASE_URL="$NEW_POOLER" \
 DIRECT_URL="$NEW_DIRECT" \
   npx prisma migrate deploy --schema=prisma/schema.prisma
 echo "✅  Schema migrated"
@@ -48,21 +50,35 @@ echo ""
 echo "▶ Step 2/3 — Dumping data from old project…"
 DUMP_FILE="/tmp/memory404_migration_$(date +%Y%m%d_%H%M%S).dump"
 
-# Check if pg_dump is available
-if command -v pg_dump &>/dev/null; then
-  PGPASSWORD="$OLD_PASS" pg_dump \
+# Check if pg_dump is available (preferring Homebrew path)
+PG_DUMP="/opt/homebrew/opt/postgresql@18/bin/pg_dump"
+PG_RESTORE="/opt/homebrew/opt/postgresql@18/bin/pg_restore"
+
+if ! [[ -f "$PG_DUMP" ]]; then
+  PG_DUMP="pg_dump"
+  PG_RESTORE="pg_restore"
+fi
+
+if command -v "$PG_DUMP" &>/dev/null; then
+  PGPASSWORD="$OLD_PASS" "$PG_DUMP" \
     "host=db.${OLD_REF}.supabase.co port=5432 dbname=postgres user=postgres sslmode=require" \
-    --no-owner --no-privileges --data-only \
-    --exclude-table='_prisma_migrations' \
+    --no-owner --no-privileges --data-only --schema=public \
+    --exclude-table='public._prisma_migrations' \
     -Fc -f "$DUMP_FILE"
   echo "✅  Dump saved to $DUMP_FILE"
   echo ""
 
   # ── Step 3: Restore into new project ───────────────────────────────────────
   echo "▶ Step 3/3 — Restoring data into new project…"
-  PGPASSWORD="$NEW_PASS" pg_restore \
-    -d "host=db.${NEW_REF}.supabase.co port=5432 dbname=postgres user=postgres sslmode=require" \
-    --no-owner --no-privileges \
+  
+  # Truncate tables first so that there are no duplicate conflicts (e.g. auto-created General group)
+  echo "🧹  Clearing existing rows in new database..."
+  DATABASE_URL="$NEW_POOLER" DIRECT_URL="$NEW_DIRECT" \
+    npx prisma db execute --stdin --schema=prisma/schema.prisma <<< "TRUNCATE TABLE public.links, public.groups CASCADE;"
+    
+  PGPASSWORD="$NEW_PASS" "$PG_RESTORE" \
+    -d "host=aws-1-ap-south-1.pooler.supabase.com port=5432 dbname=postgres user=postgres.${NEW_REF} sslmode=require" \
+    --no-owner --no-privileges --schema=public \
     "$DUMP_FILE"
   echo "✅  Data restored"
   rm -f "$DUMP_FILE"

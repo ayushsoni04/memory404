@@ -1156,10 +1156,22 @@ export default function VaultInbox() {
     } catch {}
   };
 
+  // Refs that always hold the latest values — used inside the stable debounced
+  // callback so it doesn't need to close over `groups`/`generalGroup` and
+  // therefore doesn't recreate on every `setGroups()` during a drag.
+  const groupsRef = useRef(groups);
+  useEffect(() => { groupsRef.current = groups; }, [groups]);
+  const generalGroupRef = useRef(generalGroup);
+  useEffect(() => { generalGroupRef.current = generalGroup; }, [generalGroup]);
+
   const persistFolderOrderTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Stable ref for the latest ordered list — captured at debounce-flush time
+  const latestOrderedRef = useRef<GroupRow[]>([]);
+  const latestPreviousRef = useRef<GroupRow[]>([]);
 
   const persistFolderOrder = useCallback((orderedFolders: GroupRow[]) => {
-    const previous = groups;
+    const generalGroup = generalGroupRef.current;
+    const previous = groupsRef.current;
     const ordered = generalGroup
       ? [generalGroup, ...orderedFolders]
       : orderedFolders;
@@ -1167,13 +1179,20 @@ export default function VaultInbox() {
     // Optimistic update is immediate so the UI stays responsive during drag
     setGroups(ordered);
 
-    // Debounce the API call — Framer fires onReorder on every drag frame,
-    // so without this we'd send dozens of PATCH requests per drag gesture.
+    // Capture the latest ordered/previous for when the timer fires
+    latestOrderedRef.current = ordered;
+    latestPreviousRef.current = previous;
+
+    // Debounce the API call — Framer fires onReorder on every drag frame.
+    // Because the callback is now stable (no deps), the timer is only
+    // cleared/restarted by new drag frames, not by re-renders.
     if (persistFolderOrderTimerRef.current !== null) {
       clearTimeout(persistFolderOrderTimerRef.current);
     }
     persistFolderOrderTimerRef.current = setTimeout(async () => {
       persistFolderOrderTimerRef.current = null;
+      const ordered = latestOrderedRef.current;
+      const previous = latestPreviousRef.current;
       try {
         const res = await fetch(apiUrl("/api/groups"), {
           method: "PATCH",
@@ -1193,8 +1212,9 @@ export default function VaultInbox() {
         setGroups(previous);
         setGroupsError("Failed to save group order");
       }
-    }, 300);
-  }, [generalGroup, groups]);
+    }, 400);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // stable — reads latest state from refs, not closure
 
   const fieldClass =
     "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-border-strong focus:ring-1 focus:ring-foreground/20";

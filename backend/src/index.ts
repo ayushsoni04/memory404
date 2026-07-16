@@ -3,6 +3,7 @@ import cors from "cors";
 import express, { type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import { startKeepAlive } from "@/lib/keep-alive";
 import { groupsRouter } from "./routes/groups.js";
 import { linksRouter } from "./routes/links.js";
 
@@ -130,9 +131,14 @@ const server = app.listen(port, () => {
   console.log(`memory404-api listening on port ${port} (${process.env.NODE_ENV ?? "development"})`);
 });
 
+// ─── Supabase free-tier keep-alive (pings DB every 3 days) ───────────────────
+// Prevents the project from being auto-paused after 7 days of inactivity.
+const stopKeepAlive = startKeepAlive();
+
 // ─── Graceful shutdown (Render sends SIGTERM before killing the process) ──────
 async function shutdown(signal: string) {
   console.log(`\n[${signal}] Shutting down gracefully…`);
+  stopKeepAlive(); // clear the keep-alive interval
   server.close(async () => {
     try {
       await prisma.$disconnect();

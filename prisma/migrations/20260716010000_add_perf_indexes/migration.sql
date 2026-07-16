@@ -12,9 +12,9 @@
 --      After:  index-only range scan, no sort.
 
 -- GIN index for fast tag array filtering (hasSome / hasEvery)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS links_tags_gin
+CREATE INDEX IF NOT EXISTS links_tags_gin
   ON public.links USING gin (tags);
 
 -- Composite index for per-group paginated listing (covers WHERE + ORDER BY)
-CREATE INDEX CONCURRENTLY IF NOT EXISTS links_group_cursor
+CREATE INDEX IF NOT EXISTS links_group_cursor
   ON public.links (group_id, created_at DESC, id DESC);
