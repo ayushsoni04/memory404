@@ -99,7 +99,12 @@ export async function GET(request: Request) {
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
     });
-    return NextResponse.json(toLinksPage(rows, limit));
+    return NextResponse.json(toLinksPage(rows, limit), {
+      headers: {
+        // Brief private SWR window — keeps feed snappy without serving stale shared CDN caches.
+        "Cache-Control": "private, max-age=10, stale-while-revalidate=30",
+      },
+    });
   } catch (e) {
     console.error("GET /api/links:", e);
     const hint = e instanceof Error ? e.message : undefined;

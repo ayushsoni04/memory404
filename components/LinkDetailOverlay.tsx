@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
@@ -44,18 +44,64 @@ export default function LinkDetailOverlay({
   const panelRef = useRef<HTMLDivElement | null>(null);
   const stageRef = useRef<HTMLDivElement | null>(null);
   const closingRef = useRef(false);
+  const hasOpenedRef = useRef(false);
+  const previousLinkIdRef = useRef(link.id);
+  const keyboardNavigationRef = useRef(false);
   const host = linkHostname(link.url);
+
+  const animateClose = useCallback((keyboardInitiated = false) => {
+    if (closingRef.current) return;
+    closingRef.current = true;
+    if (keyboardInitiated) {
+      onClose();
+      return;
+    }
+
+    const backdrop = backdropRef.current;
+    const panel = panelRef.current;
+    const stage = stageRef.current;
+    if (!backdrop || !panel || !stage) {
+      onClose();
+      return;
+    }
+
+    const reduceMotion =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const tl = gsap.timeline({
+      defaults: { ease: "power3.out" },
+      onComplete: () => onClose(),
+    });
+
+    if (reduceMotion) {
+      tl.to([panel, stage, backdrop], { opacity: 0, duration: 0.15 }, 0);
+      return;
+    }
+
+    tl.to(
+      panel,
+      { transform: "translateX(-20px)", opacity: 0, duration: 0.2 },
+      0,
+    )
+      .to(
+        stage,
+        { opacity: 0, transform: "scale(0.95)", duration: 0.2 },
+        0,
+      )
+      .to(backdrop, { opacity: 0, duration: 0.22 }, 0);
+  }, [onClose]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        void animateClose();
+        animateClose(true);
       } else if (e.key === "ArrowLeft" && hasPrev) {
         e.preventDefault();
+        keyboardNavigationRef.current = true;
         onPrev();
       } else if (e.key === "ArrowRight" && hasNext) {
         e.preventDefault();
+        keyboardNavigationRef.current = true;
         onNext();
       }
     };
@@ -66,8 +112,7 @@ export default function LinkDetailOverlay({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = prevOverflow;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- close animation uses latest refs
-  }, [hasPrev, hasNext, onPrev, onNext]);
+  }, [animateClose, hasPrev, hasNext, onPrev, onNext]);
 
   useLayoutEffect(() => {
     const backdrop = backdropRef.current;
@@ -75,11 +120,43 @@ export default function LinkDetailOverlay({
     const stage = stageRef.current;
     if (!backdrop || !panel || !stage) return;
 
+    const reduceMotion =
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    if (hasOpenedRef.current) {
+      if (previousLinkIdRef.current === link.id) return;
+      previousLinkIdRef.current = link.id;
+      if (keyboardNavigationRef.current) {
+        keyboardNavigationRef.current = false;
+        gsap.set(stage, { opacity: 1 });
+        return;
+      }
+      const tween = gsap.fromTo(
+        stage,
+        { opacity: reduceMotion ? 0.7 : 0.75 },
+        {
+          opacity: 1,
+          duration: reduceMotion ? 0.1 : 0.16,
+          ease: "power3.out",
+        },
+      );
+      return () => tween.kill();
+    }
+
+    hasOpenedRef.current = true;
+    previousLinkIdRef.current = link.id;
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
     gsap.set(backdrop, { opacity: 0 });
-    gsap.set(panel, { x: -36, opacity: 0 });
+    gsap.set(
+      panel,
+      reduceMotion
+        ? { opacity: 0 }
+        : { transform: "translateX(-24px)", opacity: 0 },
+    );
 
-    if (originRect) {
+    if (reduceMotion) {
+      gsap.set(stage, { opacity: 0 });
+    } else if (originRect) {
       const stageBox = stage.getBoundingClientRect();
       const scaleX = originRect.width / Math.max(stageBox.width, 1);
       const scaleY = originRect.height / Math.max(stageBox.height, 1);
@@ -94,46 +171,37 @@ export default function LinkDetailOverlay({
         (stageBox.top + stageBox.height / 2);
       gsap.set(stage, {
         opacity: 0.35,
-        scale,
-        x: dx,
-        y: dy,
+        transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
         transformOrigin: "center center",
       });
     } else {
-      gsap.set(stage, { opacity: 0, scale: 0.92 });
+      gsap.set(stage, { opacity: 0, transform: "scale(0.95)" });
     }
 
-    tl.to(backdrop, { opacity: 1, duration: 0.35 }, 0)
-      .to(panel, { x: 0, opacity: 1, duration: 0.42 }, 0.05)
-      .to(
-        stage,
-        { opacity: 1, scale: 1, x: 0, y: 0, duration: 0.48 },
-        0.08,
-      );
+    if (reduceMotion) {
+      tl.to([backdrop, panel, stage], { opacity: 1, duration: 0.15 }, 0);
+    } else {
+      tl.to(backdrop, { opacity: 1, duration: 0.24 }, 0)
+        .to(
+          panel,
+          { transform: "translateX(0px)", opacity: 1, duration: 0.28 },
+          0.02,
+        )
+        .to(
+          stage,
+          {
+            opacity: 1,
+            transform: "translate(0px, 0px) scale(1)",
+            duration: 0.3,
+          },
+          0.04,
+        );
+    }
 
     return () => {
       tl.kill();
     };
   }, [link.id, originRect]);
-
-  const animateClose = () => {
-    if (closingRef.current) return;
-    closingRef.current = true;
-    const backdrop = backdropRef.current;
-    const panel = panelRef.current;
-    const stage = stageRef.current;
-    if (!backdrop || !panel || !stage) {
-      onClose();
-      return;
-    }
-    const tl = gsap.timeline({
-      defaults: { ease: "power2.in" },
-      onComplete: () => onClose(),
-    });
-    tl.to(panel, { x: -28, opacity: 0, duration: 0.22 }, 0)
-      .to(stage, { opacity: 0, scale: 0.94, duration: 0.24 }, 0)
-      .to(backdrop, { opacity: 0, duration: 0.28 }, 0.02);
-  };
 
   if (typeof document === "undefined") return null;
 
@@ -148,7 +216,7 @@ export default function LinkDetailOverlay({
       <div
         ref={backdropRef}
         className="absolute inset-0 bg-black/70 backdrop-blur-xl"
-        onClick={() => void animateClose()}
+        onClick={() => animateClose()}
       />
 
       <aside
@@ -158,7 +226,7 @@ export default function LinkDetailOverlay({
         <div className="flex items-center gap-1 px-3 pt-3 pb-2">
           <button
             type="button"
-            onClick={() => void animateClose()}
+            onClick={() => animateClose()}
             className="flex size-8 items-center justify-center rounded-full text-subtle transition hover:bg-pill hover:text-foreground"
             aria-label="Close"
           >
@@ -286,7 +354,7 @@ export default function LinkDetailOverlay({
               type="button"
               onClick={() => {
                 onDelete(link.id);
-                void animateClose();
+                animateClose();
               }}
               className="rounded-lg border border-danger/30 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10"
             >

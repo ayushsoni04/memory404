@@ -1,7 +1,8 @@
 import { ScreenWorkspace } from "@/components/ScreenWorkspace";
+import type { Metadata } from "next";
 
-export const metadata = {
-  title: "Screen editor — memory404",
+export const metadata: Metadata = {
+  title: "Screen editor",
   description: "Configure digital LED screens like the loader",
 };
 

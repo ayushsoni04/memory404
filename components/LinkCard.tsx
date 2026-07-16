@@ -12,6 +12,7 @@ type Props = {
   onOpen: (link: LinkApiRow, originEl: HTMLElement) => void;
   priority?: boolean;
   imageSizes?: string;
+  entering?: boolean;
   /** When provided the card becomes draggable and fires this callback on dragStart. */
   onDragToTrash?: (linkId: string) => void;
 };
@@ -21,6 +22,7 @@ function LinkCard({
   onOpen,
   priority = false,
   imageSizes = "50vw",
+  entering = false,
 }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
@@ -50,7 +52,7 @@ function LinkCard({
   return (
     <article
       ref={cardRef}
-      className="mind-card mb-3 break-inside-avoid"
+      className={`mind-card mb-3 break-inside-avoid${entering ? " mind-card-enter" : ""}`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("linkId", link.id);
@@ -61,19 +63,20 @@ function LinkCard({
         <span className="mind-card-stroke" aria-hidden />
         <button
           type="button"
+          aria-label={`Open details for ${link.display_title}`}
           className="relative z-[1] block w-full overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
           onClick={() => {
             if (cardRef.current) onOpen(link, cardRef.current);
           }}
         >
           <span ref={mediaContainerRef} className="relative block w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- gated src/srcSet via feed media controller */}
             <img
               key={`${link.id}-${imgSrc}`}
               src={activated ? feedSrc : undefined}
               srcSet={activated ? feedSrcSet : undefined}
               sizes={feedSrcSet ? imageSizes : undefined}
-              alt=""
+              alt={link.display_title}
               loading={priority ? "eager" : "lazy"}
               fetchPriority={priority ? "high" : "low"}
               referrerPolicy="no-referrer"
@@ -83,7 +86,7 @@ function LinkCard({
                 setLoadedSrc(imgSrc);
                 settleLoad();
               }}
-              className={`mind-card-preview block w-full object-cover object-top transition-opacity duration-350 ease-out ${
+              className={`mind-card-preview block w-full object-cover object-top transition-opacity duration-[200ms] ease-[var(--ease-out)] ${
                 loaded ? "opacity-100" : "opacity-0"
               } ${
                 !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
@@ -105,7 +108,7 @@ function LinkCard({
                 });
               }}
             />
-            <span className="pointer-events-none absolute inset-0 bg-black/0 opacity-0 transition duration-200 group-hover:bg-black/40 group-hover:opacity-100" />
+            <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
             {link.favicon_url ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img

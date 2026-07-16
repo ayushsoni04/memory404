@@ -11,7 +11,6 @@ import {
   Type,
 } from "lucide-react";
 import { DigitalScreen } from "@/components/DigitalScreen";
-import NumberPopIn from "@/components/NumberPopIn";
 import {
   ColorField,
   ControlSection,
@@ -282,13 +281,13 @@ export function ScreenWorkspace() {
           />
 
           <p className="font-mono text-[11px] text-subtle tabular-nums flex items-baseline gap-0.5">
-            <NumberPopIn>{config.cols}</NumberPopIn>
+            <span>{config.cols}</span>
             <span>×</span>
-            <NumberPopIn>{config.rows}</NumberPopIn>
+            <span>{config.rows}</span>
             <span className="mx-1">·</span>
-            <NumberPopIn>{pixelSize.w}</NumberPopIn>
+            <span>{pixelSize.w}</span>
             <span>×</span>
-            <NumberPopIn>{pixelSize.h}</NumberPopIn>
+            <span>{pixelSize.h}</span>
             <span>px</span>
           </p>
         </div>

@@ -35,7 +35,7 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
 
     // Trigger receive animation
     setJustReceived(true);
-    setTimeout(() => setJustReceived(false), 500);
+    setTimeout(() => setJustReceived(false), 280);
   };
 
   return (
@@ -45,9 +45,9 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`group/bin flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm transition-all duration-200
+        className={`group/bin flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-sm transition-[transform,background-color,border-color,color] duration-[160ms] ease-[var(--ease-out)]
           ${isDragOver
-            ? "bg-red-500/15 border border-red-500/40 text-red-400 scale-105"
+            ? "border-red-500/40 bg-red-500/15 text-red-400 scale-[1.02]"
             : "text-muted hover:text-foreground hover:bg-surface"
           }
           ${justReceived ? "animate-bin-receive" : ""}
@@ -57,7 +57,7 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
         <svg
           viewBox="0 0 20 20"
           fill="none"
-          className={`size-4 shrink-0 transition-all duration-200 ${isDragOver ? "text-red-400 scale-110" : "text-muted group-hover/bin:text-foreground"} ${justReceived ? "scale-125" : ""}`}
+          className={`size-4 shrink-0 transition-[transform,color] duration-[160ms] ease-[var(--ease-out)] ${isDragOver ? "scale-105 text-red-400" : "text-muted group-hover/bin:text-foreground"}`}
         >
           <path
             d="M8.5 4h3a1.5 1.5 0 0 0-3 0ZM7 4a2.5 2.5 0 0 1 5 0h4.25a.75.75 0 0 1 0 1.5h-.465l-.818 9.793A2.75 2.75 0 0 1 12.23 18H7.77a2.75 2.75 0 0 1-2.737-2.707L4.214 5.5H3.75a.75.75 0 0 1 0-1.5H7Zm2.5 4.25a.75.75 0 0 0-1.5 0v5.5a.75.75 0 0 0 1.5 0v-5.5Zm2.5 0a.75.75 0 0 0-1.5 0v5.5a.75.75 0 0 0 1.5 0v-5.5Z"

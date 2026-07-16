@@ -43,9 +43,12 @@ export async function GET(req: NextRequest) {
       status: 200,
       headers,
     });
-  } catch (err: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: "Failed to proxy image", details: err.message },
+      {
+        error: "Failed to proxy image",
+        details: error instanceof Error ? error.message : "Unknown error",
+      },
       { status: 500 }
     );
   }

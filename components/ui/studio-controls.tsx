@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
-import NumberPopIn from "@/components/NumberPopIn";
 
 const controlBase =
   "inline-flex items-center justify-center rounded-full text-xs transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--focus)] disabled:pointer-events-none disabled:opacity-50";
@@ -48,8 +47,8 @@ export function RangeField({
     <label className="block space-y-1.5">
       <span className="flex items-baseline justify-between gap-2 text-xs">
         <span className="text-muted">{label}</span>
-        <span className="font-mono text-foreground tabular-nums flex items-baseline">
-          <NumberPopIn>{value}</NumberPopIn>
+        <span className="font-mono text-foreground tabular-nums">
+          {value}
           {unit ?? ""}
         </span>
       </span>

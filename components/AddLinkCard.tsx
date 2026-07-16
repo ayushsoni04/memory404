@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { RisingHelixFill } from "@/components/RisingHelixFill";
 import type { LinkApiRow } from "@/lib/links";
@@ -14,6 +15,31 @@ type Props = {
   ) => Promise<{ ok: true; link: LinkApiRow } | { ok: false; error: string }>;
 };
 
+type MotionMode = "full" | "reduced" | "none";
+
+const stateVariants = {
+  initial: (mode: MotionMode) => ({
+    opacity: mode === "none" ? 1 : 0,
+    transform: mode === "full" ? "translateY(4px)" : "translateY(0)",
+  }),
+  animate: (mode: MotionMode) => ({
+    opacity: 1,
+    transform: "translateY(0)",
+    transition: {
+      duration: mode === "none" ? 0 : mode === "reduced" ? 0.15 : 0.2,
+      ease: [0.23, 1, 0.32, 1] as const,
+    },
+  }),
+  exit: (mode: MotionMode) => ({
+    opacity: mode === "none" ? 1 : 0,
+    transform: mode === "full" ? "translateY(-4px)" : "translateY(0)",
+    transition: {
+      duration: mode === "none" ? 0 : mode === "reduced" ? 0.12 : 0.16,
+      ease: [0.23, 1, 0.32, 1] as const,
+    },
+  }),
+};
+
 export default function AddLinkCard({
   groupId,
   onSaved,
@@ -24,8 +50,10 @@ export default function AddLinkCard({
   const [saving, setSaving] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [skipMotion, setSkipMotion] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
+  const reduceMotion = useReducedMotion();
 
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [notes, setNotes] = useState("");
@@ -39,20 +67,7 @@ export default function AddLinkCard({
     }
   }, [open]);
 
-  useEffect(() => {
-    if (!timerActive || countdown <= 0) {
-      if (timerActive && countdown === 0) {
-        void finishFlow();
-      }
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, timerActive]);
-
-  const finishFlow = async () => {
+  const finishFlow = useCallback(async () => {
     if (!savedLink) return;
     setTimerActive(false);
     let finalLink = savedLink;
@@ -80,13 +95,31 @@ export default function AddLinkCard({
     setShowNotesForm(false);
     setNotes("");
     setSavedLink(null);
-  };
+  }, [notes, onSaved, savedLink]);
 
-  const cancel = () => {
+  useEffect(() => {
+    if (!timerActive || countdown <= 0) {
+      if (timerActive && countdown === 0) {
+        const timer = window.setTimeout(() => void finishFlow(), 0);
+        return () => window.clearTimeout(timer);
+      }
+      return;
+    }
+    const timer = setTimeout(() => {
+      setCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [countdown, finishFlow, timerActive]);
+
+  const cancel = (keyboardInitiated = false) => {
     if (saving) return;
+    setSkipMotion(keyboardInitiated);
     setOpen(false);
     setUrl("");
     setError(null);
+    if (keyboardInitiated) {
+      window.requestAnimationFrame(() => setSkipMotion(false));
+    }
   };
 
   const submit = async () => {
@@ -120,7 +153,7 @@ export default function AddLinkCard({
       // Success! Play the check animation
       setShowSuccess(true);
       setSavedLink(result.link);
-      await new Promise((resolve) => setTimeout(resolve, 1300));
+      await new Promise((resolve) => setTimeout(resolve, 400));
       
       if (gen === saveGen.current) {
         // Instead of completing, transition to notes form
@@ -136,11 +169,35 @@ export default function AddLinkCard({
     }
   };
 
+  const phase = showNotesForm
+    ? "notes"
+    : saving
+      ? showSuccess
+        ? "success"
+        : "saving"
+      : open
+        ? "form"
+        : "idle";
+  const motionMode: MotionMode = skipMotion
+    ? "none"
+    : reduceMotion
+      ? "reduced"
+      : "full";
+
   return (
     <article className="mind-card mb-3 break-inside-avoid">
       <div className="mind-card-shell group relative min-h-[140px] overflow-hidden rounded-[4px]">
         <span className="mind-card-stroke" aria-hidden />
-        <div className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]">
+        <AnimatePresence initial={false} mode="popLayout" custom={motionMode}>
+        <motion.div
+          key={phase}
+          custom={motionMode}
+          variants={stateVariants}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]"
+        >
         {saving && !showNotesForm ? <RisingHelixFill active /> : null}
 
         {!open && !saving && !showNotesForm ? (
@@ -171,7 +228,7 @@ export default function AddLinkCard({
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
                   e.preventDefault();
-                  cancel();
+                  cancel(true);
                 }
               }}
               placeholder="https://…"
@@ -188,7 +245,7 @@ export default function AddLinkCard({
               </button>
               <button
                 type="button"
-                onClick={cancel}
+                onClick={() => cancel()}
                 className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted hover:bg-pill-hover"
               >
                 Cancel
@@ -253,7 +310,8 @@ export default function AddLinkCard({
             </div>
           </div>
         ) : null}
-        </div>
+        </motion.div>
+        </AnimatePresence>
       </div>
     </article>
   );

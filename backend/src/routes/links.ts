@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Router } from "express";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
@@ -7,7 +6,7 @@ import {
   isGeneralName,
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
-import { isValidHttpUrl, linkToApiRow, type LinkApiRow } from "@/lib/links";
+import { isValidHttpUrl, linkToApiRow } from "@/lib/links";
 import {
   decodeLinkCursor,
   LINKS_PAGE_MAX,

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 
 type Props = {
   value: string;
@@ -28,7 +28,6 @@ function bezier(x1: number, y1: number, x2: number, y2: number) {
 }
 
 const easeOut = bezier(0.22, 1, 0.36, 1);
-const easeIn = bezier(0.22, 1, 0.36, 1);
 
 export default function ClearSearchInput({
   value,
@@ -45,12 +44,9 @@ export default function ClearSearchInput({
   const pholdRef = useRef<HTMLDivElement>(null);
   const glowRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-
-  useEffect(() => {
-    if (!clearing) {
-      setMirrorText(value.replace(/ /g, "\u00a0"));
-    }
-  }, [value, clearing]);
+  const renderedMirrorText = clearing
+    ? mirrorText
+    : value.replace(/ /g, "\u00a0");
 
   const buildGlow = (text: string) => {
     if (!inputRef.current || !rootRef.current) return "";
@@ -94,8 +90,20 @@ export default function ClearSearchInput({
 
   const handleClear = () => {
     if (clearing || !value) return;
-    setClearing(true);
     const keepFocus = document.activeElement === inputRef.current;
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      onChange("");
+      setMirrorText("");
+      if (keepFocus) {
+        requestAnimationFrame(() =>
+          inputRef.current?.focus({ preventScroll: true }),
+        );
+      }
+      return;
+    }
+
+    setClearing(true);
     
     const mirror = mirrorRef.current;
     const phold = pholdRef.current;
@@ -111,11 +119,11 @@ export default function ClearSearchInput({
     const currentText = value.replace(/ /g, "\u00a0");
     setMirrorText(currentText);
 
-    const total = 1000;
-    const outDur = 400;
-    const inDur = 400;
-    const outFly = 12;
-    const inFly = 12;
+    const total = 220;
+    const outDur = 160;
+    const inDur = 160;
+    const outFly = 6;
+    const inFly = 6;
     const blur = 2;
     const delay = 50;
     const peakAt = 0.15;
@@ -139,7 +147,7 @@ export default function ClearSearchInput({
       mirror.style.opacity = (1 - eo).toFixed(3);
       mirror.style.filter = `blur(${(eo * blur).toFixed(1)}px)`;
 
-      const ei = easeIn(Math.min(1, el / inDur));
+      const ei = easeOut(Math.min(1, el / inDur));
       phold.style.transform = `translateY(${(-inFly + ei * inFly).toFixed(1)}px)`;
       phold.style.opacity = (0.9 + ei * 0.1).toFixed(3);
       phold.style.filter = `blur(${(blur - ei * blur).toFixed(1)}px)`;
@@ -194,7 +202,7 @@ export default function ClearSearchInput({
         style={{ paddingLeft: "10px", paddingRight: "26px" }}
         aria-hidden="true"
       >
-        {mirrorText}
+        {renderedMirrorText}
       </div>
       <div
         ref={pholdRef}

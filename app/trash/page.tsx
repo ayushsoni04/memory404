@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/trash/route";
 
@@ -21,15 +22,20 @@ function DaysLeft({ days }: { days: number }) {
 
 function GroupCard({
   item,
+  exiting,
   onRestore,
   onDelete,
 }: {
   item: TrashGroupItem;
+  exiting: boolean;
   onRestore: () => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="group/card flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 transition-all hover:border-border/80">
+    <div
+      className="trash-row group/card flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 hover:border-border/80"
+      data-exiting={exiting}
+    >
       <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted">
         <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
           <path d="M2 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6Z" />
@@ -42,16 +48,16 @@ function GroupCard({
         </p>
       </div>
       <DaysLeft days={item.daysLeft} />
-      <div className="ml-2 flex items-center gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
+      <div className="trash-card-actions ml-2 flex items-center gap-1.5 opacity-0">
         <button
           onClick={onRestore}
-          className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-colors"
+          className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Restore
         </button>
         <button
           onClick={onDelete}
-          className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-colors"
+          className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Delete Now
         </button>
@@ -62,18 +68,26 @@ function GroupCard({
 
 function LinkCard({
   item,
+  exiting,
   onRestore,
   onDelete,
 }: {
   item: TrashLinkItem;
+  exiting: boolean;
   onRestore: () => void;
   onDelete: () => void;
 }) {
   return (
-    <div className="group/card flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 transition-all hover:border-border/80">
-      <img
+    <div
+      className="trash-row group/card flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 hover:border-border/80"
+      data-exiting={exiting}
+    >
+      <Image
         src={item.faviconUrl}
         alt=""
+        width={32}
+        height={32}
+        unoptimized
         className="size-8 shrink-0 rounded-lg object-cover"
         onError={(e) => {
           (e.target as HTMLImageElement).src = "/placeholder-unicorn.jpg";
@@ -87,16 +101,16 @@ function LinkCard({
         </p>
       </div>
       <DaysLeft days={item.daysLeft} />
-      <div className="ml-2 flex items-center gap-1.5 opacity-0 group-hover/card:opacity-100 transition-opacity">
+      <div className="trash-card-actions ml-2 flex items-center gap-1.5 opacity-0">
         <button
           onClick={onRestore}
-          className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-colors"
+          className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Restore
         </button>
         <button
           onClick={onDelete}
-          className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-colors"
+          className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Delete Now
         </button>
@@ -110,6 +124,7 @@ export default function TrashPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [emptying, setEmptying] = useState(false);
+  const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set());
 
   const loadTrash = useCallback(async () => {
     setLoading(true);
@@ -119,8 +134,8 @@ export default function TrashPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
       setItems(data.items ?? []);
-    } catch (e: any) {
-      setError(e.message);
+    } catch (error: unknown) {
+      setError(error instanceof Error ? error.message : "Failed to load trash");
     } finally {
       setLoading(false);
     }
@@ -130,31 +145,50 @@ export default function TrashPage() {
     void loadTrash();
   }, [loadTrash]);
 
+  const removeWithExit = useCallback(async (ids: string[]) => {
+    if (ids.length === 0) return;
+    setExitingIds((prev) => new Set([...prev, ...ids]));
+    await new Promise((resolve) => window.setTimeout(resolve, 160));
+    const removed = new Set(ids);
+    setItems((prev) => prev.filter((item) => !removed.has(item.id)));
+    setExitingIds((prev) => {
+      const next = new Set(prev);
+      ids.forEach((id) => next.delete(id));
+      return next;
+    });
+  }, []);
+
   const restoreLink = async (id: string) => {
     await fetch(apiUrl(`/api/trash/links/${id}`), { method: "PATCH" });
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    await removeWithExit([id]);
   };
 
   const deleteLink = async (id: string) => {
     await fetch(apiUrl(`/api/trash/links/${id}`), { method: "DELETE" });
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    await removeWithExit([id]);
   };
 
   const restoreGroup = async (id: string) => {
     await fetch(apiUrl(`/api/trash/groups/${id}`), { method: "PATCH" });
-    setItems((prev) => prev.filter((i) => i.id !== id));
+    await removeWithExit([id]);
   };
 
   const deleteGroup = async (id: string) => {
     await fetch(apiUrl(`/api/trash/groups/${id}`), { method: "DELETE" });
     // Also remove links that were in this group
-    setItems((prev) => prev.filter((i) => !(i.id === id || (i.type === "link" && (i as TrashLinkItem).groupId === id))));
+    const removedIds = items
+      .filter(
+        (item) =>
+          item.id === id || (item.type === "link" && item.groupId === id),
+      )
+      .map((item) => item.id);
+    await removeWithExit(removedIds);
   };
 
   const emptyTrash = async () => {
     setEmptying(true);
     await fetch(apiUrl("/api/trash"), { method: "DELETE" });
-    setItems([]);
+    await removeWithExit(items.map((item) => item.id));
     setEmptying(false);
   };
 
@@ -225,6 +259,7 @@ export default function TrashPage() {
                 <GroupCard
                   key={g.id}
                   item={g}
+                  exiting={exitingIds.has(g.id)}
                   onRestore={() => void restoreGroup(g.id)}
                   onDelete={() => void deleteGroup(g.id)}
                 />
@@ -244,6 +279,7 @@ export default function TrashPage() {
                 <LinkCard
                   key={l.id}
                   item={l}
+                  exiting={exitingIds.has(l.id)}
                   onRestore={() => void restoreLink(l.id)}
                   onDelete={() => void deleteLink(l.id)}
                 />

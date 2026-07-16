@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Router } from "express";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
@@ -211,7 +210,7 @@ groupsRouter.patch("/", async (req, res) => {
       whenSql += ` WHEN $${paramIdx + 1}::uuid THEN $${paramIdx + 2}`;
     }
     const idPlaceholders = orderedIds
-      .map((id, i) => {
+      .map((id) => {
         const idx = params.length;
         params.push(id);
         return `$${idx + 1}::uuid`;

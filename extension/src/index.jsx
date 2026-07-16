@@ -104,10 +104,7 @@ function useProgressiveMessage(active, initial = "Saving…") {
   const [message, setMessage] = useState(initial);
 
   useEffect(() => {
-    if (!active) {
-      setMessage(initial);
-      return;
-    }
+    if (!active) return;
     const started = Date.now();
     const tick = () => {
       const elapsed = Date.now() - started;
@@ -119,12 +116,15 @@ function useProgressiveMessage(active, initial = "Saving…") {
       }
       setMessage(next);
     };
-    tick();
+    const firstTick = window.setTimeout(tick, 0);
     const id = window.setInterval(tick, 400);
-    return () => window.clearInterval(id);
+    return () => {
+      window.clearTimeout(firstTick);
+      window.clearInterval(id);
+    };
   }, [active, initial]);
 
-  return message;
+  return active ? message : initial;
 }
 
 function ProgressiveLoader({ active, label = "Saving…" }) {
@@ -276,6 +276,9 @@ function App() {
     return () => {
       cancelled = true;
     };
+    // `groups.length` is intentionally sampled when storage finishes loading.
+    // Including it would refetch every time this effect updates the groups.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiBase, isStorageLoaded]);
 
   const filteredGroups = useMemo(() => {

@@ -57,10 +57,6 @@ export function DigitalScreen({
   const lastPaintedIndexRef = useRef<number | null>(null);
   const paintValueRef = useRef(true);
 
-  paintedRef.current = config.painted;
-  paintModeRef.current = paintMode;
-  onPaintChangeRef.current = onPaintChange;
-
   const {
     cols,
     rows,
@@ -78,6 +74,12 @@ export function DigitalScreen({
     fps,
     charSpacing,
   } = config;
+
+  useEffect(() => {
+    paintedRef.current = config.painted;
+    paintModeRef.current = paintMode;
+    onPaintChangeRef.current = onPaintChange;
+  }, [config.painted, onPaintChange, paintMode]);
 
   useEffect(() => {
     const canvas = canvasRef.current;

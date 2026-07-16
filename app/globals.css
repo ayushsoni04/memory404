@@ -22,6 +22,13 @@
   --mind-overlay-panel: 292px;
   --sidebar-w: 220px;
   --content-max: 1680px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  --duration-press: 160ms;
+  --duration-tooltip: 160ms;
+  --duration-ui: 200ms;
+  --duration-panel: 280ms;
 }
 
 @theme inline {
@@ -178,6 +185,20 @@ pre,
 .mind-card {
   display: inline-block;
   width: 100%;
+  /* Skip layout/paint work for offscreen masonry cards (Core Web Vitals). */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 280px;
+}
+
+@keyframes mind-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.mind-card-enter {
+  animation: mind-card-enter 200ms var(--ease-out) both;
 }
 
 .mind-card-shell {
@@ -252,7 +273,7 @@ pre,
 }
 
 .vault-enter {
-  animation: vault-fade-up 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: vault-fade-up 250ms var(--ease-out) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -276,7 +297,7 @@ pre,
   align-items: center;
   justify-content: center;
   transform: translateY(100%);
-  animation: rising-helix-up 0.55s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: rising-helix-up 300ms var(--ease-out) forwards;
 }
 
 .rising-helix-grid {
@@ -326,7 +347,7 @@ pre,
   line-height: 1;
   white-space: nowrap;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-  will-change: transform, left, top;
+  will-change: transform;
 }
 
 .group-pill-ghost[data-snapped="true"] {
@@ -348,7 +369,7 @@ pre,
   --text-swap-dur: 150ms;
   --text-swap-translate-y: 4px;
   --text-swap-blur: 2px;
-  --text-swap-ease: ease-in-out;
+  --text-swap-ease: var(--ease-in-out);
 }
 
 .t-text-swap {
@@ -380,11 +401,11 @@ pre,
 
 /* Transitions.dev — Number pop-in */
 :root {
-  --digit-dur: 500ms;
-  --digit-distance: 8px;
-  --digit-stagger: 70ms;
+  --digit-dur: 180ms;
+  --digit-distance: 6px;
+  --digit-stagger: 40ms;
   --digit-blur: 2px;
-  --digit-ease: cubic-bezier(0.34, 1.45, 0.64, 1);
+  --digit-ease: var(--ease-out);
   --digit-dir-x: 0;
   --digit-dir-y: 1;
 }
@@ -435,28 +456,28 @@ pre,
 
 /* Transitions.dev — Universal variables */
 :root {
-  --check-opacity-dur: 500ms;
-  --check-rotate-dur: 500ms;
+  --check-opacity-dur: 320ms;
+  --check-rotate-dur: 320ms;
   --check-rotate-from: 80deg;
-  --check-bob-dur: 500ms;
-  --check-y-amount: 40px;
-  --check-blur-dur: 500ms;
-  --check-blur-from: 10px;
-  --check-path-dur: 500ms;
+  --check-bob-dur: 320ms;
+  --check-y-amount: 10px;
+  --check-blur-dur: 320ms;
+  --check-blur-from: 2px;
+  --check-path-dur: 320ms;
   --check-path-delay: 80ms;
-  --check-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --check-ease-opacity: cubic-bezier(0.22, 1, 0.36, 1);
-  --check-ease-rotate: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-out: var(--ease-out);
+  --check-ease-opacity: var(--ease-out);
+  --check-ease-rotate: var(--ease-out);
   --check-ease-bob: cubic-bezier(0.34, 1.35, 0.64, 1);
-  --check-ease-path: cubic-bezier(0.22, 1, 0.36, 1);
+  --check-ease-path: var(--ease-out);
 
-  --clear-dur: 1000ms;
-  --clear-out-dur: 400ms;
-  --clear-in-dur: 400ms;
-  --clear-out-fly: 12px;
-  --clear-in-fly: 12px;
-  --clear-out-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --clear-in-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --clear-dur: 220ms;
+  --clear-out-dur: 160ms;
+  --clear-in-dur: 160ms;
+  --clear-out-fly: 6px;
+  --clear-in-fly: 6px;
+  --clear-out-ease: var(--ease-out);
+  --clear-in-ease: var(--ease-out);
   --clear-blur: 2px;
   --glow-delay: 50ms;
   --glow-peak-at: 0.15;
@@ -616,13 +637,122 @@ pre,
 /* Trash bin drop shake animation */
 @keyframes bin-shake {
   0%, 100% { transform: scale(1); }
-  20% { transform: scale(1.1) rotate(-6deg); }
-  40% { transform: scale(1.1) rotate(6deg); }
-  60% { transform: scale(1.1) rotate(-4deg); }
-  80% { transform: scale(1.1) rotate(4deg); }
+  25% { transform: scale(1.05) rotate(-3deg); }
+  50% { transform: scale(1.05) rotate(3deg); }
+  75% { transform: scale(1.03) rotate(-2deg); }
 }
 .animate-bin-receive {
-  animation: bin-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  animation: bin-shake 280ms var(--ease-out) both;
+}
+
+@keyframes mind-modal-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes mind-modal-panel-in {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.mind-modal-backdrop-in {
+  animation: mind-modal-backdrop-in 240ms var(--ease-out) both;
+}
+
+.mind-modal-panel-in {
+  transform-origin: center;
+  animation: mind-modal-panel-in var(--duration-panel) var(--ease-out) both;
+}
+
+.mind-card-hover-scrim,
+.trash-card-actions,
+.group-pill-delete {
+  transition: opacity 150ms ease;
+}
+
+.trash-row {
+  opacity: 1;
+  transform: translateY(0);
+  transition:
+    opacity 160ms var(--ease-out),
+    transform 160ms var(--ease-out),
+    border-color 150ms ease;
+}
+
+.trash-row[data-exiting="true"] {
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(4px);
+}
+
+.group\/card:focus-within .trash-card-actions {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .trash-card-actions {
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .mind-card-hover-scrim {
+    background-color: rgb(0 0 0 / 0);
+    opacity: 0;
+    transition:
+      background-color var(--duration-ui) ease,
+      opacity var(--duration-ui) ease;
+  }
+
+  .group:hover .mind-card-hover-scrim {
+    background-color: rgb(0 0 0 / 0.4);
+    opacity: 1;
+  }
+
+  .group\/card:hover .trash-card-actions {
+    opacity: 1;
+  }
+
+  .group\/pill:hover .group-pill-delete {
+    opacity: 0.6;
+  }
+
+  .group\/pill .group-pill-delete:hover {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-bin-receive {
+    animation: none;
+  }
+
+  .mind-modal-backdrop-in,
+  .mind-modal-panel-in {
+    animation: mind-modal-backdrop-in 150ms ease both;
+    transform: none;
+  }
+
+  .mind-card-hover-scrim,
+  .trash-card-actions,
+  .group-pill-delete {
+    transition: none;
+  }
+
+  .mind-card-enter {
+    animation: mind-modal-backdrop-in 150ms ease both;
+  }
+
+  .trash-row {
+    transform: none;
+    transition: opacity 120ms ease;
+  }
 }
 
 

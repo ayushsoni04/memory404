@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import TextSwap from "@/components/TextSwap";
 import {
@@ -11,7 +12,6 @@ import {
   FolderKanban,
   TrendingUp,
   User,
-  Sliders,
   AlertTriangle,
   Users,
   Camera,
@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Info,
   Lock,
-  Settings,
 } from "lucide-react";
 
 const GithubIcon = (props: React.SVGProps<SVGSVGElement>) => (
@@ -92,14 +91,30 @@ export default function SettingsPage() {
   const [authTheme, setAuthTheme] = useState("midnight");
   const [authSuccess, setAuthSuccess] = useState(false);
 
+  useEffect(() => {
+    if (!showAuthModal && !showDeactivateModal) return;
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setShowAuthModal(false);
+      setShowDeactivateModal(false);
+      setAuthStep(1);
+      setDeactivateInput("");
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [showAuthModal, showDeactivateModal]);
+
   // Load profile from localStorage
   useEffect(() => {
     if (typeof window !== "undefined") {
       const storedName = localStorage.getItem("m404-profile-name");
       const storedUsername = localStorage.getItem("m404-profile-username");
       const storedEmail = localStorage.getItem("m404-profile-email");
-      const storedPlan = localStorage.getItem("m404-billing-plan") as any;
-      const storedCycle = localStorage.getItem("m404-billing-cycle") as any;
+      const storedPlan = localStorage.getItem("m404-billing-plan");
+      const storedCycle = localStorage.getItem("m404-billing-cycle");
       const storedBanner = localStorage.getItem("m404-profile-banner");
       const storedSeats = localStorage.getItem("m404-billing-seats");
       const storedAvatar = localStorage.getItem("m404-profile-avatar");
@@ -107,8 +122,12 @@ export default function SettingsPage() {
       if (storedName) setName(storedName);
       if (storedUsername) setUsername(storedUsername);
       if (storedEmail) setEmail(storedEmail);
-      if (storedPlan) setCurrentPlan(storedPlan);
-      if (storedCycle) setBillingCycle(storedCycle);
+      if (storedPlan === "free" || storedPlan === "pro" || storedPlan === "team") {
+        setCurrentPlan(storedPlan);
+      }
+      if (storedCycle === "monthly" || storedCycle === "yearly") {
+        setBillingCycle(storedCycle);
+      }
       if (storedBanner) setBannerStyle(storedBanner);
       if (storedSeats) setTeamSeats(Number(storedSeats));
       if (storedAvatar) setAvatarPreview(storedAvatar);
@@ -160,12 +179,6 @@ export default function SettingsPage() {
   const handleSeatsChange = (seats: number) => {
     setTeamSeats(seats);
     localStorage.setItem("m404-billing-seats", String(seats));
-  };
-
-  const toggleBillingCycle = () => {
-    const next = billingCycle === "monthly" ? "yearly" : "monthly";
-    setBillingCycle(next);
-    localStorage.setItem("m404-billing-cycle", next);
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -302,7 +315,7 @@ export default function SettingsPage() {
           key={dateStr}
           title={label}
           style={glowStyle}
-          className={`size-2.5 rounded-sm transition-all duration-300 hover:scale-125 cursor-pointer ${colorClass}`}
+          className={`size-2.5 rounded-sm cursor-pointer ${colorClass}`}
         />
       );
 
@@ -357,7 +370,7 @@ export default function SettingsPage() {
           <nav className="flex flex-row flex-wrap gap-2 lg:flex-col lg:gap-1">
             <button
               onClick={() => setActiveTab("profile")}
-              className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-all duration-200 ${
+              className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-colors duration-150 ${
                 activeTab === "profile" ? "bg-pill text-foreground shadow-sm" : "text-muted hover:text-foreground hover:bg-neutral-900/40"
               }`}
             >
@@ -366,7 +379,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab("membership")}
-              className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-all duration-200 ${
+              className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-colors duration-150 ${
                 activeTab === "membership" ? "bg-pill text-foreground shadow-sm" : "text-muted hover:text-foreground hover:bg-neutral-900/40"
               }`}
             >
@@ -375,7 +388,7 @@ export default function SettingsPage() {
             </button>
             <button
               onClick={() => setActiveTab("statistics")}
-              className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-all duration-200 ${
+              className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-colors duration-150 ${
                 activeTab === "statistics" ? "bg-pill text-foreground shadow-sm" : "text-muted hover:text-foreground hover:bg-neutral-900/40"
               }`}
             >
@@ -392,7 +405,7 @@ export default function SettingsPage() {
               setAuthStep(1);
               setShowAuthModal(true);
             }}
-            className="flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground transition-all duration-200 active:scale-95 py-2 px-3 text-center"
+            className="flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground transition-[transform,background-color,color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97] py-2 px-3 text-center"
           >
             <Lock className="size-3.5 text-subtle" />
             Join / Mock Sign In
@@ -438,12 +451,12 @@ export default function SettingsPage() {
               {/* Premium Mobbin/Figma Style Visual Banner Card */}
               <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-lg relative group/card">
                 {/* Banner display */}
-                <div className={`h-28 w-full transition-all duration-500 ${currentGradient.class}`} />
+                <div className={`h-28 w-full ${currentGradient.class}`} />
                 
                 {/* User info overlapping banner */}
                 <div className="relative px-6 pb-6 pt-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
                   {/* Interactive Avatar Upload Container */}
-                  <label className="absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center rounded-full bg-neutral-900 border-2 border-surface shadow-xl select-none overflow-hidden group/avatar transition-all duration-300 hover:border-muted">
+                  <label className="absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center rounded-full bg-neutral-900 border-2 border-surface shadow-xl select-none overflow-hidden group/avatar transition-colors duration-150 hover:border-muted">
                     <input
                       type="file"
                       accept="image/*"
@@ -451,9 +464,11 @@ export default function SettingsPage() {
                       className="hidden"
                     />
                     {avatarPreview ? (
-                      <img
+                      <Image
                         src={avatarPreview}
                         alt="Avatar Preview"
+                        fill
+                        unoptimized
                         className="size-full object-cover transition duration-300 group-hover/avatar:brightness-50"
                       />
                     ) : (
@@ -490,7 +505,7 @@ export default function SettingsPage() {
                       key={b.id}
                       type="button"
                       onClick={() => setBannerStyle(b.id)}
-                      className={`relative flex flex-col gap-2 rounded-lg border p-2.5 text-left transition-all duration-300 ${
+                      className={`relative flex flex-col gap-2 rounded-lg border p-2.5 text-left transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] ${
                         bannerStyle === b.id ? "border-foreground bg-surface-elevated shadow-md scale-[1.02]" : "border-border bg-surface hover:border-neutral-700 hover:bg-surface-elevated/40"
                       }`}
                     >
@@ -512,7 +527,7 @@ export default function SettingsPage() {
                     type="text"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-all duration-300 focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
                     placeholder="E.g. Ayush Soni"
                     required
                   />
@@ -523,7 +538,7 @@ export default function SettingsPage() {
                     type="text"
                     value={username}
                     onChange={(e) => setUsername(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-all duration-300 focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5 font-mono"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5 font-mono"
                     placeholder="ayushsoni04"
                     required
                   />
@@ -534,7 +549,7 @@ export default function SettingsPage() {
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-all duration-300 focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
+                    className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
                     placeholder="ayush@memory404.design"
                     required
                   />
@@ -544,14 +559,14 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3 pt-2">
                 <button
                   type="submit"
-                  className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-all duration-200 hover:opacity-90 active:scale-95 cursor-pointer shadow-md"
+                  className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-md"
                 >
                   <TextSwap>
                     {isSaved ? "Saved!" : "Save profile changes"}
                   </TextSwap>
                 </button>
                 {isSaved && (
-                  <span className="inline-flex items-center gap-1.5 text-xs text-success animate-fade-in font-mono">
+                  <span className="inline-flex items-center gap-1.5 text-xs text-success font-mono">
                     <CheckCircle2 className="size-4" />
                     Profile updated!
                   </span>
@@ -626,7 +641,7 @@ export default function SettingsPage() {
                       setBillingCycle("monthly");
                       localStorage.setItem("m404-billing-cycle", "monthly");
                     }}
-                    className={`h-7 items-center justify-center rounded-md px-3 text-xs font-medium transition-all duration-200 uppercase font-mono ${
+                    className={`h-7 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors duration-150 uppercase font-mono ${
                       billingCycle === "monthly" ? "bg-background text-foreground shadow-sm" : "text-muted hover:text-foreground"
                     }`}
                   >
@@ -638,7 +653,7 @@ export default function SettingsPage() {
                       setBillingCycle("yearly");
                       localStorage.setItem("m404-billing-cycle", "yearly");
                     }}
-                    className={`h-7 items-center justify-center rounded-md px-3 text-xs font-medium transition-all duration-200 uppercase font-mono relative ${
+                    className={`h-7 items-center justify-center rounded-md px-3 text-xs font-medium transition-colors duration-150 uppercase font-mono relative ${
                       billingCycle === "yearly" ? "bg-background text-foreground shadow-sm" : "text-muted hover:text-foreground"
                     }`}
                   >
@@ -656,7 +671,7 @@ export default function SettingsPage() {
                 {/* Plan: Free */}
                 <div
                   onClick={() => handlePlanChange("free")}
-                  className={`relative cursor-pointer rounded-xl border p-5 transition-all duration-300 flex flex-col justify-between ${
+                  className={`relative cursor-pointer rounded-xl border p-5 transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] flex flex-col justify-between ${
                     currentPlan === "free" ? "border-foreground bg-surface-elevated shadow-xl scale-[1.02]" : "border-border bg-surface hover:border-neutral-700"
                   }`}
                 >
@@ -691,7 +706,7 @@ export default function SettingsPage() {
                 {/* Plan: Pro */}
                 <div
                   onClick={() => handlePlanChange("pro")}
-                  className={`relative cursor-pointer rounded-xl border p-5 transition-all duration-300 flex flex-col justify-between ${
+                  className={`relative cursor-pointer rounded-xl border p-5 transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] flex flex-col justify-between ${
                     currentPlan === "pro" ? "border-foreground bg-surface-elevated shadow-xl scale-[1.02] ring-1 ring-foreground/20" : "border-border bg-surface hover:border-neutral-700"
                   }`}
                 >
@@ -733,7 +748,7 @@ export default function SettingsPage() {
                 {/* Plan: Team */}
                 <div
                   onClick={() => handlePlanChange("team")}
-                  className={`relative cursor-pointer rounded-xl border p-5 transition-all duration-300 flex flex-col justify-between ${
+                  className={`relative cursor-pointer rounded-xl border p-5 transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] flex flex-col justify-between ${
                     currentPlan === "team" ? "border-foreground bg-surface-elevated shadow-xl scale-[1.02]" : "border-border bg-surface hover:border-neutral-700"
                   }`}
                 >
@@ -974,8 +989,8 @@ export default function SettingsPage() {
                           </div>
                           <div className="h-1.5 w-full overflow-hidden rounded-full bg-pill">
                             <div
-                              style={{ width: `${percent}%` }}
-                              className={`h-full rounded-full transition-all duration-500 ease-out ${barColor}`}
+                              style={{ transform: `scaleX(${percent / 100})` }}
+                              className={`h-full w-full origin-left rounded-full transition-transform duration-[250ms] ease-[var(--ease-out)] ${barColor}`}
                             />
                           </div>
                         </div>
@@ -993,8 +1008,8 @@ export default function SettingsPage() {
 
       {/* Account Deactivation Confirmation Modal Overlay */}
       {showDeactivateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4 animate-fade-in">
-          <div className="w-full max-w-[420px] rounded-xl border border-danger/35 bg-surface p-6 shadow-2xl space-y-4 animate-scale-up">
+        <div className="mind-modal-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+          <div className="mind-modal-panel-in w-full max-w-[420px] rounded-xl border border-danger/35 bg-surface p-6 shadow-2xl space-y-4">
             <div className="flex items-center gap-2.5 text-danger">
               <AlertTriangle className="size-5" />
               <h3 className="text-sm font-bold uppercase font-mono tracking-wider">Confirm Deactivation</h3>
@@ -1053,14 +1068,14 @@ export default function SettingsPage() {
 
       {/* Savee & Zeplin Inspired Onboarding / Login Modal */}
       {showAuthModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-4">
-          <div className="w-full max-w-[460px] rounded-xl border border-border bg-surface shadow-2xl overflow-hidden flex flex-col relative">
+        <div className="mind-modal-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-background/90 backdrop-blur-md p-4">
+          <div className="mind-modal-panel-in w-full max-w-[460px] rounded-xl border border-border bg-surface shadow-2xl overflow-hidden flex flex-col relative">
             
             {/* Modal Progress Indicator */}
             <div className="h-1 w-full bg-pill flex">
               <div
-                style={{ width: `${(authStep / 3) * 100}%` }}
-                className="h-full bg-foreground transition-all duration-300"
+                style={{ transform: `scaleX(${authStep / 3})` }}
+                className="h-full w-full origin-left bg-foreground transition-transform duration-[250ms] ease-[var(--ease-in-out)]"
               />
             </div>
 
@@ -1191,8 +1206,8 @@ export default function SettingsPage() {
                           key={role.id}
                           type="button"
                           onClick={() => setAuthRole(role.id)}
-                          className={`relative text-left p-3.5 rounded-lg border transition-all duration-300 ${
-                            authRole === role.id ? "border-foreground bg-surface-elevated scale-102 shadow-md" : "border-border bg-neutral-900/40 hover:border-neutral-700"
+                          className={`relative text-left p-3.5 rounded-lg border transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] ${
+                            authRole === role.id ? "border-foreground bg-surface-elevated scale-[1.02] shadow-md" : "border-border bg-neutral-900/40 hover:border-neutral-700"
                           } cursor-pointer`}
                         >
                           <p className="text-xs font-semibold text-foreground font-mono uppercase">{role.label}</p>
@@ -1214,8 +1229,8 @@ export default function SettingsPage() {
                             key={b.id}
                             type="button"
                             onClick={() => setAuthTheme(b.id)}
-                            className={`relative text-left p-2.5 rounded-lg border transition-all duration-300 ${
-                              authTheme === b.id ? "border-foreground bg-surface-elevated scale-102" : "border-border bg-neutral-900/40 hover:border-neutral-700"
+                            className={`relative text-left p-2.5 rounded-lg border transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] ${
+                              authTheme === b.id ? "border-foreground bg-surface-elevated scale-[1.02]" : "border-border bg-neutral-900/40 hover:border-neutral-700"
                             } cursor-pointer`}
                           >
                             <div className={`h-8 w-full rounded-md ${b.class}`} />

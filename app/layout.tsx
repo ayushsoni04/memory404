@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 /** Same combo as blog.maximeheckel.com: Inter + Departure Mono + Fira Code */
@@ -22,11 +24,17 @@ const firaCode = localFont({
   display: "swap",
 });
 
+const siteUrl =
+  process.env.NEXT_PUBLIC_SITE_URL?.trim() || "https://memory404.app";
+
 export const metadata: Metadata = {
-  title: "Ayush Soni — Product Designer | UX, UI & Design Systems",
+  title: {
+    default: "memory404",
+    template: "%s — memory404",
+  },
   description:
-    "Product designer in India creating intuitive SaaS, AI, and digital experiences—from research and UX to design systems and polished interfaces.",
-  metadataBase: new URL("https://ayushdesign.in"),
+    "Save links into groups and browse them like a dark inspiration feed.",
+  metadataBase: new URL(siteUrl),
   alternates: {
     canonical: "/",
   },
@@ -34,42 +42,26 @@ export const metadata: Metadata = {
     index: true,
     follow: true,
   },
-  authors: [{ name: "Ayush Soni", url: "https://ayushdesign.in" }],
   keywords: [
-    "Product Designer",
-    "UX Designer",
-    "UI Designer",
-    "Product Design Portfolio",
-    "SaaS Designer",
-    "AI Designer",
-    "Design Systems",
-    "Interaction Design",
-    "Ayush Soni",
+    "link saver",
+    "bookmark manager",
+    "design inspiration",
+    "memory404",
   ],
   openGraph: {
-    title: "Ayush Soni — Product Designer | UX, UI & Design Systems",
+    title: "memory404",
     description:
-      "Product designer in India creating intuitive SaaS, AI, and digital experiences—from research and UX to design systems and polished interfaces.",
-    url: "https://ayushdesign.in",
-    siteName: "Ayush Soni Portfolio",
-    locale: "en_IN",
+      "Save links into groups and browse them like a dark inspiration feed.",
+    url: "/",
+    siteName: "memory404",
+    locale: "en_US",
     type: "website",
-    images: [
-      {
-        url: "/og-image.png",
-        width: 1200,
-        height: 630,
-        alt: "Ayush Soni — Product Designer | UX, UI & Design Systems",
-      },
-    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Ayush Soni — Product Designer | UX, UI & Design Systems",
+    title: "memory404",
     description:
-      "Product designer in India creating intuitive SaaS, AI, and digital experiences—from research and UX to design systems and polished interfaces.",
-    images: ["/og-image.png"],
-    creator: "@ayushsoni04",
+      "Save links into groups and browse them like a dark inspiration feed.",
   },
   icons: {
     icon: [
@@ -80,10 +72,6 @@ export const metadata: Metadata = {
     apple: [
       { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
     ],
-    other: [
-      { rel: "icon", url: "/android-chrome-192.png", sizes: "192x192", type: "image/png" },
-      { rel: "icon", url: "/android-chrome-512.png", sizes: "512x512", type: "image/png" },
-    ],
   },
   manifest: "/site.webmanifest",
 };
@@ -92,26 +80,14 @@ export const viewport = {
   themeColor: "#0c0c0c",
 };
 
-const personSchema = {
+const appSchema = {
   "@context": "https://schema.org",
-  "@type": "Person",
-  "name": "Ayush Soni",
-  "jobTitle": "Product Designer",
-  "url": "https://ayushdesign.in",
-  "image": "https://ayushdesign.in/portrait-sketch.png",
-  "sameAs": [
-    "https://linkedin.com/in/ayushsoni04",
-    "https://github.com/ayushsoni04",
-    "https://x.com/ayushsoni04",
-    "https://behance.net/ayushsoni04",
-  ],
-};
-
-const websiteSchema = {
-  "@context": "https://schema.org",
-  "@type": "WebSite",
-  "name": "Ayush Soni — Product Designer Portfolio",
-  "url": "https://ayushdesign.in",
+  "@type": "WebApplication",
+  name: "memory404",
+  url: siteUrl,
+  description:
+    "Save links into groups and browse them like a dark inspiration feed.",
+  applicationCategory: "ProductivityApplication",
 };
 
 export default function RootLayout({
@@ -125,25 +101,18 @@ export default function RootLayout({
       className={`${inter.variable} ${departureMono.variable} ${firaCode.variable} dark h-full antialiased`}
     >
       <head>
-        {/* Preconnect to external origins */}
+        <link rel="preconnect" href="https://res.cloudinary.com" />
+        <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <link rel="preconnect" href="https://www.google.com" />
-        <link rel="preconnect" href="https://api.microlink.io" />
-        <link rel="preconnect" href="https://s0.wp.com" />
-
-
-
-        {/* Structured Data (JSON-LD) */}
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(personSchema) }}
-        />
-        <script
-          type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteSchema) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(appSchema) }}
         />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         {children}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );

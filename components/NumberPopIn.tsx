@@ -1,7 +1,5 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-
 type Props = {
   children: number | string;
   className?: string;
@@ -9,48 +7,11 @@ type Props = {
 
 export default function NumberPopIn({ children, className }: Props) {
   const valueStr = String(children);
-  const [displayValue, setDisplayValue] = useState(valueStr);
-  const groupRef = useRef<HTMLSpanElement>(null);
-
-  useEffect(() => {
-    if (valueStr === displayValue) return;
-
-    const group = groupRef.current;
-    if (!group) {
-      setDisplayValue(valueStr);
-      return;
-    }
-
-    // Remove is-animating, update the value, and force a reflow
-    group.classList.remove("is-animating");
-    setDisplayValue(valueStr);
-
-    const raf = requestAnimationFrame(() => {
-      const raf2 = requestAnimationFrame(() => {
-        if (group) {
-          void group.offsetHeight; // force reflow
-          group.classList.add("is-animating");
-        }
-      });
-      return () => cancelAnimationFrame(raf2);
-    });
-
-    return () => cancelAnimationFrame(raf);
-  }, [valueStr, displayValue]);
-
-  // Ensure is-animating is present on initial mount
-  useEffect(() => {
-    const group = groupRef.current;
-    if (group) {
-      group.classList.add("is-animating");
-    }
-  }, []);
-
-  const chars = displayValue.split("");
+  const chars = valueStr.split("");
 
   return (
     <span
-      ref={groupRef}
+      key={valueStr}
       className={`t-digit-group is-animating ${className || ""}`}
     >
       {chars.map((char, index) => {
