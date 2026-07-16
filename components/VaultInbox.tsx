@@ -1323,6 +1323,12 @@ export default function VaultInbox() {
   const pillActive = `${pillBase} bg-pill-active text-pill-active-fg`;
   const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover`;
   const canReorderPills = !groupSearch.trim() && addingAt == null;
+  const feedImageSizes =
+    gridSize === "compact"
+      ? "(min-width: 1536px) 14vw, (min-width: 1280px) 16vw, (min-width: 1024px) 20vw, (min-width: 640px) 33vw, 100vw"
+      : gridSize === "default"
+        ? "(min-width: 1536px) 16vw, (min-width: 1280px) 20vw, (min-width: 1024px) 25vw, (min-width: 768px) 33vw, (min-width: 640px) 50vw, 100vw"
+        : "(min-width: 1280px) 33vw, (min-width: 768px) 50vw, 100vw";
 
   return (
     <div
@@ -1887,6 +1893,7 @@ export default function VaultInbox() {
                     link={link}
                     onOpen={openLinkDetail}
                     priority={index < 4}
+                    imageSizes={feedImageSizes}
                   />
                 ))}
               </div>

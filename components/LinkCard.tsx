@@ -1,39 +1,45 @@
 "use client";
 
-import { memo, useEffect, useRef, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
 import { googleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
-import { getProxiedImageUrl } from "@/lib/screenshot";
+import { getFeedImageSrcSet, getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
+import { useFeedMediaActivation } from "@/lib/use-feed-media";
 
 type Props = {
   link: LinkApiRow;
   onOpen: (link: LinkApiRow, originEl: HTMLElement) => void;
   priority?: boolean;
+  imageSizes?: string;
   /** When provided the card becomes draggable and fires this callback on dragStart. */
   onDragToTrash?: (linkId: string) => void;
 };
 
-function LinkCard({ link, onOpen, priority = false, onDragToTrash }: Props) {
+function LinkCard({
+  link,
+  onOpen,
+  priority = false,
+  imageSizes = "50vw",
+}: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
   const pending = link.metadata_status === "pending" || !!link.isPending;
-  const [imgSrc, setImgSrc] = useState(link.image_url);
-  const resolveAttempted = useRef(false);
-  const [loaded, setLoaded] = useState(false);
-  const imgRef = useRef<HTMLImageElement | null>(null);
-
-  useEffect(() => {
-    setImgSrc(link.image_url);
-    resolveAttempted.current = false;
-    setLoaded(false);
-  }, [link.id, link.image_url]);
-
-  useEffect(() => {
-    if (imgRef.current?.complete) {
-      setLoaded(true);
-    }
-  }, [imgSrc]);
+  const [fallback, setFallback] = useState<{
+    sourceFor: string;
+    url: string;
+  } | null>(null);
+  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
+  const imgSrc =
+    fallback?.sourceFor === link.image_url ? fallback.url : link.image_url;
+  const feedSrc = getFeedImageUrl(imgSrc);
+  const feedSrcSet = getFeedImageSrcSet(imgSrc);
+  const {
+    activated,
+    containerRef: mediaContainerRef,
+    settleLoad,
+  } = useFeedMediaActivation(Boolean(feedSrc));
+  const loaded = activated && loadedSrc === imgSrc;
 
   // NOTE: Proactive browser-side Microlink screenshot resolution has been removed.
   // Images are now stored in Cloudinary server-side during metadata enrichment.
@@ -60,31 +66,43 @@ function LinkCard({ link, onOpen, priority = false, onDragToTrash }: Props) {
             if (cardRef.current) onOpen(link, cardRef.current);
           }}
         >
-          <span className="relative block w-full">
+          <span ref={mediaContainerRef} className="relative block w-full">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              ref={imgRef}
               key={`${link.id}-${imgSrc}`}
-              src={getProxiedImageUrl(imgSrc)}
+              src={activated ? feedSrc : undefined}
+              srcSet={activated ? feedSrcSet : undefined}
+              sizes={feedSrcSet ? imageSizes : undefined}
               alt=""
               loading={priority ? "eager" : "lazy"}
               fetchPriority={priority ? "high" : "low"}
               referrerPolicy="no-referrer"
               decoding="async"
               draggable={false}
-              onLoad={() => setLoaded(true)}
+              onLoad={() => {
+                setLoadedSrc(imgSrc);
+                settleLoad();
+              }}
               className={`mind-card-preview block w-full object-cover object-top transition-opacity duration-350 ease-out ${
                 loaded ? "opacity-100" : "opacity-0"
               } ${
                 !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
               } ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
+                settleLoad();
                 // Fall back directly to favicon — Microlink screenshot resolution
                 // is handled server-side; a client-side Microlink fetch per card
                 // caused up to 24 simultaneous 5-15s network calls on page load.
-                if (resolveAttempted.current || requiresLoginPlaceholder(link.url)) return;
-                resolveAttempted.current = true;
-                setImgSrc(googleFaviconUrl(link.url) ?? "");
+                if (
+                  fallback?.sourceFor === link.image_url ||
+                  requiresLoginPlaceholder(link.url)
+                ) {
+                  return;
+                }
+                setFallback({
+                  sourceFor: link.image_url,
+                  url: googleFaviconUrl(link.url) ?? "",
+                });
               }}
             />
             <span className="pointer-events-none absolute inset-0 bg-black/0 opacity-0 transition duration-200 group-hover:bg-black/40 group-hover:opacity-100" />

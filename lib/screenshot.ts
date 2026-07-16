@@ -240,3 +240,53 @@ export function getProxiedImageUrl(url: string | null | undefined): string | und
   }
   return `/api/image-proxy?url=${encodeURIComponent(url)}`;
 }
+
+const CLOUDINARY_UPLOAD_MARKER = "/image/upload/";
+const FEED_IMAGE_WIDTHS = [320, 480, 640, 960] as const;
+
+function getCloudinaryImageUrl(url: string, width: number): string | null {
+  try {
+    const parsed = new URL(url);
+    if (
+      parsed.hostname !== "res.cloudinary.com" ||
+      !parsed.pathname.includes(CLOUDINARY_UPLOAD_MARKER)
+    ) {
+      return null;
+    }
+
+    const transform = `f_auto,q_auto:eco,c_limit,w_${width}/`;
+    parsed.pathname = parsed.pathname.replace(
+      CLOUDINARY_UPLOAD_MARKER,
+      `${CLOUDINARY_UPLOAD_MARKER}${transform}`,
+    );
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Returns a display-sized preview instead of decoding the original Cloudinary
+ * upload in every card. Non-Cloudinary previews retain the existing proxy path.
+ */
+export function getFeedImageUrl(
+  url: string | null | undefined,
+  width = 640,
+): string | undefined {
+  if (!url) return undefined;
+  return getCloudinaryImageUrl(url, width) ?? getProxiedImageUrl(url);
+}
+
+export function getFeedImageSrcSet(
+  url: string | null | undefined,
+): string | undefined {
+  if (!url) return undefined;
+  const sources = FEED_IMAGE_WIDTHS.map((width) => {
+    const transformed = getCloudinaryImageUrl(url, width);
+    return transformed ? `${transformed} ${width}w` : null;
+  }).filter((source): source is string => source !== null);
+
+  return sources.length === FEED_IMAGE_WIDTHS.length
+    ? sources.join(", ")
+    : undefined;
+}
