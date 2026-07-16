@@ -193,8 +193,12 @@ export async function DELETE(_request: Request, context: RouteContext) {
       return NextResponse.json({ error: "Invalid id" }, { status: 400 });
     }
 
-    await prisma.link.delete({ where: { id } });
-    return NextResponse.json({ ok: true });
+    // Soft-delete: move to Trash instead of permanently removing
+    const trashed = await prisma.link.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+    return NextResponse.json({ ok: true, link: linkToApiRow(trashed) });
   } catch (e) {
     if (
       e instanceof Prisma.PrismaClientKnownRequestError &&
@@ -219,3 +223,4 @@ export async function DELETE(_request: Request, context: RouteContext) {
     );
   }
 }
+

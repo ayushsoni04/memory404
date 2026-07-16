@@ -4,7 +4,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import Link from "next/link";
-import { Plus, RotateCw } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Plus, RotateCw, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import AddLinkCard from "@/components/AddLinkCard";
 import { AppLoader } from "@/components/AppLoader";
@@ -12,6 +13,7 @@ import LinkCard from "@/components/LinkCard";
 import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import TextSwap from "@/components/TextSwap";
 import ClearSearchInput from "@/components/ClearSearchInput";
+import TrashBin from "@/components/TrashBin";
 import { apiUrl } from "@/lib/api-base";
 import {
   applyVicinityCardStrokes,
@@ -129,6 +131,7 @@ async function copyTextToClipboard(text: string): Promise<boolean> {
 }
 
 export default function VaultInbox() {
+  const router = useRouter();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [sortBy, setSortBy] = useState<"newest" | "oldest" | "domain" | "details" | "type">(() => {
     if (typeof window !== "undefined") {
@@ -743,6 +746,8 @@ export default function VaultInbox() {
         metadata_status: "pending",
         created_at: new Date().toISOString(),
         createdAt: new Date().toISOString(),
+        deleted_at: null,
+        deletedAt: null,
         isPending: true,
       };
 
@@ -842,6 +847,8 @@ export default function VaultInbox() {
       metadata_status: "pending",
       created_at: new Date().toISOString(),
       createdAt: new Date().toISOString(),
+      deleted_at: null,
+      deletedAt: null,
       isPending: true,
     };
 
@@ -971,6 +978,9 @@ export default function VaultInbox() {
         });
       }
       removeLinkFromPages(id);
+      setTimeout(() => {
+        router.push("/trash");
+      }, 400);
     } catch {
       // Rollback state if server returns error!
       setLinks(originalLinks);
@@ -978,6 +988,27 @@ export default function VaultInbox() {
         ...prev,
         [id]: "Network error — failed to delete",
       }));
+    }
+  };
+
+  // Move a group (and all its links) to Trash
+  const handleDeleteGroup = async (groupId: string) => {
+    // Optimistically remove from UI
+    setGroups((prev) => prev.filter((g) => g.id !== groupId));
+    // If currently viewing that group, switch to All
+    if (openedGroupId === groupId) selectGroup("all");
+    try {
+      const res = await fetch(apiUrl(`/api/groups/${groupId}`), { method: "DELETE" });
+      if (!res.ok) {
+        // Rollback
+        void loadGroups();
+      } else {
+        setTimeout(() => {
+          router.push("/trash");
+        }, 400);
+      }
+    } catch {
+      void loadGroups();
     }
   };
 
@@ -1451,6 +1482,10 @@ export default function VaultInbox() {
               © {new Date().getFullYear()} memory404
             </p>
           </div>
+          <TrashBin
+            onDropLink={(linkId) => void handleDelete(linkId)}
+            onDropGroup={(groupId) => void handleDeleteGroup(groupId)}
+          />
         </div>
       </aside>
 
@@ -1534,7 +1569,7 @@ export default function VaultInbox() {
                     value={g}
                     as="div"
                     drag={canReorderPills ? "x" : false}
-                    className="shrink-0"
+                  className="shrink-0 group/pill"
                     onDragStart={() => setDraggingGroupId(g.id)}
                     onDragEnd={() => setDraggingGroupId(null)}
                     whileDrag={{
@@ -1547,17 +1582,40 @@ export default function VaultInbox() {
                       duration: 0.18,
                     }}
                   >
-                    <button
-                      type="button"
-                      onClick={() => selectGroup(g.id)}
-                      className={`${g.id === openedGroupId ? pillActive : pillIdle} transition-all duration-150 ${
-                        draggingGroupId === g.id
-                          ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
-                          : ""
-                      }`}
-                    >
-                      {g.name}
-                    </button>
+                  <>
+                      <button
+                        type="button"
+                        onClick={() => selectGroup(g.id)}
+                        className={`${g.id === openedGroupId ? pillActive : pillIdle} transition-all duration-150 ${
+                          draggingGroupId === g.id
+                            ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
+                            : ""
+                        } pr-1`}
+                      >
+                        <span className="pr-1">{g.name}</span>
+                        {g.name !== GENERAL_GROUP_NAME && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Move ${g.name} to Trash`}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void handleDeleteGroup(g.id);
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                void handleDeleteGroup(g.id);
+                              }
+                            }}
+                            className="ml-0.5 inline-flex size-4 items-center justify-center rounded-full opacity-0 hover:opacity-100 group-hover/pill:opacity-60 hover:!opacity-100 hover:bg-red-500/20 hover:text-red-400 transition-all duration-150 cursor-pointer"
+                          >
+                            <X className="size-2.5" />
+                          </span>
+                        )}
+                      </button>
+                  </>
                   </Reorder.Item>
                 ))}
               </Reorder.Group>

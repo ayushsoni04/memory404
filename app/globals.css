@@ -613,4 +613,17 @@ pre,
   .t-skel-skeleton.is-pulsing > * { animation: none !important; }
 }
 
+/* Trash bin drop shake animation */
+@keyframes bin-shake {
+  0%, 100% { transform: scale(1); }
+  20% { transform: scale(1.1) rotate(-6deg); }
+  40% { transform: scale(1.1) rotate(6deg); }
+  60% { transform: scale(1.1) rotate(-4deg); }
+  80% { transform: scale(1.1) rotate(4deg); }
+}
+.animate-bin-receive {
+  animation: bin-shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+}
+
+
 

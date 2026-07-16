@@ -48,7 +48,7 @@ export async function GET(request: Request) {
     if (idsParam.length) {
       const uniqueIds = Array.from(new Set(idsParam)).slice(0, LINKS_PAGE_MAX);
       const rows = await prisma.link.findMany({
-        where: { id: { in: uniqueIds } },
+        where: { id: { in: uniqueIds }, deletedAt: null },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       });
       return NextResponse.json({
@@ -84,6 +84,7 @@ export async function GET(request: Request) {
 
     const where: Prisma.LinkWhereInput = {
       AND: [
+        { deletedAt: null },
         search.trim() ? linkTextSearchWhere(search) : {},
         filterGroupId ? { groupId: filterGroupId } : {},
         tagParams.length

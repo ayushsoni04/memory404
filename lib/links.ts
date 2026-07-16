@@ -29,6 +29,9 @@ export type LinkApiRow = {
   metadata_status: LinkMetadataStatus;
   created_at: string;
   createdAt: string;
+  /** ISO string or null. Set when link is in Trash. */
+  deleted_at: string | null;
+  deletedAt: string | null;
   /** `custom_title ?? title` */
   display_title: string;
   isPending?: boolean;
@@ -145,8 +148,10 @@ export function linkToApiRow(link: {
   groupId: string;
   metadataStatus: LinkMetadataStatus;
   createdAt: Date;
+  deletedAt?: Date | null;
 }): LinkApiRow {
   const favicon = effectiveFaviconUrl(link);
+  const da = link.deletedAt ? link.deletedAt.toISOString() : null;
   return {
     id: link.id,
     url: link.url,
@@ -164,6 +169,8 @@ export function linkToApiRow(link: {
     metadata_status: link.metadataStatus,
     created_at: link.createdAt.toISOString(),
     createdAt: link.createdAt.toISOString(),
+    deleted_at: da,
+    deletedAt: da,
     display_title: displayTitle(link),
   };
 }

@@ -25,10 +25,12 @@ export async function GET() {
   try {
     await getOrCreateGeneralGroupId();
     const groups = await prisma.group.findMany({
+      where: { deletedAt: null },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
-        _count: { select: { links: true } },
+        _count: { select: { links: { where: { deletedAt: null } } } },
         links: {
+          where: { deletedAt: null },
           orderBy: { createdAt: "desc" },
           take: 3,
           select: {
@@ -59,6 +61,7 @@ export async function GET() {
     );
   }
 }
+
 
 export async function POST(request: Request) {
   const envErr = getDatabaseEnvError();

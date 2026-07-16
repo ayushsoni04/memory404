@@ -10,9 +10,11 @@ type Props = {
   link: LinkApiRow;
   onOpen: (link: LinkApiRow, originEl: HTMLElement) => void;
   priority?: boolean;
+  /** When provided the card becomes draggable and fires this callback on dragStart. */
+  onDragToTrash?: (linkId: string) => void;
 };
 
-function LinkCard({ link, onOpen, priority = false }: Props) {
+function LinkCard({ link, onOpen, priority = false, onDragToTrash }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
   const pending = link.metadata_status === "pending" || !!link.isPending;
@@ -40,7 +42,15 @@ function LinkCard({ link, onOpen, priority = false }: Props) {
   const showLoader = pending;
 
   return (
-    <article ref={cardRef} className="mind-card mb-3 break-inside-avoid">
+    <article
+      ref={cardRef}
+      className="mind-card mb-3 break-inside-avoid"
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.setData("linkId", link.id);
+        e.dataTransfer.effectAllowed = "move";
+      }}
+    >
       <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated">
         <span className="mind-card-stroke" aria-hidden />
         <button

@@ -30,20 +30,25 @@ model Link {
   group            Group              @relation(fields: [groupId], references: [id], onDelete: Restrict)
   metadataStatus   LinkMetadataStatus @default(pending) @map("metadata_status")
   createdAt        DateTime           @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Soft-delete timestamp — null means active, non-null means in Trash.
+  deletedAt        DateTime?          @map("deleted_at") @db.Timestamptz(6)
 
   @@index([groupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
+  @@index([deletedAt])
   @@map("links")
 }
 
 model Group {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name          String
-  sortOrder     Int      @default(0) @map("sort_order")
-  parentGroupId String?  @map("parent_group_id") @db.Uuid
-  parentGroup   Group?   @relation("GroupTree", fields: [parentGroupId], references: [id], onDelete: SetNull)
-  childGroups   Group[]  @relation("GroupTree")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  sortOrder     Int       @default(0) @map("sort_order")
+  parentGroupId String?   @map("parent_group_id") @db.Uuid
+  parentGroup   Group?    @relation("GroupTree", fields: [parentGroupId], references: [id], onDelete: SetNull)
+  childGroups   Group[]   @relation("GroupTree")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  /// Soft-delete timestamp — null means active, non-null means in Trash.
+  deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
   links         Link[]
 
   @@index([parentGroupId])
