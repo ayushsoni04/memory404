@@ -201,16 +201,16 @@ export default function VaultInbox() {
   });
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(() => {
     try {
-      return window.localStorage.getItem("memory404-opened-group-id");
+      return window.localStorage.getItem("memory404-opened-group-id") ?? "all";
     } catch {
-      return null;
+      return "all";
     }
   });
   const [openedGroupId, setOpenedGroupId] = useState<string | null>(() => {
     try {
-      return window.localStorage.getItem("memory404-opened-group-id");
+      return window.localStorage.getItem("memory404-opened-group-id") ?? "all";
     } catch {
-      return null;
+      return "all";
     }
   });
 
@@ -358,9 +358,9 @@ export default function VaultInbox() {
             GENERAL_GROUP_NAME.toLowerCase(),
         ) ?? swrGroups[0];
       if (general) {
-        setSelectedGroupId((prev) => prev ?? general.id);
+        setSelectedGroupId((prev) => prev ?? "all");
         setOpenedGroupId((prev) => {
-          const next = prev ?? general.id;
+          const next = prev ?? "all";
           try {
             window.localStorage.setItem("memory404-opened-group-id", next);
           } catch {}
@@ -807,7 +807,9 @@ export default function VaultInbox() {
     }
 
     const trimmedNew = creatingNewGroup ? newGroupNameDraft.trim() : "";
-    const groupId = placeGroupId ?? openedGroupId;
+    const rawGroupId = placeGroupId ?? openedGroupId;
+    const groupId = rawGroupId === "all" ? (generalGroup?.id ?? null) : rawGroupId;
+
     if (!groupId && !trimmedNew) {
       setSaveError("Pick a group");
       return;
@@ -844,8 +846,8 @@ export default function VaultInbox() {
 
     const originalLinks = links;
 
-    // Optimistically add to UI links array if target group is currently open
-    if (groupId === openedGroupId && !trimmedNew) {
+    // Optimistically add to UI links array if target group is currently open or viewing "all"
+    if ((groupId === openedGroupId || openedGroupId === "all") && !trimmedNew) {
       setLinks((prev) => [draftLink, ...prev]);
     }
 
@@ -1328,6 +1330,10 @@ export default function VaultInbox() {
                 </p>
                 <div className="flex max-h-36 flex-col gap-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {groups.map((g) => {
+                    const isGeneral =
+                      g.name.trim().toLowerCase() ===
+                      GENERAL_GROUP_NAME.toLowerCase();
+                    const displayName = isGeneral ? "All" : g.name;
                     const active =
                       !creatingNewGroup && placeGroupId === g.id;
                     return (
@@ -1345,7 +1351,7 @@ export default function VaultInbox() {
                             : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
                         }`}
                       >
-                        {g.name}
+                        {displayName}
                       </button>
                     );
                   })}
@@ -1509,21 +1515,7 @@ export default function VaultInbox() {
               </button>
               <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border z-10 relative" />
 
-              {generalGroup ? (
-                <button
-                  type="button"
-                  aria-pressed={generalGroup.id === openedGroupId}
-                  onClick={() => selectGroup(generalGroup.id)}
-                  className={`z-10 relative ${
-                    generalGroup.id === openedGroupId ? pillActive : pillIdle
-                  }`}
-                >
-                  {generalGroup.name}
-                </button>
-              ) : null}
-              {generalGroup ? (
-                <span aria-hidden className="mx-2 h-5 w-px shrink-0 bg-border z-10 relative" />
-              ) : null}
+
               <Reorder.Group
                 axis="x"
                 values={filteredFolders}
@@ -1706,7 +1698,7 @@ export default function VaultInbox() {
                 }}
               >
                 <AddLinkCard
-                  groupId={openedGroupId === "all" ? null : openedGroupId}
+                  groupId={openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId}
                   saveLink={saveLink}
                   onSaved={(row) => {
                     setLinks((prev) => [
@@ -1744,7 +1736,14 @@ export default function VaultInbox() {
         <LinkDetailOverlay
           link={openedLink}
           groupName={openedGroup?.name ?? null}
-          groups={groups.map((g) => ({ id: g.id, name: g.name }))}
+          groups={groups.map((g) => ({
+            id: g.id,
+            name:
+              g.name.trim().toLowerCase() ===
+              GENERAL_GROUP_NAME.toLowerCase()
+                ? "All"
+                : g.name,
+          }))}
           originRect={overlayOrigin}
           onClose={closeLinkDetail}
           onPrev={goPrevLink}

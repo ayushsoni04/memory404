@@ -191,12 +191,20 @@ function App() {
         if (!defaultGroup) {
           defaultGroup =
             res.cachedGroups.find(
-              (g) => g.name.trim().toLowerCase() === "uncategorized",
+              (g) => {
+                const nameLower = g.name.trim().toLowerCase();
+                return nameLower === "general" || nameLower === "uncategorized";
+              }
             ) ?? res.cachedGroups[0] ?? null;
         }
         if (defaultGroup) {
           setSelectedGroupId(defaultGroup.id);
-          setGroupQuery(defaultGroup.name);
+          const nameLower = defaultGroup.name.trim().toLowerCase();
+          setGroupQuery(
+            nameLower === "general" || nameLower === "uncategorized"
+              ? "All"
+              : defaultGroup.name,
+          );
         }
         setGroupsLoading(false);
       }
@@ -239,12 +247,20 @@ function App() {
           if (!defaultGroup) {
             defaultGroup =
               loadedGroups.find(
-                (g) => g.name.trim().toLowerCase() === "uncategorized",
+                (g) => {
+                  const nameLower = g.name.trim().toLowerCase();
+                  return nameLower === "general" || nameLower === "uncategorized";
+                }
               ) ?? loadedGroups[0] ?? null;
           }
           if (defaultGroup) {
             setSelectedGroupId(defaultGroup.id);
-            setGroupQuery(defaultGroup.name);
+            const nameLower = defaultGroup.name.trim().toLowerCase();
+            setGroupQuery(
+              nameLower === "general" || nameLower === "uncategorized"
+                ? "All"
+                : defaultGroup.name,
+            );
           }
         });
         
@@ -264,20 +280,38 @@ function App() {
 
   const filteredGroups = useMemo(() => {
     const q = groupQuery.trim().toLowerCase();
-    if (!q) return groups;
-    return groups.filter((g) => g.name.toLowerCase().includes(q));
+    const mapped = groups.map((g) => {
+      const nameLower = g.name.trim().toLowerCase();
+      if (nameLower === "general" || nameLower === "uncategorized") {
+        return { ...g, name: "All" };
+      }
+      return g;
+    });
+    if (!q) return mapped;
+    return mapped.filter((g) => g.name.toLowerCase().includes(q));
   }, [groups, groupQuery]);
 
   const exactMatch = useMemo(() => {
     const q = groupQuery.trim().toLowerCase();
     if (!q) return null;
-    return groups.find((g) => g.name.toLowerCase() === q) ?? null;
+    const mapped = groups.map((g) => {
+      const nameLower = g.name.trim().toLowerCase();
+      if (nameLower === "general" || nameLower === "uncategorized") {
+        return { ...g, name: "All" };
+      }
+      return g;
+    });
+    return mapped.find((g) => g.name.toLowerCase() === q) ?? null;
   }, [groups, groupQuery]);
 
-  const currentGroupName = useMemo(
-    () => groups.find((g) => g.id === currentGroupId)?.name ?? null,
-    [groups, currentGroupId],
-  );
+  const currentGroupName = useMemo(() => {
+    const name = groups.find((g) => g.id === currentGroupId)?.name ?? null;
+    if (name) {
+      const nameLower = name.trim().toLowerCase();
+      if (nameLower === "general" || nameLower === "uncategorized") return "All";
+    }
+    return name;
+  }, [groups, currentGroupId]);
 
   const resolveTargetGroup = async () => {
     const base = apiBase.trim();
