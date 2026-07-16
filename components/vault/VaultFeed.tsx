@@ -170,7 +170,7 @@ export default function VaultFeed({
                 link={link}
                 entering={link.id === enteringLinkId}
                 onOpen={openLinkDetail}
-                priority={index < 4}
+                priority={index < 2}
                 imageSizes={feedImageSizes}
               />
             ))}

@@ -5,19 +5,29 @@ import useSWR from "swr";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
-import { GROUP_PILL_MIN_PX, type GroupRow } from "./types";
-import { readJsonStorage, readStorageItem } from "./storage";
+import {
+  GROUP_PILL_MIN_PX,
+  OPENED_GROUP_COOKIE,
+  type GroupRow,
+} from "./types";
+
+function persistOpenedGroup(id: string) {
+  try {
+    window.localStorage.setItem(OPENED_GROUP_COOKIE, id);
+    document.cookie = `${OPENED_GROUP_COOKIE}=${encodeURIComponent(id)}; Path=/; Max-Age=31536000; SameSite=Lax`;
+  } catch {}
+}
 
 export function useVaultGroups(
   router: AppRouterInstance,
   groupSearch: string,
   canReorderPillsBase: boolean,
+  initialGroups: GroupRow[],
+  initialOpenedGroupId: string,
 ) {
-  const [groups, setGroups] = useState<GroupRow[]>(() =>
-    readJsonStorage<GroupRow[]>("memory404-groups-cache", []),
-  );
+  const [groups, setGroups] = useState<GroupRow[]>(initialGroups);
   const [openedGroupId, setOpenedGroupId] = useState<string | null>(
-    () => readStorageItem("memory404-opened-group-id") ?? "all",
+    initialOpenedGroupId,
   );
 
   const [createGroupName, setCreateGroupName] = useState("");
@@ -51,7 +61,13 @@ export function useVaultGroups(
         throw err;
       }
     },
-    { revalidateOnFocus: false, dedupingInterval: 30_000 },
+    {
+      fallbackData: initialGroups,
+      revalidateOnMount: initialGroups.length === 0,
+      revalidateIfStale: false,
+      revalidateOnFocus: false,
+      dedupingInterval: 30_000,
+    },
   );
 
   useEffect(() => {
@@ -72,9 +88,7 @@ export function useVaultGroups(
       if (general) {
         setOpenedGroupId((prev) => {
           const next = prev ?? "all";
-          try {
-            window.localStorage.setItem("memory404-opened-group-id", next);
-          } catch {}
+          persistOpenedGroup(next);
           return next;
         });
       }
@@ -87,9 +101,7 @@ export function useVaultGroups(
 
   const selectGroup = useCallback((id: string) => {
     setOpenedGroupId(id);
-    try {
-      window.localStorage.setItem("memory404-opened-group-id", id);
-    } catch {}
+    persistOpenedGroup(id);
   }, []);
 
   const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
@@ -141,6 +153,7 @@ export function useVaultGroups(
       await loadGroups();
       if (created?.id) {
         setOpenedGroupId(created.id);
+        persistOpenedGroup(created.id);
       }
     } catch {
       setGroupsError("Failed to create group");

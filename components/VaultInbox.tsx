@@ -1,8 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { useAddLinkFlow } from "./vault/useAddLinkFlow";
 import { useLinkActions } from "./vault/useLinkActions";
@@ -10,10 +10,24 @@ import { useVaultGroups } from "./vault/useVaultGroups";
 import { useVaultLinks } from "./vault/useVaultLinks";
 import { useVaultPreferences } from "./vault/useVaultPreferences";
 import VaultFeed from "./vault/VaultFeed";
-import VaultGroupToolbar from "./vault/VaultGroupToolbar";
 import VaultSidebar from "./vault/VaultSidebar";
+import type { InitialVaultData } from "./vault/types";
 
-export default function VaultInbox() {
+const VaultGroupToolbar = dynamic(() => import("./vault/VaultGroupToolbar"), {
+  ssr: false,
+  loading: () => <div className="h-10" aria-hidden />,
+});
+
+const LinkDetailOverlay = dynamic(
+  () => import("@/components/LinkDetailOverlay"),
+  { ssr: false },
+);
+
+export default function VaultInbox({
+  initialData,
+}: {
+  initialData: InitialVaultData;
+}) {
   const router = useRouter();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [newCardId, setNewCardId] = useState<string | null>(null);
@@ -29,7 +43,13 @@ export default function VaultInbox() {
     canReorderPills: canReorderPillsBase,
   } = useVaultPreferences();
 
-  const groupsState = useVaultGroups(router, groupSearch, canReorderPillsBase);
+  const groupsState = useVaultGroups(
+    router,
+    groupSearch,
+    canReorderPillsBase,
+    initialData.groups,
+    initialData.openedGroupId,
+  );
 
   const {
     groups,
@@ -71,7 +91,7 @@ export default function VaultInbox() {
     prependLinkToPages,
     removeLinkFromPages,
     saveLink,
-  } = useVaultLinks(openedGroupId, sortBy);
+  } = useVaultLinks(openedGroupId, sortBy, initialData);
 
   const addLinkFlow = useAddLinkFlow({
     openedGroupId,

@@ -5,7 +5,6 @@ import { AppLoader } from "@/components/AppLoader";
 import { googleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageSrcSet, getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
-import { useFeedMediaActivation } from "@/lib/use-feed-media";
 
 type Props = {
   link: LinkApiRow;
@@ -31,21 +30,13 @@ function LinkCard({
     sourceFor: string;
     url: string;
   } | null>(null);
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const imgSrc =
     fallback?.sourceFor === link.image_url ? fallback.url : link.image_url;
   const feedSrc = getFeedImageUrl(imgSrc);
   const feedSrcSet = getFeedImageSrcSet(imgSrc);
-  const {
-    activated,
-    containerRef: mediaContainerRef,
-    settleLoad,
-  } = useFeedMediaActivation(Boolean(feedSrc));
-  const loaded = activated && loadedSrc === imgSrc;
 
-  // NOTE: Proactive browser-side Microlink screenshot resolution has been removed.
-  // Images are now stored in Cloudinary server-side during metadata enrichment.
-  // The onError handler below still provides a fallback for any genuinely broken URLs.
+  // Keep src/srcSet in server-rendered HTML so the browser can discover media
+  // before hydration. Native lazy loading handles offscreen cards.
 
   const showLoader = pending;
 
@@ -69,30 +60,23 @@ function LinkCard({
             if (cardRef.current) onOpen(link, cardRef.current);
           }}
         >
-          <span ref={mediaContainerRef} className="relative block w-full">
-            {/* eslint-disable-next-line @next/next/no-img-element -- gated src/srcSet via feed media controller */}
+          <span className="relative block w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary already supplies responsive transformed srcsets */}
             <img
               key={`${link.id}-${imgSrc}`}
-              src={activated ? feedSrc : undefined}
-              srcSet={activated ? feedSrcSet : undefined}
+              src={feedSrc || undefined}
+              srcSet={feedSrcSet || undefined}
               sizes={feedSrcSet ? imageSizes : undefined}
               alt={link.display_title}
               loading={priority ? "eager" : "lazy"}
-              fetchPriority={priority ? "high" : "low"}
+              fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
               decoding="async"
               draggable={false}
-              onLoad={() => {
-                setLoadedSrc(imgSrc);
-                settleLoad();
-              }}
-              className={`mind-card-preview block w-full object-cover object-top transition-opacity duration-[200ms] ease-[var(--ease-out)] ${
-                loaded ? "opacity-100" : "opacity-0"
-              } ${
+              className={`mind-card-preview block w-full object-cover object-top ${
                 !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
               } ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
-                settleLoad();
                 // Fall back directly to favicon — Microlink screenshot resolution
                 // is handled server-side; a client-side Microlink fetch per card
                 // caused up to 24 simultaneous 5-15s network calls on page load.

@@ -2,6 +2,7 @@ import type { LinkApiRow } from "@/lib/links";
 
 export const GROUP_PILL_MIN_PX = 96;
 export const GRID_SIZE_KEY = "memory404-grid-size";
+export const OPENED_GROUP_COOKIE = "memory404-opened-group-id";
 export const LINKS_PAGE_SIZE = 24;
 /** Only poll metadata for recently-created pending links (avoids endless refetch). */
 export const PENDING_POLL_MAX_AGE_MS = 10 * 60 * 1000;
@@ -29,6 +30,12 @@ export type GroupRow = {
   linksCount: number;
   previewTitles: string[];
   sortOrder?: number;
+};
+
+export type InitialVaultData = {
+  groups: GroupRow[];
+  openedGroupId: string;
+  firstPage: LinksPage;
 };
 
 export const FIELD_CLASS =

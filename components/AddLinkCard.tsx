@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { RisingHelixFill } from "@/components/RisingHelixFill";
 import type { LinkApiRow } from "@/lib/links";
@@ -15,30 +14,7 @@ type Props = {
   ) => Promise<{ ok: true; link: LinkApiRow } | { ok: false; error: string }>;
 };
 
-type MotionMode = "full" | "reduced" | "none";
-
-const stateVariants = {
-  initial: (mode: MotionMode) => ({
-    opacity: mode === "none" ? 1 : 0,
-    transform: mode === "full" ? "translateY(4px)" : "translateY(0)",
-  }),
-  animate: (mode: MotionMode) => ({
-    opacity: 1,
-    transform: "translateY(0)",
-    transition: {
-      duration: mode === "none" ? 0 : mode === "reduced" ? 0.15 : 0.2,
-      ease: [0.23, 1, 0.32, 1] as const,
-    },
-  }),
-  exit: (mode: MotionMode) => ({
-    opacity: mode === "none" ? 1 : 0,
-    transform: mode === "full" ? "translateY(-4px)" : "translateY(0)",
-    transition: {
-      duration: mode === "none" ? 0 : mode === "reduced" ? 0.12 : 0.16,
-      ease: [0.23, 1, 0.32, 1] as const,
-    },
-  }),
-};
+type Phase = "idle" | "form" | "saving" | "success" | "notes";
 
 export default function AddLinkCard({
   groupId,
@@ -53,7 +29,6 @@ export default function AddLinkCard({
   const [skipMotion, setSkipMotion] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
-  const reduceMotion = useReducedMotion();
 
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [notes, setNotes] = useState("");
@@ -87,7 +62,6 @@ export default function AddLinkCard({
       }
     }
     onSaved(finalLink);
-    // Reset state
     setOpen(false);
     setUrl("");
     setSaving(false);
@@ -138,7 +112,6 @@ export default function AddLinkCard({
     setShowSuccess(false);
     setError(null);
 
-    // Keep the form open for the network round-trip.
     const pendingUrl = trimmed;
 
     try {
@@ -149,14 +122,12 @@ export default function AddLinkCard({
         setSaving(false);
         return;
       }
-      
-      // Success! Play the check animation
+
       setShowSuccess(true);
       setSavedLink(result.link);
       await new Promise((resolve) => setTimeout(resolve, 400));
-      
+
       if (gen === saveGen.current) {
-        // Instead of completing, transition to notes form
         setUrl("");
         setCountdown(5);
         setTimerActive(true);
@@ -169,7 +140,7 @@ export default function AddLinkCard({
     }
   };
 
-  const phase = showNotesForm
+  const phase: Phase = showNotesForm
     ? "notes"
     : saving
       ? showSuccess
@@ -178,140 +149,149 @@ export default function AddLinkCard({
       : open
         ? "form"
         : "idle";
-  const motionMode: MotionMode = skipMotion
-    ? "none"
-    : reduceMotion
-      ? "reduced"
-      : "full";
+
+  const panelClass = (active: boolean) =>
+    `add-link-panel${active ? " is-active" : ""}${skipMotion ? " is-instant" : ""}`;
 
   return (
     <article className="mind-card mb-3 break-inside-avoid">
       <div className="mind-card-shell group relative min-h-[140px] overflow-hidden rounded-[4px]">
         <span className="mind-card-stroke" aria-hidden />
-        <AnimatePresence initial={false} mode="popLayout" custom={motionMode}>
-        <motion.div
-          key={phase}
-          custom={motionMode}
-          variants={stateVariants}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]"
-        >
-        {saving && !showNotesForm ? <RisingHelixFill active /> : null}
+        <div className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]">
+          {(phase === "saving" || phase === "success") && (
+            <RisingHelixFill active />
+          )}
 
-        {!open && !saving && !showNotesForm ? (
-          <button
-            type="button"
-            onClick={() => setOpen(true)}
-            disabled={!groupId}
-            className="flex min-h-[140px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border border-dashed border-muted/50 bg-transparent px-3 py-6 text-center outline-none transition-colors hover:border-foreground/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:opacity-40"
+          <div
+            className={panelClass(phase === "idle")}
+            aria-hidden={phase !== "idle"}
           >
-            <Plus className="size-5 text-muted" strokeWidth={1.75} aria-hidden />
-            <span className="text-[13px] font-medium text-muted">Add link</span>
-          </button>
-        ) : null}
-
-        {open && !saving && !showNotesForm ? (
-          <form
-            className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3"
-            onSubmit={(e) => {
-              e.preventDefault();
-              void submit();
-            }}
-          >
-            <input
-              ref={inputRef}
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  cancel(true);
-                }
-              }}
-              placeholder="https://…"
-              className="w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-2 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40"
-              autoComplete="off"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                disabled={!url.trim() || !groupId}
-                className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-45"
-              >
-                Save
-              </button>
-              <button
-                type="button"
-                onClick={() => cancel()}
-                className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted hover:bg-pill-hover"
-              >
-                Cancel
-              </button>
-            </div>
-            {error ? <p className="text-[11px] text-danger">{error}</p> : null}
-          </form>
-        ) : null}
-
-        {saving && !showNotesForm ? (
-          <div className="relative z-[2] flex min-h-[140px] flex-col items-center justify-center pt-2">
-            {showSuccess ? (
-              <div className="flex flex-col items-center gap-2">
-                <span className="t-success-check" data-state="in" aria-hidden="true">
-                  <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="size-10">
-                    <path d="M20 6L9 17L4 12" style={{ strokeDasharray: 24, strokeDashoffset: 24 }} />
-                  </svg>
-                </span>
-                <span className="text-[12px] text-success font-medium">Link added!</span>
-              </div>
-            ) : (
-              <span className="text-[12px] text-muted">Saving…</span>
-            )}
+            <button
+              type="button"
+              onClick={() => setOpen(true)}
+              disabled={!groupId}
+              tabIndex={phase === "idle" ? 0 : -1}
+              className="flex min-h-[140px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border border-dashed border-muted/50 bg-transparent px-3 py-6 text-center outline-none transition-colors hover:border-foreground/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:opacity-40"
+            >
+              <Plus className="size-5 text-muted" strokeWidth={1.75} aria-hidden />
+              <span className="text-[13px] font-medium text-muted">Add link</span>
+            </button>
           </div>
-        ) : null}
 
-        {showNotesForm ? (
-          <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] text-muted">
-                {timerActive ? `Add notes (auto-done in ${countdown}s)` : "Add notes"}
-              </span>
-              {timerActive && (
+          <div
+            className={panelClass(phase === "form")}
+            aria-hidden={phase !== "form"}
+          >
+            <form
+              className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3"
+              onSubmit={(e) => {
+                e.preventDefault();
+                void submit();
+              }}
+            >
+              <input
+                ref={inputRef}
+                type="url"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    e.preventDefault();
+                    cancel(true);
+                  }
+                }}
+                tabIndex={phase === "form" ? 0 : -1}
+                placeholder="https://…"
+                className="w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-2 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40"
+                autoComplete="off"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  disabled={!url.trim() || !groupId}
+                  tabIndex={phase === "form" ? 0 : -1}
+                  className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-45"
+                >
+                  Save
+                </button>
                 <button
                   type="button"
-                  onClick={() => setTimerActive(false)}
-                  className="text-[11px] text-muted hover:underline"
+                  onClick={() => cancel()}
+                  tabIndex={phase === "form" ? 0 : -1}
+                  className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted hover:bg-pill-hover"
                 >
-                  Pause
+                  Cancel
                 </button>
+              </div>
+              {error ? <p className="text-[11px] text-danger">{error}</p> : null}
+            </form>
+          </div>
+
+          <div
+            className={panelClass(phase === "saving" || phase === "success")}
+            aria-hidden={phase !== "saving" && phase !== "success"}
+          >
+            <div className="relative z-[2] flex min-h-[140px] flex-col items-center justify-center pt-2">
+              {showSuccess ? (
+                <div className="flex flex-col items-center gap-2">
+                  <span className="t-success-check" data-state="in" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="var(--success)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="size-10">
+                      <path d="M20 6L9 17L4 12" style={{ strokeDasharray: 24, strokeDashoffset: 24 }} />
+                    </svg>
+                  </span>
+                  <span className="text-[12px] text-success font-medium">Link added!</span>
+                </div>
+              ) : (
+                <span className="text-[12px] text-muted">Saving…</span>
               )}
             </div>
-            <textarea
-              value={notes}
-              onChange={(e) => {
-                setNotes(e.target.value);
-                setTimerActive(false);
-              }}
-              onFocus={() => setTimerActive(false)}
-              placeholder="Add optional notes here..."
-              rows={2}
-              className="w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40 resize-none"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={finishFlow}
-                className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg"
-              >
-                {notes.trim() ? "Save Notes" : "Done"}
-              </button>
+          </div>
+
+          <div
+            className={panelClass(phase === "notes")}
+            aria-hidden={phase !== "notes"}
+          >
+            <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] text-muted">
+                  {timerActive ? `Add notes (auto-done in ${countdown}s)` : "Add notes"}
+                </span>
+                {timerActive && (
+                  <button
+                    type="button"
+                    onClick={() => setTimerActive(false)}
+                    tabIndex={phase === "notes" ? 0 : -1}
+                    className="text-[11px] text-muted hover:underline"
+                  >
+                    Pause
+                  </button>
+                )}
+              </div>
+              <textarea
+                value={notes}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  setTimerActive(false);
+                }}
+                onFocus={() => setTimerActive(false)}
+                tabIndex={phase === "notes" ? 0 : -1}
+                placeholder="Add optional notes here..."
+                rows={2}
+                className="w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40 resize-none"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={finishFlow}
+                  tabIndex={phase === "notes" ? 0 : -1}
+                  className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg"
+                >
+                  {notes.trim() ? "Save Notes" : "Done"}
+                </button>
+              </div>
             </div>
           </div>
-        ) : null}
-        </motion.div>
-        </AnimatePresence>
+        </div>
       </div>
     </article>
   );

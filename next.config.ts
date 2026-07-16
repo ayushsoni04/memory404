@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Target modern browsers so Next doesn't ship unnecessary Baseline polyfills.
+  // Reduces "Legacy JavaScript" and helps Total Blocking Time.
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "res.cloudinary.com" },

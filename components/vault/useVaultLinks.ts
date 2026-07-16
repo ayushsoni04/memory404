@@ -19,8 +19,19 @@ import {
   type SortBy,
 } from "./types";
 
-export function useVaultLinks(openedGroupId: string | null, sortBy: SortBy) {
+type InitialVaultLinks = {
+  openedGroupId: string;
+  firstPage: LinksPage;
+};
+
+export function useVaultLinks(
+  openedGroupId: string | null,
+  sortBy: SortBy,
+  initialData: InitialVaultLinks,
+) {
+  const initialMatches = openedGroupId === initialData.openedGroupId;
   const [links, setLinks] = useState<LinkApiRow[]>(() => {
+    if (initialMatches) return initialData.firstPage.links;
     const storedGroupId = readStorageItem("memory404-opened-group-id");
     const cache = readJsonStorage<Record<string, LinkApiRow[]>>(
       "memory404-links-cache",
@@ -30,6 +41,7 @@ export function useVaultLinks(openedGroupId: string | null, sortBy: SortBy) {
     return [];
   });
   const [loadingLinks, setLoadingLinks] = useState(() => {
+    if (initialMatches) return false;
     const storedGroupId = readStorageItem("memory404-opened-group-id");
     const cache = readJsonStorage<Record<string, LinkApiRow[]>>(
       "memory404-links-cache",
@@ -39,11 +51,19 @@ export function useVaultLinks(openedGroupId: string | null, sortBy: SortBy) {
   });
   const [fetchError, setFetchError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
-  const [hasMoreLinks, setHasMoreLinks] = useState(true);
+  const [hasMoreLinks, setHasMoreLinks] = useState(
+    initialMatches ? initialData.firstPage.hasMore : true,
+  );
   const sentinelRef = useRef<HTMLDivElement | null>(null);
   const loadMoreLockRef = useRef(false);
   const [linksCache, setLinksCache] = useState<Record<string, LinkApiRow[]>>(
-    () => readJsonStorage<Record<string, LinkApiRow[]>>("memory404-links-cache", {}),
+    () => ({
+      ...readJsonStorage<Record<string, LinkApiRow[]>>(
+        "memory404-links-cache",
+        {},
+      ),
+      [initialData.openedGroupId]: initialData.firstPage.links,
+    }),
   );
 
   const linksCacheRef = useRef(linksCache);
@@ -112,6 +132,8 @@ export function useVaultLinks(openedGroupId: string | null, sortBy: SortBy) {
       };
     },
     {
+      fallbackData: initialMatches ? [initialData.firstPage] : undefined,
+      revalidateOnMount: !initialMatches,
       revalidateOnFocus: false,
       revalidateFirstPage: false,
       dedupingInterval: 2000,
@@ -173,9 +195,18 @@ export function useVaultLinks(openedGroupId: string | null, sortBy: SortBy) {
 
   useEffect(() => {
     setLinkPageCount(1);
-    setHasMoreLinks(true);
+    setHasMoreLinks(
+      openedGroupId === initialData.openedGroupId
+        ? initialData.firstPage.hasMore
+        : true,
+    );
     loadMoreLockRef.current = false;
-  }, [openedGroupId, setLinkPageCount]);
+  }, [
+    initialData.firstPage.hasMore,
+    initialData.openedGroupId,
+    openedGroupId,
+    setLinkPageCount,
+  ]);
 
   // Age window is intentionally evaluated when `links` changes (same as pre-split).
   // eslint-disable-next-line react-hooks/purity -- cutoff is relative to poll refresh cycles

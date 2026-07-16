@@ -1,6 +1,11 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import VaultInbox from "@/components/VaultInbox";
+import { OPENED_GROUP_COOKIE } from "@/components/vault/types";
+import { getInitialVaultData } from "@/lib/vault-initial-data";
+
+export const runtime = "nodejs";
 
 export const metadata: Metadata = {
   title: "memory404 — saved links feed",
@@ -34,11 +39,16 @@ function VaultFallback() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const cookieStore = await cookies();
+  const initialData = await getInitialVaultData(
+    cookieStore.get(OPENED_GROUP_COOKIE)?.value ?? "all",
+  );
+
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <Suspense fallback={<VaultFallback />}>
-        <VaultInbox />
+        <VaultInbox initialData={initialData} />
       </Suspense>
     </div>
   );
