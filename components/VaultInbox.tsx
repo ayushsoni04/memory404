@@ -1237,7 +1237,7 @@ export default function VaultInbox() {
           <Link
             href="/"
             aria-label="memory404"
-            className="inline-flex items-center gap-2 text-foreground"
+            className="inline-flex items-center gap-2 text-foreground transition hover:opacity-85"
           >
             <svg
               width="28"
@@ -1252,6 +1252,7 @@ export default function VaultInbox() {
               />
               <rect y="20" width="32" height="12" fill="currentColor" />
             </svg>
+            <span className="font-mono text-sm tracking-widest font-semibold uppercase">404</span>
           </Link>
           <div
             role="group"

@@ -350,7 +350,7 @@ export default function SettingsPage() {
               <path d="M0 0.38C0 0.17 0.17 0 0.38 0H22c5.52 0 10 4.48 10 10s-4.48 10-10 10H0V0.38Z" fill="currentColor" />
               <rect y="20" width="32" height="12" fill="currentColor" />
             </svg>
-            <span className="font-mono text-sm tracking-widest font-semibold uppercase">Memory404</span>
+            <span className="font-mono text-sm tracking-widest font-semibold uppercase">404</span>
           </Link>
 
           {/* Sub Navigation tabs */}
