@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
@@ -12,6 +13,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
     const { id } = await context.params;
     if (!id || typeof id !== "string") {
@@ -19,7 +23,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     const group = await prisma.group.findUnique({
-      where: { id },
+      where: { id, userId: auth.id },
       select: { id: true, name: true, deletedAt: true },
     });
 
@@ -38,13 +42,13 @@ export async function DELETE(_request: Request, context: RouteContext) {
     // Soft-delete all active links in this group at the SAME timestamp so we can
     // restore them together when the group is restored.
     await prisma.link.updateMany({
-      where: { groupId: id, deletedAt: null },
+      where: { groupId: id, userId: auth.id, deletedAt: null },
       data: { deletedAt: now },
     });
 
     // Soft-delete the group itself
     await prisma.group.update({
-      where: { id },
+      where: { id, userId: auth.id },
       data: { deletedAt: now },
     });
 

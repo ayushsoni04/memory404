@@ -15,10 +15,27 @@ enum LinkMetadataStatus {
   ready
 }
 
+/// Owner of links/groups. Until real auth ships, all rows are attributed to a
+/// single seeded dev user (see lib/auth.ts DEV_USER_ID) so the app keeps working.
+model User {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  name      String?
+  avatarUrl String?  @map("avatar_url")
+  plan      String   @default("free")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  links     Link[]
+  groups    Group[]
+
+  @@map("users")
+}
+
 /// Link inbox row. `title` = system/metadata; display uses `customTitle ?? title`.
 model Link {
   id               String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  url              String             @unique
+  userId           String             @map("user_id") @db.Uuid
+  user             User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  url              String
   title            String
   customTitle      String?            @map("custom_title")
   description      String?
@@ -33,14 +50,18 @@ model Link {
   /// Soft-delete timestamp — null means active, non-null means in Trash.
   deletedAt        DateTime?          @map("deleted_at") @db.Timestamptz(6)
 
+  @@unique([userId, url])
   @@index([groupId])
   @@index([createdAt(sort: Desc), id(sort: Desc)])
   @@index([deletedAt])
+  @@index([userId, deletedAt, createdAt(sort: Desc), id(sort: Desc)])
   @@map("links")
 }
 
 model Group {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   name          String
   sortOrder     Int       @default(0) @map("sort_order")
   parentGroupId String?   @map("parent_group_id") @db.Uuid
@@ -51,8 +72,8 @@ model Group {
   deletedAt     DateTime? @map("deleted_at") @db.Timestamptz(6)
   links         Link[]
 
+  @@unique([userId, name])
   @@index([parentGroupId])
-  @@index([sortOrder])
-  @@unique([name])
+  @@index([userId, sortOrder])
   @@map("groups")
 }

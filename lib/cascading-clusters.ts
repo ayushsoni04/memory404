@@ -217,11 +217,11 @@ export function toCanvasItem(link: LinkApiRow): CanvasItem {
   return {
     id: link.id,
     url: link.url,
-    title: link.display_title,
-    previewImage: link.image_url || null,
+    title: link.displayTitle,
+    previewImage: link.imageUrl || null,
     tags: link.tags,
     embedding: null,
-    createdAt: link.created_at,
+    createdAt: link.createdAt,
   };
 }
 

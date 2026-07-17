@@ -214,7 +214,7 @@ export function useVaultLinks(
   const pendingPollIds = useMemo(() => {
     return links
       .filter((l) => {
-        if (l.metadata_status !== "pending") return false;
+        if (l.metadataStatus !== "pending") return false;
         if (l.id.startsWith("optimistic-")) return false;
         const created = new Date(l.createdAt).getTime();
         return Number.isFinite(created) && created >= pendingPollCutoff;

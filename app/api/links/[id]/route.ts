@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { after, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { linkToApiRow } from "@/lib/links";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
@@ -21,6 +22,9 @@ export async function PATCH(request: Request, context: RouteContext) {
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
+
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
 
   try {
     const { id } = await context.params;
@@ -57,7 +61,7 @@ export async function PATCH(request: Request, context: RouteContext) {
 
     if (body.refreshPreview === true) {
       const existing = await prisma.link.findUnique({
-        where: { id },
+        where: { id, userId: auth.id },
         select: { id: true, url: true },
       });
       if (!existing) {
@@ -132,7 +136,7 @@ export async function PATCH(request: Request, context: RouteContext) {
       if (typeof rawGroupId === "string" && rawGroupId.trim()) {
         const normalizedGroupId = rawGroupId.trim();
         const groupExists = await prisma.group.findUnique({
-          where: { id: normalizedGroupId },
+          where: { id: normalizedGroupId, userId: auth.id },
           select: { id: true },
         });
         if (!groupExists) {
@@ -151,7 +155,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const updated = await prisma.link.update({
-      where: { id },
+      where: { id, userId: auth.id },
       data: updateData,
     });
 
@@ -187,6 +191,9 @@ export async function DELETE(_request: Request, context: RouteContext) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
     const { id } = await context.params;
     if (!id || typeof id !== "string") {
@@ -195,7 +202,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     // Soft-delete: move to Trash instead of permanently removing
     const trashed = await prisma.link.update({
-      where: { id },
+      where: { id, userId: auth.id },
       data: { deletedAt: new Date() },
     });
     return NextResponse.json({ ok: true, link: linkToApiRow(trashed) });

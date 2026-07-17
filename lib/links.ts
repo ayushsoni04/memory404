@@ -10,30 +10,25 @@ export type LinkApiRow = {
   url: string;
   /** System / metadata title (never overwritten by user rename). */
   title: string;
-  custom_title: string | null;
   customTitle: string | null;
   description: string | null;
   /**
    * Preview image: stored og/twitter/icon from scrape, or Google favicon fallback
    * so the card always has a visual when the URL is valid.
    */
-  image_url: string;
+  imageUrl: string;
   /** Site favicon/logo; falls back to Google favicon by host. */
-  favicon_url: string;
   faviconUrl: string;
   tags: string[];
   notes: string | null;
-  group_id: string;
   groupId: string;
   /** Background metadata enrichment: pending until scrape finishes. */
-  metadata_status: LinkMetadataStatus;
-  created_at: string;
+  metadataStatus: LinkMetadataStatus;
   createdAt: string;
   /** ISO string or null. Set when link is in Trash. */
-  deleted_at: string | null;
   deletedAt: string | null;
-  /** `custom_title ?? title` */
-  display_title: string;
+  /** `customTitle ?? title` */
+  displayTitle: string;
   isPending?: boolean;
 };
 
@@ -156,22 +151,17 @@ export function linkToApiRow(link: {
     id: link.id,
     url: link.url,
     title: link.title,
-    custom_title: link.customTitle,
     customTitle: link.customTitle,
     description: link.description,
-    image_url: effectivePreviewImageUrl(link),
-    favicon_url: favicon,
+    imageUrl: effectivePreviewImageUrl(link),
     faviconUrl: favicon,
     tags: link.tags,
     notes: link.notes,
-    group_id: link.groupId,
     groupId: link.groupId,
-    metadata_status: link.metadataStatus,
-    created_at: link.createdAt.toISOString(),
+    metadataStatus: link.metadataStatus,
     createdAt: link.createdAt.toISOString(),
-    deleted_at: da,
     deletedAt: da,
-    display_title: displayTitle(link),
+    displayTitle: displayTitle(link),
   };
 }
 

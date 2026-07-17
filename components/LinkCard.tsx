@@ -31,14 +31,14 @@ function LinkCard({
 }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
-  const pending = link.metadata_status === "pending" || !!link.isPending;
+  const pending = link.metadataStatus === "pending" || !!link.isPending;
   const [fallback, setFallback] = useState<{
     sourceFor: string;
     url: string;
   } | null>(null);
   const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
   const imgSrc =
-    fallback?.sourceFor === link.image_url ? fallback.url : link.image_url;
+    fallback?.sourceFor === link.imageUrl ? fallback.url : link.imageUrl;
   const feedSrc = getFeedImageUrl(imgSrc);
   const feedSrcSet = getFeedImageSrcSet(imgSrc);
   const posterSrc = getFeedPosterUrl(imgSrc);
@@ -65,7 +65,7 @@ function LinkCard({
         <span className="mind-card-stroke" aria-hidden />
         <button
           type="button"
-          aria-label={`Open details for ${link.display_title}`}
+          aria-label={`Open details for ${link.displayTitle}`}
           className="relative z-[1] block w-full overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
           onClick={() => {
             if (cardRef.current) onOpen(link, cardRef.current);
@@ -99,7 +99,7 @@ function LinkCard({
               src={activated ? feedSrc : undefined}
               srcSet={activated ? feedSrcSet : undefined}
               sizes={feedSrcSet ? imageSizes : undefined}
-              alt={link.display_title}
+              alt={link.displayTitle}
               loading={priority ? "eager" : "lazy"}
               fetchPriority={priority ? "high" : "low"}
               referrerPolicy="no-referrer"
@@ -123,22 +123,22 @@ function LinkCard({
                 // is handled server-side; a client-side Microlink fetch per card
                 // caused up to 24 simultaneous 5-15s network calls on page load.
                 if (
-                  fallback?.sourceFor === link.image_url ||
+                  fallback?.sourceFor === link.imageUrl ||
                   requiresLoginPlaceholder(link.url)
                 ) {
                   return;
                 }
                 setFallback({
-                  sourceFor: link.image_url,
+                  sourceFor: link.imageUrl,
                   url: googleFaviconUrl(link.url) ?? "",
                 });
               }}
             />
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
-            {link.favicon_url ? (
+            {link.faviconUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={getProxiedImageUrl(link.favicon_url)}
+                src={getProxiedImageUrl(link.faviconUrl)}
                 alt=""
                 width={28}
                 height={28}
@@ -180,7 +180,7 @@ function LinkCard({
         </button>
       </div>
       <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
-        {link.display_title}
+        {link.displayTitle}
       </p>
       {showLoader ? (
         <p className="mt-0.5 px-0.5 text-[11px] text-subtle">

@@ -211,7 +211,7 @@ export default function LinkDetailOverlay({
       className="mind-overlay fixed inset-0 z-[80] flex"
       role="dialog"
       aria-modal="true"
-      aria-label={link.display_title}
+      aria-label={link.displayTitle}
     >
       <div
         ref={backdropRef}
@@ -259,14 +259,14 @@ export default function LinkDetailOverlay({
             </p>
           ) : null}
           <h2 className="mt-2 text-[22px] leading-tight font-semibold tracking-tight text-foreground">
-            {link.display_title}
+            {link.displayTitle}
           </h2>
 
           <div className="mt-3 flex items-center gap-2">
-            {link.favicon_url ? (
+            {link.faviconUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={getProxiedImageUrl(link.favicon_url)}
+                src={getProxiedImageUrl(link.faviconUrl)}
                 alt=""
                 width={18}
                 height={18}
@@ -300,7 +300,7 @@ export default function LinkDetailOverlay({
             <div className="flex items-center justify-between gap-3 border-b border-border py-3">
               <dt className="text-[12px] text-subtle">Saved</dt>
               <dd className="text-[12px] text-muted">
-                {formatRelativeTime(link.created_at)}
+                {formatRelativeTime(link.createdAt)}
               </dd>
             </div>
             {link.tags.length ? (
@@ -371,8 +371,8 @@ export default function LinkDetailOverlay({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={getProxiedImageUrl(link.image_url)}
-            alt={link.display_title}
+            src={getProxiedImageUrl(link.imageUrl)}
+            alt={link.displayTitle}
             referrerPolicy="no-referrer"
             className={`block max-h-[min(82vh,900px)] w-auto max-w-full object-contain ${
               !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""

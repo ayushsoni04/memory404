@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
-    const totalLinks = await prisma.link.count();
-    const totalGroups = await prisma.group.count();
+    const totalLinks = await prisma.link.count({ where: { userId: auth.id } });
+    const totalGroups = await prisma.group.count({ where: { userId: auth.id } });
 
     // Link counts by group
     const groups = await prisma.group.findMany({
+      where: { userId: auth.id },
       select: {
         id: true,
         name: true,
@@ -24,26 +29,18 @@ export async function GET() {
       count: g._count.links
     }));
 
-    // Daily creation count
-    const links = await prisma.link.findMany({
-      select: { createdAt: true },
-      orderBy: { createdAt: "asc" }
-    });
-
-    const frequencyMap: Record<string, number> = {};
-    links.forEach((l) => {
-      // Format to YYYY-MM-DD
-      try {
-        const dateStr = new Date(l.createdAt).toISOString().slice(0, 10);
-        frequencyMap[dateStr] = (frequencyMap[dateStr] || 0) + 1;
-      } catch {
-        /* ignore invalid date parse */
-      }
-    });
-
-    const linkFrequency = Object.entries(frequencyMap).map(([date, count]) => ({
-      date,
-      count
+    // Daily creation count — aggregated in SQL instead of pulling every row.
+    const frequency = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
+      SELECT date_trunc('day', "created_at")::date::text AS date,
+             COUNT(*) AS count
+      FROM "links"
+      WHERE "user_id" = ${auth.id}::uuid
+      GROUP BY 1
+      ORDER BY 1
+    `;
+    const linkFrequency = frequency.map((f) => ({
+      date: f.date,
+      count: Number(f.count),
     }));
 
     return NextResponse.json({

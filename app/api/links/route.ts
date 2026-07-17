@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { after, NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
   getOrCreateGeneralGroupId,
@@ -17,6 +18,8 @@ import {
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
+import { startTimer } from "@/lib/perf";
+import { rateLimit } from "@/lib/rate-limit";
 
 export const runtime = "nodejs";
 
@@ -26,6 +29,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
+  const timer = startTimer();
   try {
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") ?? searchParams.get("q") ?? "";
@@ -48,14 +55,18 @@ export async function GET(request: Request) {
     if (idsParam.length) {
       const uniqueIds = Array.from(new Set(idsParam)).slice(0, LINKS_PAGE_MAX);
       const rows = await prisma.link.findMany({
-        where: { id: { in: uniqueIds }, deletedAt: null },
+        where: { id: { in: uniqueIds }, userId: auth.id, deletedAt: null },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       });
-      return NextResponse.json({
+      timer.mark("query");
+      const idsPayload = {
         links: rows.map(linkToApiRow),
         nextCursor: null,
         hasMore: false,
-      });
+      };
+      timer.mark("serialize");
+      timer.done("GET /api/links[ids]");
+      return NextResponse.json(idsPayload);
     }
 
     let filterGroupId: string | undefined;
@@ -63,7 +74,7 @@ export async function GET(request: Request) {
       filterGroupId = groupIdParam;
     } else if (legacyGroup === "uncategorized" || legacyGroup === "general") {
       const inbox = await prisma.group.findUnique({
-        where: { name: GENERAL_GROUP_NAME },
+        where: { userId_name: { userId: auth.id, name: GENERAL_GROUP_NAME } },
         select: { id: true },
       });
       if (inbox) filterGroupId = inbox.id;
@@ -84,7 +95,7 @@ export async function GET(request: Request) {
 
     const where: Prisma.LinkWhereInput = {
       AND: [
-        { deletedAt: null },
+        { userId: auth.id, deletedAt: null },
         search.trim() ? linkTextSearchWhere(search) : {},
         filterGroupId ? { groupId: filterGroupId } : {},
         tagParams.length
@@ -99,7 +110,11 @@ export async function GET(request: Request) {
       orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       take: limit + 1,
     });
-    return NextResponse.json(toLinksPage(rows, limit), {
+    timer.mark("query");
+    const payload = toLinksPage(rows, limit);
+    timer.mark("serialize");
+    timer.done("GET /api/links");
+    return NextResponse.json(payload, {
       headers: {
         // Brief private SWR window — keeps feed snappy without serving stale shared CDN caches.
         "Cache-Control": "private, max-age=10, stale-while-revalidate=30",
@@ -127,7 +142,10 @@ type PostBody = {
   imageUrl?: unknown;
 };
 
-async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
+async function resolveTargetGroupIdForCreate(
+  userId: string,
+  body: PostBody,
+): Promise<
   | { ok: true; groupId: string }
   | { ok: false; status: number; error: string }
 > {
@@ -140,12 +158,12 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
 
   if (newName) {
     if (isGeneralName(newName)) {
-      const id = await getOrCreateGeneralGroupId();
+      const id = await getOrCreateGeneralGroupId(userId);
       return { ok: true, groupId: id };
     }
     try {
       const g = await prisma.group.create({
-        data: { name: newName },
+        data: { userId, name: newName },
         select: { id: true },
       });
       return { ok: true, groupId: g.id };
@@ -171,7 +189,7 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     }
     const gid = body.groupId.trim();
     const exists = await prisma.group.findUnique({
-      where: { id: gid },
+      where: { id: gid, userId },
       select: { id: true },
     });
     if (!exists) {
@@ -180,7 +198,7 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     return { ok: true, groupId: gid };
   }
 
-  const fallback = await getOrCreateGeneralGroupId();
+  const fallback = await getOrCreateGeneralGroupId(userId);
   return { ok: true, groupId: fallback };
 }
 
@@ -188,6 +206,17 @@ export async function POST(request: Request) {
   const envErr = getDatabaseEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
+  }
+
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
+  const limit = rateLimit(`links:create:${auth.id}`, 30, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many links created, please slow down." },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
   }
 
   try {
@@ -214,7 +243,9 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = await prisma.link.findUnique({ where: { url } });
+    const existing = await prisma.link.findUnique({
+      where: { userId_url: { userId: auth.id, url } },
+    });
     if (existing) {
       return NextResponse.json(
         {
@@ -226,7 +257,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const resolved = await resolveTargetGroupIdForCreate(body);
+    const resolved = await resolveTargetGroupIdForCreate(auth.id, body);
     if (!resolved.ok) {
       return NextResponse.json(
         { error: resolved.error },
@@ -257,6 +288,7 @@ export async function POST(request: Request) {
 
     const created = await prisma.link.create({
       data: {
+        userId: auth.id,
         url,
         title: titleFromPayload ?? url,
         description: descriptionFromPayload,

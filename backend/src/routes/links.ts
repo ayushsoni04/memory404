@@ -1,5 +1,6 @@
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Router } from "express";
+import { DEV_USER_ID } from "@/lib/dev-user";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
   getOrCreateGeneralGroupId,
@@ -16,6 +17,11 @@ import {
 } from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+
+// No session mechanism exists between this Express API and the Next.js app
+// (different origins), so every request is attributed to the same seeded
+// dev user. Swap for real per-request auth once cross-origin auth ships.
+const userId = DEV_USER_ID;
 
 export const linksRouter = Router();
 
@@ -49,12 +55,12 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
 
   if (newName) {
     if (isGeneralName(newName)) {
-      const id = await getOrCreateGeneralGroupId();
+      const id = await getOrCreateGeneralGroupId(userId);
       return { ok: true, groupId: id };
     }
     try {
       const g = await prisma.group.create({
-        data: { name: newName },
+        data: { userId, name: newName },
         select: { id: true },
       });
       return { ok: true, groupId: g.id };
@@ -80,7 +86,7 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     }
     const gid = body.groupId.trim();
     const exists = await prisma.group.findUnique({
-      where: { id: gid },
+      where: { id: gid, userId },
       select: { id: true },
     });
     if (!exists) {
@@ -89,7 +95,7 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     return { ok: true, groupId: gid };
   }
 
-  const fallback = await getOrCreateGeneralGroupId();
+  const fallback = await getOrCreateGeneralGroupId(userId);
   return { ok: true, groupId: fallback };
 }
 
@@ -141,7 +147,7 @@ linksRouter.get("/", async (req, res) => {
         LINKS_PAGE_MAX,
       );
       const rows = await prisma.link.findMany({
-        where: { id: { in: uniqueIds } },
+        where: { id: { in: uniqueIds }, userId },
         orderBy: [{ createdAt: "desc" }, { id: "desc" }],
       });
       res.json({
@@ -157,7 +163,7 @@ linksRouter.get("/", async (req, res) => {
       filterGroupId = groupIdParam;
     } else if (legacyGroup === "uncategorized" || legacyGroup === "general") {
       const inbox = await prisma.group.findUnique({
-        where: { name: GENERAL_GROUP_NAME },
+        where: { userId_name: { userId, name: GENERAL_GROUP_NAME } },
         select: { id: true },
       });
       if (inbox) filterGroupId = inbox.id;
@@ -177,6 +183,7 @@ linksRouter.get("/", async (req, res) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const where: any = {
       AND: [
+        { userId },
         search.trim() ? linkTextSearchWhere(search) : {},
         filterGroupId ? { groupId: filterGroupId } : {},
         tagParams.length
@@ -223,7 +230,9 @@ linksRouter.post("/", async (req, res) => {
       return;
     }
 
-    const existing = await prisma.link.findUnique({ where: { url } });
+    const existing = await prisma.link.findUnique({
+      where: { userId_url: { userId, url } },
+    });
     if (existing) {
       res.status(409).json({
         error: "A link with this URL already exists.",
@@ -254,6 +263,7 @@ linksRouter.post("/", async (req, res) => {
 
     const created = await prisma.link.create({
       data: {
+        userId,
         url,
         title: titleFromPayload ?? url,
         description: descriptionFromPayload,
@@ -320,7 +330,7 @@ linksRouter.patch("/:id", async (req, res) => {
 
     if (body.refreshPreview === true) {
       const existing = await prisma.link.findUnique({
-        where: { id },
+        where: { id, userId },
         select: { id: true, url: true },
       });
       if (!existing) {
@@ -392,7 +402,7 @@ linksRouter.patch("/:id", async (req, res) => {
       if (typeof rawGroupId === "string" && rawGroupId.trim()) {
         const normalizedGroupId = rawGroupId.trim();
         const groupExists = await prisma.group.findUnique({
-          where: { id: normalizedGroupId },
+          where: { id: normalizedGroupId, userId },
           select: { id: true },
         });
         if (!groupExists) {
@@ -407,7 +417,7 @@ linksRouter.patch("/:id", async (req, res) => {
     }
 
     const updated = await prisma.link.update({
-      where: { id },
+      where: { id, userId },
       data: updateData,
     });
 
@@ -448,7 +458,7 @@ linksRouter.delete("/:id", async (req, res) => {
   }
 
   try {
-    await prisma.link.delete({ where: { id } });
+    await prisma.link.delete({ where: { id, userId } });
     res.json({ ok: true });
   } catch (e) {
     if (

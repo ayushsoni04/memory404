@@ -1,5 +1,7 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import { rateLimit } from "@/lib/rate-limit";
 import { effectivePreviewImageUrl, effectiveFaviconUrl } from "@/lib/links";
 
 export const runtime = "nodejs";
@@ -40,15 +42,18 @@ export async function GET() {
   const envErr = getDatabaseEnvError();
   if (envErr) return NextResponse.json({ error: envErr }, { status: 503 });
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
     const [links, groups] = await Promise.all([
       prisma.link.findMany({
-        where: { deletedAt: { not: null } },
+        where: { userId: auth.id, deletedAt: { not: null } },
         orderBy: { deletedAt: "desc" },
         include: { group: { select: { id: true, name: true, deletedAt: true } } },
       }),
       prisma.group.findMany({
-        where: { deletedAt: { not: null } },
+        where: { userId: auth.id, deletedAt: { not: null } },
         orderBy: { deletedAt: "desc" },
         include: { _count: { select: { links: { where: { deletedAt: { not: null } } } } } },
       }),
@@ -90,19 +95,30 @@ export async function DELETE(request: Request) {
   const envErr = getDatabaseEnvError();
   if (envErr) return NextResponse.json({ error: envErr }, { status: 503 });
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
+  const limit = rateLimit(`trash:purge:${auth.id}`, 10, 60_000);
+  if (!limit.ok) {
+    return NextResponse.json(
+      { error: "Too many purge requests, please slow down." },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
+
   try {
     const url = new URL(request.url);
     const expiredOnly = url.searchParams.get("expiredOnly") === "1";
     const cutoff = expiredOnly ? new Date(Date.now() - TRASH_DAYS * 24 * 60 * 60 * 1000) : undefined;
 
     const where = cutoff
-      ? { deletedAt: { not: null, lte: cutoff } }
-      : { deletedAt: { not: null } };
+      ? { userId: auth.id, deletedAt: { not: null, lte: cutoff } }
+      : { userId: auth.id, deletedAt: { not: null } };
 
     // Links first (FK constraint: must delete before groups)
     const deletedLinks = await prisma.link.deleteMany({ where });
     // Now groups (links are gone, so Restrict FK is satisfied)
-    const deletedGroups = await prisma.group.deleteMany({ where: cutoff ? { deletedAt: { not: null, lte: cutoff } } : { deletedAt: { not: null } } });
+    const deletedGroups = await prisma.group.deleteMany({ where });
 
     return NextResponse.json({ ok: true, deletedLinks: deletedLinks.count, deletedGroups: deletedGroups.count });
   } catch (e) {

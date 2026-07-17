@@ -1,10 +1,14 @@
 import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
 import { Router } from "express";
+import { DEV_USER_ID } from "@/lib/dev-user";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { getOrCreateGeneralGroupId } from "@/lib/groups";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const groupsRouter = Router();
+
+// See backend/src/routes/links.ts for why this is a fixed dev user.
+const userId = DEV_USER_ID;
 
 type PostBody = {
   name?: unknown;
@@ -24,8 +28,9 @@ groupsRouter.get("/", async (_req, res) => {
   }
 
   try {
-    await getOrCreateGeneralGroupId();
+    await getOrCreateGeneralGroupId(userId);
     const groups = await prisma.group.findMany({
+      where: { userId },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
         _count: { select: { links: true } },
@@ -89,7 +94,7 @@ groupsRouter.post("/", async (req, res) => {
       }
       parentGroupId = body.parentGroupId.trim();
       const parentExists = await prisma.group.findUnique({
-        where: { id: parentGroupId },
+        where: { id: parentGroupId, userId },
         select: { id: true },
       });
       if (!parentExists) {
@@ -101,10 +106,10 @@ groupsRouter.post("/", async (req, res) => {
     // Parallelise two independent queries
     const [general, maxOrder] = await Promise.all([
       prisma.group.findUnique({
-        where: { name: GENERAL_GROUP_NAME },
+        where: { userId_name: { userId, name: GENERAL_GROUP_NAME } },
         select: { id: true },
       }),
-      prisma.group.aggregate({ _max: { sortOrder: true } }),
+      prisma.group.aggregate({ where: { userId }, _max: { sortOrder: true } }),
     ]);
     const nextAppend = (maxOrder._max.sortOrder ?? -1) + 1;
 
@@ -114,20 +119,20 @@ groupsRouter.post("/", async (req, res) => {
       Number.isFinite(body.insertAt) &&
       Number.isInteger(body.insertAt)
     ) {
-      const count = await prisma.group.count();
+      const count = await prisma.group.count({ where: { userId } });
       const insertAt = Math.max(
         general ? 1 : 0,
         Math.min(body.insertAt, count),
       );
       sortOrder = insertAt;
       await prisma.group.updateMany({
-        where: { sortOrder: { gte: insertAt } },
+        where: { userId, sortOrder: { gte: insertAt } },
         data: { sortOrder: { increment: 1 } },
       });
     }
 
     const created = await prisma.group.create({
-      data: { name, parentGroupId, sortOrder },
+      data: { userId, name, parentGroupId, sortOrder },
     });
 
     res.status(201).json({
@@ -181,6 +186,7 @@ groupsRouter.patch("/", async (req, res) => {
     }
 
     const existing = await prisma.group.findMany({
+      where: { userId },
       select: { id: true, name: true },
     });
     const existingIds = new Set(existing.map((g) => g.id));
@@ -217,8 +223,11 @@ groupsRouter.patch("/", async (req, res) => {
       })
       .join(", ");
 
+    const userIdIdx = params.length + 1;
+    params.push(userId);
+
     await prisma.$executeRawUnsafe(
-      `UPDATE public.groups SET sort_order = CASE id ${whenSql} ELSE sort_order END WHERE id IN (${idPlaceholders})`,
+      `UPDATE public.groups SET sort_order = CASE id ${whenSql} ELSE sort_order END WHERE id IN (${idPlaceholders}) AND user_id = $${userIdIdx}::uuid`,
       ...params,
     );
 

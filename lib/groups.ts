@@ -8,19 +8,20 @@ type Db = Prisma.TransactionClient | typeof prisma;
 const LEGACY_UNCATEGORIZED_GROUP_NAME = "Uncategorized";
 
 /**
- * Returns the id of the Uncategorized group, creating it if missing.
- * Handles concurrent creates via unique constraint + retry.
+ * Returns the id of the Uncategorized group for this user, creating it if
+ * missing. Handles concurrent creates via unique constraint + retry.
  */
 export async function getOrCreateGeneralGroupId(
+  userId: string,
   db: Db = prisma,
 ): Promise<string> {
   const existing = await db.group.findUnique({
-    where: { name: GENERAL_GROUP_NAME },
+    where: { userId_name: { userId, name: GENERAL_GROUP_NAME } },
     select: { id: true },
   });
   if (existing) {
     const legacy = await db.group.findUnique({
-      where: { name: LEGACY_UNCATEGORIZED_GROUP_NAME },
+      where: { userId_name: { userId, name: LEGACY_UNCATEGORIZED_GROUP_NAME } },
       select: { id: true },
     });
     if (legacy) {
@@ -38,7 +39,7 @@ export async function getOrCreateGeneralGroupId(
   }
 
   const legacy = await db.group.findUnique({
-    where: { name: LEGACY_UNCATEGORIZED_GROUP_NAME },
+    where: { userId_name: { userId, name: LEGACY_UNCATEGORIZED_GROUP_NAME } },
     select: { id: true },
   });
   if (legacy) {
@@ -55,7 +56,7 @@ export async function getOrCreateGeneralGroupId(
         e.code === "P2002"
       ) {
         const again = await db.group.findUnique({
-          where: { name: GENERAL_GROUP_NAME },
+          where: { userId_name: { userId, name: GENERAL_GROUP_NAME } },
           select: { id: true },
         });
         if (again) return again.id;
@@ -66,7 +67,7 @@ export async function getOrCreateGeneralGroupId(
 
   try {
     const created = await db.group.create({
-      data: { name: GENERAL_GROUP_NAME, sortOrder: 0 },
+      data: { userId, name: GENERAL_GROUP_NAME, sortOrder: 0 },
       select: { id: true },
     });
     return created.id;
@@ -76,7 +77,7 @@ export async function getOrCreateGeneralGroupId(
       e.code === "P2002"
     ) {
       const again = await db.group.findUnique({
-        where: { name: GENERAL_GROUP_NAME },
+        where: { userId_name: { userId, name: GENERAL_GROUP_NAME } },
         select: { id: true },
       });
       if (again) return again.id;
