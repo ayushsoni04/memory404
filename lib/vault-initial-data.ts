@@ -1,5 +1,7 @@
+import { requireAuth } from "@/lib/auth";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 import { toLinksPage } from "@/lib/links-pagination";
+import { startTimer } from "@/lib/perf";
 import type {
   GroupRow,
   InitialVaultData,
@@ -26,6 +28,10 @@ export async function getInitialVaultData(
 ): Promise<InitialVaultData> {
   if (getDatabaseEnvError()) return emptyInitialData();
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return emptyInitialData();
+
+  const timer = startTimer();
   const requestedGroupId =
     preferredGroupId && preferredGroupId !== "all"
       ? preferredGroupId
@@ -34,7 +40,7 @@ export async function getInitialVaultData(
   try {
     const [groupRows, initialLinkRows] = await Promise.all([
       prisma.group.findMany({
-        where: { deletedAt: null },
+        where: { userId: auth.id, deletedAt: null },
         orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
         include: {
           _count: { select: { links: { where: { deletedAt: null } } } },
@@ -52,6 +58,7 @@ export async function getInitialVaultData(
       }),
       prisma.link.findMany({
         where: {
+          userId: auth.id,
           deletedAt: null,
           ...(requestedGroupId === "all"
             ? {}
@@ -61,6 +68,7 @@ export async function getInitialVaultData(
         take: FIRST_PAGE_SIZE + 1,
       }),
     ]);
+    timer.mark("query");
 
     const groups: GroupRow[] = groupRows.map((group) => ({
       id: group.id,
@@ -77,18 +85,24 @@ export async function getInitialVaultData(
       requestedGroupId === "all" ||
       groups.some((group) => group.id === requestedGroupId);
     const openedGroupId = groupExists ? requestedGroupId : "all";
-    const linkRows = groupExists
-      ? initialLinkRows
-      : await prisma.link.findMany({
-          where: { deletedAt: null },
-          orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-          take: FIRST_PAGE_SIZE + 1,
-        });
+    let linkRows = initialLinkRows;
+    if (!groupExists) {
+      linkRows = await prisma.link.findMany({
+        where: { userId: auth.id, deletedAt: null },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        take: FIRST_PAGE_SIZE + 1,
+      });
+      timer.mark("fallbackQuery");
+    }
+
+    const firstPage = toLinksPage(linkRows, FIRST_PAGE_SIZE);
+    timer.mark("transform");
+    timer.done("getInitialVaultData");
 
     return {
       groups,
       openedGroupId,
-      firstPage: toLinksPage(linkRows, FIRST_PAGE_SIZE),
+      firstPage,
     };
   } catch (error) {
     console.error("Failed to server-render vault data:", error);

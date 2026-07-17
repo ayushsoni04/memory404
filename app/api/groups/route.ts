@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { getOrCreateGeneralGroupId } from "@/lib/groups";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
@@ -22,10 +23,13 @@ export async function GET() {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
-    await getOrCreateGeneralGroupId();
+    await getOrCreateGeneralGroupId(auth.id);
     const groups = await prisma.group.findMany({
-      where: { deletedAt: null },
+      where: { userId: auth.id, deletedAt: null },
       orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
       include: {
         _count: { select: { links: { where: { deletedAt: null } } } },
@@ -69,6 +73,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
     let body: PostBody;
     try {
@@ -99,7 +106,7 @@ export async function POST(request: Request) {
       }
       parentGroupId = body.parentGroupId.trim();
       const parentExists = await prisma.group.findUnique({
-        where: { id: parentGroupId },
+        where: { id: parentGroupId, userId: auth.id },
         select: { id: true },
       });
       if (!parentExists) {
@@ -111,10 +118,11 @@ export async function POST(request: Request) {
     }
 
     const general = await prisma.group.findUnique({
-      where: { name: GENERAL_GROUP_NAME },
+      where: { userId_name: { userId: auth.id, name: GENERAL_GROUP_NAME } },
       select: { id: true },
     });
     const maxOrder = await prisma.group.aggregate({
+      where: { userId: auth.id },
       _max: { sortOrder: true },
     });
     const nextAppend = (maxOrder._max.sortOrder ?? -1) + 1;
@@ -125,7 +133,7 @@ export async function POST(request: Request) {
       Number.isFinite(body.insertAt) &&
       Number.isInteger(body.insertAt)
     ) {
-      const count = await prisma.group.count();
+      const count = await prisma.group.count({ where: { userId: auth.id } });
       const minimumInsertAt = general ? 1 : 0;
       const insertAt = Math.max(
         minimumInsertAt,
@@ -133,13 +141,13 @@ export async function POST(request: Request) {
       );
       sortOrder = insertAt;
       await prisma.group.updateMany({
-        where: { sortOrder: { gte: insertAt } },
+        where: { userId: auth.id, sortOrder: { gte: insertAt } },
         data: { sortOrder: { increment: 1 } },
       });
     }
 
     const created = await prisma.group.create({
-      data: { name, parentGroupId, sortOrder },
+      data: { userId: auth.id, name, parentGroupId, sortOrder },
     });
 
     return NextResponse.json(
@@ -175,6 +183,9 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
 
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
+
   try {
     let body: PatchBody;
     try {
@@ -207,6 +218,7 @@ export async function PATCH(request: Request) {
     }
 
     const existing = await prisma.group.findMany({
+      where: { userId: auth.id },
       select: { id: true, name: true },
     });
     const existingIds = new Set(existing.map((g) => g.id));
@@ -238,7 +250,7 @@ export async function PATCH(request: Request) {
           unnest(${orderedIds}::uuid[]) AS gid,
           (generate_subscripts(${orderedIds}::uuid[], 1) - 1) AS idx
       ) AS v
-      WHERE "groups"."id" = v.gid
+      WHERE "groups"."id" = v.gid AND "groups"."user_id" = ${auth.id}::uuid
     `;
 
     return NextResponse.json({ ok: true });

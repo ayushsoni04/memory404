@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { requireAuth } from "@/lib/auth";
 import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -8,9 +9,14 @@ type Ctx = { params: Promise<{ id: string }> };
 export async function PATCH(_req: Request, ctx: Ctx) {
   const envErr = getDatabaseEnvError();
   if (envErr) return NextResponse.json({ error: envErr }, { status: 503 });
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
   const { id } = await ctx.params;
   try {
-    const group = await prisma.group.findUnique({ where: { id }, select: { deletedAt: true } });
+    const group = await prisma.group.findUnique({
+      where: { id, userId: auth.id },
+      select: { deletedAt: true },
+    });
     if (!group?.deletedAt) return NextResponse.json({ error: "Group not in Trash" }, { status: 404 });
 
     const ts = group.deletedAt;
@@ -18,11 +24,12 @@ export async function PATCH(_req: Request, ctx: Ctx) {
     await prisma.link.updateMany({
       where: {
         groupId: id,
+        userId: auth.id,
         deletedAt: { gte: new Date(ts.getTime() - 2000), lte: new Date(ts.getTime() + 2000) },
       },
       data: { deletedAt: null },
     });
-    await prisma.group.update({ where: { id }, data: { deletedAt: null } });
+    await prisma.group.update({ where: { id, userId: auth.id }, data: { deletedAt: null } });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Failed to restore group" }, { status: 500 });
@@ -33,11 +40,13 @@ export async function PATCH(_req: Request, ctx: Ctx) {
 export async function DELETE(_req: Request, ctx: Ctx) {
   const envErr = getDatabaseEnvError();
   if (envErr) return NextResponse.json({ error: envErr }, { status: 503 });
+  const auth = await requireAuth();
+  if (auth instanceof Response) return auth;
   const { id } = await ctx.params;
   try {
     // Delete links first (FK: onDelete Restrict)
-    await prisma.link.deleteMany({ where: { groupId: id } });
-    await prisma.group.delete({ where: { id } });
+    await prisma.link.deleteMany({ where: { groupId: id, userId: auth.id } });
+    await prisma.group.delete({ where: { id, userId: auth.id } });
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Failed to permanently delete group" }, { status: 500 });

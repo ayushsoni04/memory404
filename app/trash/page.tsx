@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/trash/route";
+import { linkHostname } from "@/lib/links";
 
 function apiUrl(path: string) {
   if (typeof window !== "undefined") return path;
@@ -97,7 +98,7 @@ function LinkCard({
         <p className="truncate text-sm font-medium text-foreground">{item.displayTitle}</p>
         <p className="truncate text-[12px] text-muted">
           {item.groupName ? `in ${item.groupName}` : "in deleted group"} ·{" "}
-          {new URL(item.url).hostname.replace("www.", "")}
+          {linkHostname(item.url)}
         </p>
       </div>
       <DaysLeft days={item.daysLeft} />
