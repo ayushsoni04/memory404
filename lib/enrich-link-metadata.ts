@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { updateLink } from "@/lib/db/repositories";
 import { extractLinkMetadata } from "@/lib/metadata";
 import { capturePageScreenshotUrl } from "@/lib/screenshot";
 import { requiresLoginPlaceholder } from "@/lib/links";
@@ -28,16 +28,18 @@ export async function enrichLinkMetadataInBackground(
       }
     }
 
-    await prisma.link.update({
-      where: { id: linkId },
-      data: {
+    await updateLink(
+      { _id: linkId, deletedAt: null },
+      {
+        $set: {
         title: meta.title,
         description: description || null,
         imageUrl: imageUrl || null,
         faviconUrl: meta.faviconUrl,
         metadataStatus: "ready",
+        },
       },
-    });
+    );
 
     // Phase 2 — screenshot upgrade when og/twitter image is missing.
     // Never blocks "ready"; failures leave the meta image (or null) in place.
@@ -47,20 +49,20 @@ export async function enrichLinkMetadataInBackground(
       const screenshotUrl = await capturePageScreenshotUrl(pageUrl);
       if (!screenshotUrl) return;
       const cloudinaryUrl = await uploadImageToCloudinary(screenshotUrl);
-      await prisma.link.update({
-        where: { id: linkId },
-        data: { imageUrl: cloudinaryUrl || screenshotUrl },
-      });
+      await updateLink(
+        { _id: linkId, deletedAt: null },
+        { $set: { imageUrl: cloudinaryUrl || screenshotUrl } },
+      );
     } catch (shotErr) {
       console.error("[enrich-link-metadata] screenshot", linkId, shotErr);
     }
   } catch (e) {
     console.error("[enrich-link-metadata]", linkId, e);
     try {
-      await prisma.link.update({
-        where: { id: linkId },
-        data: { metadataStatus: "ready" },
-      });
+      await updateLink(
+        { _id: linkId, deletedAt: null },
+        { $set: { metadataStatus: "ready" } },
+      );
     } catch (inner) {
       console.error(
         "[enrich-link-metadata] status update failed",

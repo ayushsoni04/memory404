@@ -4,7 +4,7 @@ description: "How memory404's frontend, backend, database, and extension work to
 keywords: ["architecture", "system design", "deployment"]
 ---
 
-memory404 uses a split-stack architecture in production: a Next.js frontend on Vercel and an Express API on Render, both connected to Supabase PostgreSQL.
+memory404 uses a split-stack architecture in production: a Next.js frontend on Vercel and an Express API on Render, both persisting application data to MongoDB Atlas through the native driver. Supabase is used only for authentication.
 
 ## System diagram
 
@@ -21,7 +21,8 @@ flowchart TD
     end
 
     subgraph data [Data and services]
-        DB[(Supabase PostgreSQL)]
+        DB[(MongoDB Atlas)]
+        Auth[Supabase Auth]
         CDN[Cloudinary]
         SS[Microlink / mShots]
     end
@@ -31,6 +32,7 @@ flowchart TD
     Vercel -->|NEXT_PUBLIC_API_URL| Render
     Vercel -->|local /api routes| DB
     Render --> DB
+    Vercel --> Auth
     Vercel --> CDN
     Render --> CDN
     Vercel --> SS
@@ -61,9 +63,9 @@ In local development, Next.js Route Handlers at `app/api/` can serve the same en
 Next.js and Express are not identical. Trash, stats, image-proxy, and soft-delete behavior are only available on Next.js routes. See [API overview](/api-reference/overview).
 </Warning>
 
-### Database (Supabase + Prisma)
+### Database (MongoDB Atlas)
 
-PostgreSQL with two tables: `links` and `groups`. Prisma manages migrations and the ORM layer. Connection uses a pooler URL (`DATABASE_URL`, port 6543) for queries and a direct URL (`DIRECT_URL`, port 5432) for migrations.
+The MongoDB native Node.js driver provides pooled connections using `MONGODB_URI`; `MONGODB_DB` selects the database and defaults to `memory404`. Data is normalized across `users`, `groups`, and `links` collections. Documents reference owners and groups by ID, while indexes enforce per-user uniqueness and support group, trash, tag, and cursor-pagination queries.
 
 ### Chrome extension
 
@@ -87,8 +89,8 @@ The client resolves API base URL in `lib/api-base.ts`:
 
 ## Authentication
 
-Supabase auth middleware is wired for session refresh but **does not gate routes**. The app currently operates as a single-workspace vault without enforced user authentication.
+Supabase Auth middleware refreshes sessions and supplies user identity. The corresponding user profile is upserted into MongoDB, but Supabase does not store groups or links. Auth still **does not gate every route** because the app retains a development-user fallback.
 
 ## Free tier keep-alive
 
-Render free services sleep after ~15 minutes of inactivity. Supabase free projects pause after ~7 days. GitHub Actions and in-process DB pings mitigate this. See [Keep-alive](/deployment/keep-alive).
+Render free services sleep after ~15 minutes of inactivity. The keep-alive workflow pings Render, Vercel, and the Supabase Auth health endpoint; MongoDB connectivity is checked by application health routes. See [Keep-alive](/deployment/keep-alive).

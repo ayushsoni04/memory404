@@ -1,4 +1,4 @@
-import { prisma } from "@/lib/prisma";
+import { upsertUser } from "@/lib/db/repositories";
 import { DEV_USER_EMAIL, DEV_USER_ID } from "@/lib/dev-user";
 import { getSupabaseEnvError } from "@/lib/supabase-config";
 import { createServerSupabase } from "@/utils/supabase/server";
@@ -30,12 +30,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     } = await supabase.auth.getUser();
     if (!user?.email) return null;
 
-    const row = await prisma.user.upsert({
-      where: { id: user.id },
-      create: { id: user.id, email: user.email },
-      update: { email: user.email },
-      select: { id: true, email: true, plan: true },
-    });
+    const row = await upsertUser({ id: user.id, email: user.email });
 
     return { id: row.id, email: row.email, plan: row.plan as AuthUser["plan"] };
   } catch (e) {

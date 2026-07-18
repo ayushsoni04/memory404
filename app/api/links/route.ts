@@ -1,6 +1,18 @@
-import { Prisma } from "@prisma/client";
+import type { Filter } from "mongodb";
 import { after, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
+import {
+  getMongoEnvError,
+  isDuplicateKeyError,
+} from "@/lib/db/mongodb";
+import {
+  createGroup,
+  createLink,
+  findGroup,
+  findLink,
+  findLinks,
+} from "@/lib/db/repositories";
+import type { LinkDocument } from "@/lib/db/types";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
   getOrCreateGeneralGroupId,
@@ -16,7 +28,6 @@ import {
   toLinksPage,
 } from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 import { uploadImageToCloudinary } from "@/lib/cloudinary";
 import { startTimer } from "@/lib/perf";
 import { rateLimit } from "@/lib/rate-limit";
@@ -24,7 +35,7 @@ import { rateLimit } from "@/lib/rate-limit";
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -54,10 +65,10 @@ export async function GET(request: Request) {
     // Lightweight status refresh for specific pending rows (no full list reload).
     if (idsParam.length) {
       const uniqueIds = Array.from(new Set(idsParam)).slice(0, LINKS_PAGE_MAX);
-      const rows = await prisma.link.findMany({
-        where: { id: { in: uniqueIds }, userId: auth.id, deletedAt: null },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      });
+      const rows = await findLinks(
+        { _id: { $in: uniqueIds }, userId: auth.id, deletedAt: null },
+        { sort: { createdAt: -1, _id: -1 } },
+      );
       timer.mark("query");
       const idsPayload = {
         links: rows.map(linkToApiRow),
@@ -73,9 +84,9 @@ export async function GET(request: Request) {
     if (groupIdParam) {
       filterGroupId = groupIdParam;
     } else if (legacyGroup === "uncategorized" || legacyGroup === "general") {
-      const inbox = await prisma.group.findUnique({
-        where: { userId_name: { userId: auth.id, name: GENERAL_GROUP_NAME } },
-        select: { id: true },
+      const inbox = await findGroup({
+        userId: auth.id,
+        name: GENERAL_GROUP_NAME,
       });
       if (inbox) filterGroupId = inbox.id;
     } else if (legacyGroup) {
@@ -93,22 +104,21 @@ export async function GET(request: Request) {
       }
     }
 
-    const where: Prisma.LinkWhereInput = {
-      AND: [
+    const where: Filter<LinkDocument> = {
+      $and: [
         { userId: auth.id, deletedAt: null },
         search.trim() ? linkTextSearchWhere(search) : {},
         filterGroupId ? { groupId: filterGroupId } : {},
         tagParams.length
-          ? { tags: { hasSome: Array.from(new Set(tagParams)) } }
+          ? { tags: { $in: Array.from(new Set(tagParams)) } }
           : {},
         linksCursorWhere(cursor),
       ],
     };
 
-    const rows = await prisma.link.findMany({
-      where,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
+    const rows = await findLinks(where, {
+      sort: { createdAt: -1, _id: -1 },
+      limit: limit + 1,
     });
     timer.mark("query");
     const payload = toLinksPage(rows, limit);
@@ -162,13 +172,10 @@ async function resolveTargetGroupIdForCreate(
       return { ok: true, groupId: id };
     }
     try {
-      const g = await prisma.group.create({
-        data: { userId, name: newName },
-        select: { id: true },
-      });
+      const g = await createGroup({ userId, name: newName });
       return { ok: true, groupId: g.id };
     } catch (e) {
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+      if (isDuplicateKeyError(e)) {
         return {
           ok: false,
           status: 409,
@@ -188,10 +195,7 @@ async function resolveTargetGroupIdForCreate(
       };
     }
     const gid = body.groupId.trim();
-    const exists = await prisma.group.findUnique({
-      where: { id: gid, userId },
-      select: { id: true },
-    });
+    const exists = await findGroup({ _id: gid, userId, deletedAt: null });
     if (!exists) {
       return { ok: false, status: 400, error: "groupId is invalid" };
     }
@@ -203,7 +207,14 @@ async function resolveTargetGroupIdForCreate(
 }
 
 export async function POST(request: Request) {
-  const envErr = getDatabaseEnvError();
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json(
+      { error: "Service is temporarily unavailable during maintenance." },
+      { status: 503 },
+    );
+  }
+
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -243,9 +254,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = await prisma.link.findUnique({
-      where: { userId_url: { userId: auth.id, url } },
-    });
+    const existing = await findLink({ userId: auth.id, url });
     if (existing) {
       return NextResponse.json(
         {
@@ -286,19 +295,13 @@ export async function POST(request: Request) {
       }
     }
 
-    const created = await prisma.link.create({
-      data: {
-        userId: auth.id,
-        url,
-        title: titleFromPayload ?? url,
-        description: descriptionFromPayload,
-        imageUrl,
-        customTitle: null,
-        tags: [],
-        notes: null,
-        groupId: resolved.groupId,
-        metadataStatus: "pending",
-      },
+    const created = await createLink({
+      userId: auth.id,
+      url,
+      title: titleFromPayload ?? url,
+      description: descriptionFromPayload,
+      imageUrl,
+      groupId: resolved.groupId,
     });
 
     // Detach from the request so the client isn't held open by meta/screenshot work.
@@ -310,20 +313,10 @@ export async function POST(request: Request) {
     );
   } catch (e) {
     console.error("POST /api/links:", e);
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      if (e.code === "P2002") {
-        return NextResponse.json(
-          { error: "A link with this URL already exists." },
-          { status: 409 },
-        );
-      }
+    if (isDuplicateKeyError(e)) {
       return NextResponse.json(
-        {
-          error: "Could not save link.",
-          hint: e.message,
-          code: e.code,
-        },
-        { status: 500 },
+        { error: "A link with this URL already exists." },
+        { status: 409 },
       );
     }
     return NextResponse.json(

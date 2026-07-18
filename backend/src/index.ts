@@ -2,8 +2,12 @@ import compression from "compression";
 import cors from "cors";
 import express, { type Request, type Response, type NextFunction } from "express";
 import rateLimit from "express-rate-limit";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
-import { startKeepAlive } from "@/lib/keep-alive";
+import {
+  closeMongo,
+  ensureMongoIndexes,
+  getMongoEnvError,
+  pingMongo,
+} from "@/lib/db/mongodb";
 import { groupsRouter } from "./routes/groups.js";
 import { linksRouter } from "./routes/links.js";
 
@@ -89,13 +93,13 @@ app.use(express.json({ limit: "1mb" }));
 
 // ─── Health check ────────────────────────────────────────────────────────────
 app.get("/health", async (_req, res) => {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     res.status(503).json({ ok: false, service: "memory404-api", error: envErr });
     return;
   }
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await pingMongo();
     res.json({
       ok: true,
       service: "memory404-api",
@@ -131,20 +135,21 @@ const server = app.listen(port, () => {
   console.log(`memory404-api listening on port ${port} (${process.env.NODE_ENV ?? "development"})`);
 });
 
-// ─── Supabase free-tier keep-alive (pings DB every 3 days) ───────────────────
-// Prevents the project from being auto-paused after 7 days of inactivity.
-const stopKeepAlive = startKeepAlive();
+if (!getMongoEnvError()) {
+  void ensureMongoIndexes().catch((error) => {
+    console.error("Failed to ensure MongoDB indexes:", error);
+  });
+}
 
 // ─── Graceful shutdown (Render sends SIGTERM before killing the process) ──────
 async function shutdown(signal: string) {
   console.log(`\n[${signal}] Shutting down gracefully…`);
-  stopKeepAlive(); // clear the keep-alive interval
   server.close(async () => {
     try {
-      await prisma.$disconnect();
-      console.log("Prisma disconnected. Bye!");
+      await closeMongo();
+      console.log("MongoDB disconnected. Bye!");
     } catch (e) {
-      console.error("Error disconnecting Prisma:", e);
+      console.error("Error disconnecting MongoDB:", e);
     }
     process.exit(0);
   });

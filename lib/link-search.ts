@@ -1,19 +1,22 @@
-import type { Prisma } from "@prisma/client";
+import type { Filter } from "mongodb";
+import { escapeMongoRegex } from "@/lib/db/mongodb";
+import type { LinkDocument } from "@/lib/db/types";
 
 /**
  * Prepared filter for full-text style search across stored metadata.
  * Wire to GET /api/links when you add a `q` query param.
  */
-export function linkTextSearchWhere(query: string): Prisma.LinkWhereInput {
+export function linkTextSearchWhere(query: string): Filter<LinkDocument> {
   const q = query.trim();
   if (!q) return {};
+  const contains = { $regex: escapeMongoRegex(q), $options: "i" };
   return {
-    OR: [
-      { title: { contains: q, mode: "insensitive" } },
-      { customTitle: { contains: q, mode: "insensitive" } },
-      { description: { contains: q, mode: "insensitive" } },
-      { url: { contains: q, mode: "insensitive" } },
-      { notes: { contains: q, mode: "insensitive" } },
+    $or: [
+      { title: contains },
+      { customTitle: contains },
+      { description: contains },
+      { url: contains },
+      { notes: contains },
     ],
   };
 }

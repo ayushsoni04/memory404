@@ -9,7 +9,7 @@ Get memory404 running locally and save your first link.
 ## Prerequisites
 
 - Node.js 20+
-- A Supabase project with PostgreSQL (or local Postgres)
+- A MongoDB Atlas deployment (or compatible local MongoDB replica set)
 - npm
 
 ## 1. Clone and install
@@ -31,17 +31,19 @@ cp env.template .env.local
 At minimum, set these variables in `.env.local`:
 
 ```bash
-DATABASE_URL="postgresql://postgres.YOUR_REF:PASSWORD@HOST:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.YOUR_REF:PASSWORD@HOST:5432/postgres"
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>/<database>?retryWrites=true&w=majority"
+MONGODB_DB="memory404"
 ```
 
-Get connection strings from **Supabase → Project Settings → Database**.
+Get the connection string from **MongoDB Atlas → Connect → Drivers**. `MONGODB_DB` is optional and defaults to `memory404`. Keep the real URI private and ensure Atlas network access permits your development machine.
 
-## 3. Run database migrations
+Supabase is only needed for Auth. If you are testing sign-in, also set `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY`.
 
-```bash
-npm run db:deploy
-```
+## 3. Initialize persistence
+
+No SQL schema command is required. MongoDB creates the normalized `users`, `groups`, and `links` collections lazily. Start the Express backend once with `npm run backend:dev` for a new database; its startup path creates the required indexes idempotently.
+
+If you are moving existing Postgres data, follow [Database migrations](/database/migrations) before starting application writes.
 
 ## 4. Start the development server
 

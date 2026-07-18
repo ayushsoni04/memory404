@@ -1,85 +1,56 @@
 ---
 title: "Migrations"
-description: "Manage database schema changes with Prisma Migrate."
-keywords: ["migrations", "prisma", "database"]
+description: "Manage MongoDB indexes and migrate legacy Postgres data."
+keywords: ["migrations", "mongodb", "atlas", "database"]
 ---
 
-Schema changes are managed with Prisma Migrate. Migration files live in `prisma/migrations/`.
+MongoDB has no application-time SQL migration step. The native driver creates required indexes idempotently through `ensureMongoIndexes()`, while document-shape changes should be handled with explicit, reviewable scripts.
 
 ## Commands
 
 | Command | Purpose |
 |---------|---------|
-| `npm run db:migrate` | Create and apply migration (dev) |
-| `npm run db:deploy` | Apply pending migrations (production) |
-| `npm run db:generate` | Regenerate Prisma Client |
-| `npm run db:studio` | Open Prisma Studio GUI |
-| `npm run db:pull` | Pull schema from database |
+| `npm run db:mongo:dry-run` | Read source counts without writing to MongoDB |
+| `npm run db:mongo:migrate` | Copy legacy Postgres data and create indexes |
+| `npm run db:mongo:verify` | Compare counts and run integrity checks |
 
-## Development workflow
+## Postgres to MongoDB
 
 <Steps>
-  <Step title="Edit schema">
-    Modify `prisma/schema.prisma`.
+  <Step title="Configure source and target">
+    Set `DATABASE_URL` only for the legacy source database. Set `MONGODB_URI` for the Atlas target and optionally `MONGODB_DB` (defaults to `memory404`). Never commit either connection string.
   </Step>
-  <Step title="Create migration">
+  <Step title="Dry run">
     ```bash
-    npm run db:migrate
+    npm run db:mongo:dry-run
     ```
-    Prisma prompts for a migration name and generates SQL in `prisma/migrations/`.
+    This validates both connections and prints source counts without writing documents.
   </Step>
-  <Step title="Verify">
+  <Step title="Copy during a maintenance window">
     ```bash
-    npm run db:studio
+    npm run db:mongo:migrate
     ```
+    The script upserts normalized `users`, `groups`, and `links` documents while preserving IDs and timestamps, creates indexes, and verifies the result.
+  </Step>
+  <Step title="Verify independently">
+    ```bash
+    npm run db:mongo:verify
+    ```
+    Verification compares collection counts and checks for orphaned users, groups, parent groups, links, and invalid metadata statuses.
   </Step>
 </Steps>
 
-## Production deployment
+## Cutover
 
-Migrations run automatically during the Vercel build:
+After verification:
 
-```bash
-prisma migrate deploy && prisma generate && next build
-```
+- Add the same `MONGODB_URI` and `MONGODB_DB` to Vercel and Render.
+- Redeploy both services.
+- Confirm `/api/health` and `/health`.
+- Keep the legacy source read-only until application smoke tests pass.
 
-For manual deployment:
-
-```bash
-npm run db:deploy
-```
+`DATABASE_URL` is needed only while running the legacy migration script. It is not a runtime variable and should be removed from Vercel and Render after cutover.
 
 <Warning>
-Always use `DIRECT_URL` (port 5432) for migrations. The pooler URL (`DATABASE_URL`, port 6543) does not support DDL operations.
+The migration uses upserts, but rerunning it after accepting writes in MongoDB can overwrite migrated documents with stale source values. Keep writes paused until migration and verification finish.
 </Warning>
-
-## Migration history
-
-| Migration | Description |
-|-----------|-------------|
-| `20260405120000_init` | Initial schema (links, groups) |
-| `20260405200000_link_metadata_and_custom_title` | Metadata fields and custom titles |
-| `20260408183000_add_group_parent_tree` | Parent group nesting |
-| `20260712090000_rename_uncategorized_to_general` | Rename default group |
-| `20260715160000_links_created_at_cursor_index` | Cursor pagination index |
-| `20260716010000_add_perf_indexes` | Performance indexes |
-
-## Baseline existing database
-
-If connecting to an existing database:
-
-```bash
-npm run db:resolve-baseline
-```
-
-This marks the init migration as applied without running it.
-
-## Reset (development only)
-
-```bash
-npx prisma migrate reset
-```
-
-<Danger>
-This drops all data and re-applies all migrations. Never run in production.
-</Danger>

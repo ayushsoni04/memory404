@@ -1,9 +1,14 @@
-import { Prisma } from "@prisma/client";
 import { after, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
+import { getMongoEnvError } from "@/lib/db/mongodb";
+import {
+  findGroup,
+  findLink,
+  updateLink,
+} from "@/lib/db/repositories";
+import type { LinkDocument } from "@/lib/db/types";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { linkToApiRow } from "@/lib/links";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
 
@@ -18,7 +23,14 @@ type PatchBody = {
 };
 
 export async function PATCH(request: Request, context: RouteContext) {
-  const envErr = getDatabaseEnvError();
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json(
+      { error: "Service is temporarily unavailable during maintenance." },
+      { status: 503 },
+    );
+  }
+
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -60,22 +72,24 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (body.refreshPreview === true) {
-      const existing = await prisma.link.findUnique({
-        where: { id, userId: auth.id },
-        select: { id: true, url: true },
-      });
+      const existing = await findLink({ _id: id, userId: auth.id });
       if (!existing) {
         return NextResponse.json({ error: "Link not found" }, { status: 404 });
       }
-      const pending = await prisma.link.update({
-        where: { id },
-        data: { metadataStatus: "pending" },
-      });
+      const pending = await updateLink(
+        { _id: id, userId: auth.id },
+        { $set: { metadataStatus: "pending" } },
+      );
+      if (!pending) {
+        return NextResponse.json({ error: "Link not found" }, { status: 404 });
+      }
       after(() => enrichLinkMetadataInBackground(existing.id, existing.url));
       return NextResponse.json({ link: linkToApiRow(pending) });
     }
 
-    const updateData: Prisma.LinkUpdateInput = {};
+    const updateData: Partial<
+      Pick<LinkDocument, "customTitle" | "tags" | "notes" | "groupId">
+    > = {};
 
     if ("customTitle" in body) {
       const raw = body.customTitle;
@@ -135,9 +149,10 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
       if (typeof rawGroupId === "string" && rawGroupId.trim()) {
         const normalizedGroupId = rawGroupId.trim();
-        const groupExists = await prisma.group.findUnique({
-          where: { id: normalizedGroupId, userId: auth.id },
-          select: { id: true },
+        const groupExists = await findGroup({
+          _id: normalizedGroupId,
+          userId: auth.id,
+          deletedAt: null,
         });
         if (!groupExists) {
           return NextResponse.json(
@@ -145,7 +160,7 @@ export async function PATCH(request: Request, context: RouteContext) {
             { status: 400 },
           );
         }
-        updateData.group = { connect: { id: normalizedGroupId } };
+        updateData.groupId = normalizedGroupId;
       } else {
         return NextResponse.json(
           { error: "groupId must be a non-empty string" },
@@ -154,30 +169,17 @@ export async function PATCH(request: Request, context: RouteContext) {
       }
     }
 
-    const updated = await prisma.link.update({
-      where: { id, userId: auth.id },
-      data: updateData,
-    });
+    const updated = await updateLink(
+      { _id: id, userId: auth.id },
+      { $set: updateData },
+    );
+    if (!updated) {
+      return NextResponse.json({ error: "Link not found" }, { status: 404 });
+    }
 
     return NextResponse.json({ link: linkToApiRow(updated) });
   } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
-    ) {
-      return NextResponse.json({ error: "Link not found" }, { status: 404 });
-    }
     console.error("PATCH /api/links/[id]:", e);
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      return NextResponse.json(
-        {
-          error: "Could not update link.",
-          hint: e.message,
-          code: e.code,
-        },
-        { status: 500 },
-      );
-    }
     return NextResponse.json(
       { error: "Failed to update link" },
       { status: 500 },
@@ -186,7 +188,14 @@ export async function PATCH(request: Request, context: RouteContext) {
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
-  const envErr = getDatabaseEnvError();
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json(
+      { error: "Service is temporarily unavailable during maintenance." },
+      { status: 503 },
+    );
+  }
+
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -201,29 +210,16 @@ export async function DELETE(_request: Request, context: RouteContext) {
     }
 
     // Soft-delete: move to Trash instead of permanently removing
-    const trashed = await prisma.link.update({
-      where: { id, userId: auth.id },
-      data: { deletedAt: new Date() },
-    });
-    return NextResponse.json({ ok: true, link: linkToApiRow(trashed) });
-  } catch (e) {
-    if (
-      e instanceof Prisma.PrismaClientKnownRequestError &&
-      e.code === "P2025"
-    ) {
+    const trashed = await updateLink(
+      { _id: id, userId: auth.id },
+      { $set: { deletedAt: new Date() } },
+    );
+    if (!trashed) {
       return NextResponse.json({ error: "Link not found" }, { status: 404 });
     }
+    return NextResponse.json({ ok: true, link: linkToApiRow(trashed) });
+  } catch (e) {
     console.error("DELETE /api/links/[id]:", e);
-    if (e instanceof Prisma.PrismaClientKnownRequestError) {
-      return NextResponse.json(
-        {
-          error: "Could not delete link.",
-          hint: e.message,
-          code: e.code,
-        },
-        { status: 500 },
-      );
-    }
     return NextResponse.json(
       { error: "Failed to delete link" },
       { status: 500 },

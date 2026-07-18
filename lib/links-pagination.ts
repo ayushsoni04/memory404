@@ -1,4 +1,5 @@
-import { Prisma } from "@prisma/client";
+import type { Filter } from "mongodb";
+import type { LinkDocument, LinkRow } from "@/lib/db/types";
 import { linkToApiRow, type LinkApiRow } from "@/lib/links";
 
 export const LINKS_PAGE_DEFAULT = 24;
@@ -44,15 +45,15 @@ export function parseLinksLimit(raw: string | null | undefined): number {
 /** Cursor clause for newest-first pages (`createdAt DESC, id DESC`). */
 export function linksCursorWhere(
   cursor: { createdAt: Date; id: string } | null,
-): Prisma.LinkWhereInput {
+): Filter<LinkDocument> {
   if (!cursor) return {};
   return {
-    OR: [
-      { createdAt: { lt: cursor.createdAt } },
+    $or: [
+      { createdAt: { $lt: cursor.createdAt } },
       {
-        AND: [
+        $and: [
           { createdAt: cursor.createdAt },
-          { id: { lt: cursor.id } },
+          { _id: { $lt: cursor.id } },
         ],
       },
     ],
@@ -60,7 +61,7 @@ export function linksCursorWhere(
 }
 
 export function toLinksPage(
-  rows: Parameters<typeof linkToApiRow>[0][],
+  rows: LinkRow[],
   limit: number,
 ): LinksPageResult {
   const hasMore = rows.length > limit;

@@ -1,4 +1,4 @@
-import type { LinkMetadataStatus } from "@prisma/client";
+import type { LinkMetadataStatus } from "@/lib/db/types";
 import {
   providerPreviewIcon,
   resolveProviderDisplayTitle,

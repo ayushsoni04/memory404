@@ -1,5 +1,9 @@
 import { requireAuth } from "@/lib/auth";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import { getMongoEnvError } from "@/lib/db/mongodb";
+import {
+  findLinks,
+  listGroupsWithPreviews,
+} from "@/lib/db/repositories";
 import { toLinksPage } from "@/lib/links-pagination";
 import { startTimer } from "@/lib/perf";
 import type {
@@ -26,7 +30,7 @@ function emptyInitialData(): InitialVaultData {
 export async function getInitialVaultData(
   preferredGroupId: string | null,
 ): Promise<InitialVaultData> {
-  if (getDatabaseEnvError()) return emptyInitialData();
+  if (getMongoEnvError()) return emptyInitialData();
 
   const auth = await requireAuth();
   if (auth instanceof Response) return emptyInitialData();
@@ -39,34 +43,20 @@ export async function getInitialVaultData(
 
   try {
     const [groupRows, initialLinkRows] = await Promise.all([
-      prisma.group.findMany({
-        where: { userId: auth.id, deletedAt: null },
-        orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-        include: {
-          _count: { select: { links: { where: { deletedAt: null } } } },
-          links: {
-            where: { deletedAt: null },
-            orderBy: { createdAt: "desc" },
-            take: 3,
-            select: {
-              title: true,
-              customTitle: true,
-              url: true,
-            },
-          },
-        },
-      }),
-      prisma.link.findMany({
-        where: {
+      listGroupsWithPreviews(auth.id),
+      findLinks(
+        {
           userId: auth.id,
           deletedAt: null,
           ...(requestedGroupId === "all"
             ? {}
             : { groupId: requestedGroupId }),
         },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: FIRST_PAGE_SIZE + 1,
-      }),
+        {
+          sort: { createdAt: -1, _id: -1 },
+          limit: FIRST_PAGE_SIZE + 1,
+        },
+      ),
     ]);
     timer.mark("query");
 
@@ -74,10 +64,8 @@ export async function getInitialVaultData(
       id: group.id,
       name: group.name,
       createdAt: group.createdAt.toISOString(),
-      linksCount: group._count.links,
-      previewTitles: group.links.map(
-        (link) => link.customTitle ?? link.title ?? link.url,
-      ),
+      linksCount: group.linksCount,
+      previewTitles: group.previewTitles,
       sortOrder: group.sortOrder,
     }));
 
@@ -87,11 +75,13 @@ export async function getInitialVaultData(
     const openedGroupId = groupExists ? requestedGroupId : "all";
     let linkRows = initialLinkRows;
     if (!groupExists) {
-      linkRows = await prisma.link.findMany({
-        where: { userId: auth.id, deletedAt: null },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-        take: FIRST_PAGE_SIZE + 1,
-      });
+      linkRows = await findLinks(
+        { userId: auth.id, deletedAt: null },
+        {
+          sort: { createdAt: -1, _id: -1 },
+          limit: FIRST_PAGE_SIZE + 1,
+        },
+      );
       timer.mark("fallbackQuery");
     }
 

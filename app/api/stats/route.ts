@@ -1,46 +1,76 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { getCollections } from "@/lib/db/mongodb";
 
 export async function GET() {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;
 
   try {
-    const totalLinks = await prisma.link.count({ where: { userId: auth.id } });
-    const totalGroups = await prisma.group.count({ where: { userId: auth.id } });
-
-    // Link counts by group
-    const groups = await prisma.group.findMany({
-      where: { userId: auth.id },
-      select: {
-        id: true,
-        name: true,
-        _count: {
-          select: { links: true }
-        }
-      },
-      orderBy: { sortOrder: "asc" }
-    });
+    const { groups: groupsCollection, links } = await getCollections();
+    const [totalLinks, totalGroups, groups, frequency] = await Promise.all([
+      links.countDocuments({ userId: auth.id }),
+      groupsCollection.countDocuments({ userId: auth.id }),
+      groupsCollection
+        .aggregate<{ _id: string; name: string; count: number }>([
+          { $match: { userId: auth.id } },
+          { $sort: { sortOrder: 1 } },
+          {
+            $lookup: {
+              from: "links",
+              let: { groupId: "$_id" },
+              pipeline: [
+                {
+                  $match: {
+                    userId: auth.id,
+                    $expr: { $eq: ["$groupId", "$$groupId"] },
+                  },
+                },
+                { $count: "value" },
+              ],
+              as: "linkCount",
+            },
+          },
+          {
+            $project: {
+              name: 1,
+              count: {
+                $ifNull: [{ $arrayElemAt: ["$linkCount.value", 0] }, 0],
+              },
+            },
+          },
+        ])
+        .toArray(),
+      links
+        .aggregate<{ date: string; count: number }>([
+          { $match: { userId: auth.id } },
+          {
+            $group: {
+              _id: {
+                $dateToString: {
+                  format: "%Y-%m-%d",
+                  date: "$createdAt",
+                  timezone: "UTC",
+                },
+              },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+          { $project: { _id: 0, date: "$_id", count: 1 } },
+        ])
+        .toArray(),
+    ]);
 
     const linksByGroup = groups.map((g) => ({
-      id: g.id,
+      id: g._id,
       name: g.name,
-      count: g._count.links
+      count: g.count
     }));
 
-    // Daily creation count — aggregated in SQL instead of pulling every row.
-    const frequency = await prisma.$queryRaw<{ date: string; count: bigint }[]>`
-      SELECT date_trunc('day', "created_at")::date::text AS date,
-             COUNT(*) AS count
-      FROM "links"
-      WHERE "user_id" = ${auth.id}::uuid
-      GROUP BY 1
-      ORDER BY 1
-    `;
     const linkFrequency = frequency.map((f) => ({
       date: f.date,
-      count: Number(f.count),
+      count: f.count,
     }));
 
     return NextResponse.json({

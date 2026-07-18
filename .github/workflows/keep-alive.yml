@@ -1,4 +1,4 @@
-# Pings Vercel, Render, and Supabase on a schedule so free-tier services
+# Pings Vercel, Render, and Supabase Auth on a schedule so free-tier services
 # don't spin down or pause from inactivity.
 #
 # Optional repo variables (Settings → Secrets and variables → Actions → Variables):
@@ -12,7 +12,7 @@ on:
   schedule:
     # Render free tier sleeps after ~15 minutes without traffic
     - cron: "*/14 * * * *"
-    # Supabase free tier pauses after ~7 days without activity
+    # Supabase remains the authentication provider.
     - cron: "0 6 * * *"
   workflow_dispatch:
 
@@ -29,7 +29,7 @@ jobs:
       RENDER_API_URL: ${{ vars.RENDER_API_URL }}
       SUPABASE_PROJECT_URL: ${{ vars.SUPABASE_PROJECT_URL }}
     steps:
-      - name: Ping Vercel (frontend + Supabase via DB)
+      - name: Ping Vercel (frontend + MongoDB health)
         run: |
           URL="${VERCEL_APP_URL:-https://memory404.vercel.app}"
           echo "Pinging ${URL}/api/health"
@@ -38,7 +38,7 @@ jobs:
           echo
           echo "Vercel OK"
 
-      - name: Ping Render (backend + Supabase via DB)
+      - name: Ping Render (backend + MongoDB health)
         run: |
           URL="${RENDER_API_URL:-https://memory404-api.onrender.com}"
           echo "Pinging ${URL}/health"
@@ -55,11 +55,11 @@ jobs:
             echo "::warning::Render health returned ${code} (service may not be deployed). Continuing."
           fi
 
-      - name: Ping Supabase project
+      - name: Ping Supabase Auth project
         run: |
           if [ -z "${SUPABASE_PROJECT_URL}" ]; then
             echo "SUPABASE_PROJECT_URL not set — skipping direct Supabase ping."
-            echo "DB activity from Vercel health checks still counts."
+            echo "Supabase Auth health check is optional."
             exit 0
           fi
           echo "Pinging ${SUPABASE_PROJECT_URL}/auth/v1/health"
