@@ -2,11 +2,11 @@ services:
   - type: web
     name: memory404-api
     runtime: node
-    rootDir: backend
     plan: free          # upgrade to 'starter' for always-on (no spin-down)
     region: singapore
-    buildCommand: npm install && npm run build
-    startCommand: npm start
+    # Install both packages because backend imports shared modules from root lib/.
+    buildCommand: npm install && npm install --prefix backend && npm run build --prefix backend
+    startCommand: npm start --prefix backend
     healthCheckPath: /health
     autoDeploy: true
 
