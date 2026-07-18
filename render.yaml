@@ -4,7 +4,7 @@ services:
     runtime: node
     rootDir: backend
     plan: free          # upgrade to 'starter' for always-on (no spin-down)
-    region: singapore   # closest to ap-south-1 Supabase pooler
+    region: singapore
     buildCommand: npm install && npm run build
     startCommand: npm start
     healthCheckPath: /health
@@ -17,14 +17,12 @@ services:
       - key: PORT
         value: 4000
 
-      # ── New Supabase project: gucdslwlvrgwfyhmazeq ───────────────────────────
-      # Set these in Render Dashboard → Environment → Secret Files
-      # Get exact strings from: Supabase → gucdslwlvrgwfyhmazeq → Project Settings → Database
-      - key: DATABASE_URL
-        sync: false    # PgBouncer pooler — set in Render dashboard
+      # ── MongoDB Atlas ─────────────────────────────────────────────────────────
+      - key: MONGODB_URI
+        sync: false
 
-      - key: DIRECT_URL
-        sync: false    # Direct connection — set in Render dashboard
+      - key: MONGODB_DB
+        value: memory404
 
       # ── CORS ─────────────────────────────────────────────────────────────────
       - key: CORS_ORIGINS

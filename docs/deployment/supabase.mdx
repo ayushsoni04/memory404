@@ -1,78 +1,41 @@
 ---
 title: "Supabase"
-description: "Set up PostgreSQL on Supabase for memory404."
-keywords: ["supabase", "postgresql", "database"]
+description: "Configure Supabase Auth for memory404."
+keywords: ["supabase", "authentication", "sessions"]
 ---
 
-memory404 uses Supabase-hosted PostgreSQL with Prisma as the ORM.
+memory404 uses Supabase only for authentication and session refresh. Persistent application data lives in MongoDB Atlas through the native MongoDB driver; Supabase Postgres is not used by the running application.
 
 ## Create a project
 
 1. Go to [supabase.com](https://supabase.com) and create a new project
-2. Note your project reference ID and database password
+2. Open **Project Settings → API**
+3. Copy the project URL and publishable key
 
-## Connection strings
-
-Get both URLs from **Supabase → Project Settings → Database**:
-
-### Pooler URL (app queries)
-
-```
-postgresql://postgres.PROJECT_REF:PASSWORD@HOST:6543/postgres?pgbouncer=true
-```
-
-Set as `DATABASE_URL`. Used by Prisma for all application queries.
-
-### Direct URL (migrations)
-
-```
-postgresql://postgres.PROJECT_REF:PASSWORD@HOST:5432/postgres
-```
-
-Set as `DIRECT_URL`. Used by Prisma Migrate for schema changes.
-
-<Warning>
-Always use the pooler URL for `DATABASE_URL` and the direct URL for `DIRECT_URL`. Swapping them causes connection errors.
-</Warning>
-
-## Run migrations
+## Environment variables
 
 ```bash
-# Development
-npm run db:migrate
-
-# Production (CI/CD)
-npm run db:deploy
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=<publishable-key>
 ```
 
-## Prisma Studio
+Set these in `.env.local` for development and in Vercel for production. The publishable key is intended for client use, but it still should be managed through environment configuration. Never expose service-role keys.
 
-Inspect data locally:
+`NEXT_PUBLIC_SUPABASE_ANON_KEY` remains supported as a legacy fallback.
 
-```bash
-npm run db:studio
-```
+## Current auth behavior
 
-Opens Prisma Studio at `http://localhost:5555`.
+The middleware in `utils/supabase/` refreshes sessions. API code resolves a signed-in Supabase user and mirrors the user's ID and email into MongoDB's `users` collection so `groups` and `links` can be scoped by `userId`.
 
-## Free tier
+Authentication is not yet enforced for every route: when no session exists, the application currently uses a development-user fallback. Do not treat this fallback as production access control.
 
-Supabase free projects pause after ~7 days of inactivity. Mitigations:
+## Persistence
 
-- GitHub Actions daily ping (see [Keep-alive](/deployment/keep-alive))
-- In-process DB keep-alive in the Express server (every 3 days)
+Configure persistence separately:
 
-## Auth (optional)
+- `MONGODB_URI` — secret MongoDB Atlas connection string
+- `MONGODB_DB` — optional database name, default `memory404`
 
-Supabase auth is wired but not enforced. To enable in the future:
+Do not configure `DATABASE_URL` or `DIRECT_URL` for normal development or deployment.
 
-```bash
-NEXT_PUBLIC_SUPABASE_URL=https://PROJECT.supabase.co
-NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY=your_key
-```
-
-The middleware in `utils/supabase/` refreshes sessions but does not gate routes.
-
-## Schema
-
-See [Database schema](/database/schema) for table definitions and relationships.
+See [Database schema](/database/schema) for the MongoDB collection model and [Environment variables](/deployment/environment-variables) for the full configuration reference.

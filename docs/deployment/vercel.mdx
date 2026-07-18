@@ -18,7 +18,7 @@ npx vercel --prod
 
 1. Import the GitHub repository at [vercel.com/new](https://vercel.com/new)
 2. Framework preset: **Next.js**
-3. Build command: `prisma migrate deploy && prisma generate && next build`
+3. Build command: `npm run build` (or leave the detected default)
 4. Set environment variables (see below)
 
 ## Environment variables
@@ -27,11 +27,11 @@ Set these in **Vercel → Project → Settings → Environment Variables**:
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `DATABASE_URL` | Yes | Supabase pooler URL (port 6543) |
-| `DIRECT_URL` | Yes | Supabase direct URL (port 5432) |
+| `MONGODB_URI` | Yes | MongoDB Atlas connection string; store as a secret |
+| `MONGODB_DB` | No | Database name; defaults to `memory404` |
 | `NEXT_PUBLIC_API_URL` | Yes | Render API URL |
-| `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | No | Supabase publishable key |
+| `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase Auth project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | No | Supabase Auth publishable key |
 | `CLOUDINARY_CLOUD_NAME` | No | Image upload |
 | `CLOUDINARY_API_KEY` | No | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | No | Cloudinary signing secret |
@@ -40,9 +40,13 @@ Set these in **Vercel → Project → Settings → Environment Variables**:
 
 ```bash
 NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
-DATABASE_URL=postgresql://postgres.REF:PASSWORD@HOST:6543/postgres?pgbouncer=true
-DIRECT_URL=postgresql://postgres.REF:PASSWORD@HOST:5432/postgres
+MONGODB_DB=memory404
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 ```
+
+Add `MONGODB_URI` through Vercel's environment-variable UI; do not paste a real URI into source files or documentation. Use the same MongoDB database on Vercel and Render.
+
+Supabase remains Auth-only. Next.js Route Handlers persist application records directly to the normalized MongoDB `users`, `groups`, and `links` collections.
 
 ## What Vercel serves
 

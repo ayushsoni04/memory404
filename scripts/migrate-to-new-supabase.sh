@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
 # memory404 — DB Migration: old → new Supabase project
-# Usage: bash scripts/migrate-to-new-supabase.sh <NEW_DB_PASSWORD>
+# Usage: OLD_DB_PASSWORD=... NEW_DB_PASSWORD=... bash scripts/migrate-to-new-supabase.sh
 #
 # Steps:
 #   1. Run all Prisma migrations on the new project (schema)
@@ -10,16 +10,16 @@
 # ============================================================
 set -euo pipefail
 
-NEW_PASS="${1:-}"
-if [[ -z "$NEW_PASS" ]]; then
-  echo "❌  Usage: bash scripts/migrate-to-new-supabase.sh <NEW_DB_PASSWORD>"
-  echo "   Get it from: Supabase → gucdslwlvrgwfyhmazeq → Project Settings → Database"
+OLD_PASS="${OLD_DB_PASSWORD:-}"
+NEW_PASS="${NEW_DB_PASSWORD:-}"
+if [[ -z "$OLD_PASS" || -z "$NEW_PASS" ]]; then
+  echo "Usage: OLD_DB_PASSWORD=... NEW_DB_PASSWORD=... bash scripts/migrate-to-new-supabase.sh"
+  echo "Passwords must be supplied through environment variables."
   exit 1
 fi
 
-OLD_PASS="YuYuhakusho_04"
-OLD_REF="xehhijjhmrodmcljzonl"
-NEW_REF="gucdslwlvrgwfyhmazeq"
+OLD_REF="${OLD_SUPABASE_REF:-xehhijjhmrodmcljzonl}"
+NEW_REF="${NEW_SUPABASE_REF:-gucdslwlvrgwfyhmazeq}"
 
 # ── Connection strings ────────────────────────────────────────────────────────
 OLD_DIRECT="postgresql://postgres:${OLD_PASS}@db.${OLD_REF}.supabase.co:5432/postgres?sslmode=require"
@@ -115,7 +115,6 @@ echo ""
 echo "  Next: Set these in the Render Dashboard:"
 echo "    DATABASE_URL = ${NEW_POOLER}"
 echo "    DIRECT_URL   = ${NEW_DIRECT}"
-echo "    CLOUDINARY_CLOUD_NAME = xcmaxg3w"
-echo "    CLOUDINARY_API_KEY    = 449918347441375"
-echo "    CLOUDINARY_API_SECRET = 5Yn2ZKsSvyIKhc-auDH4OWNWA6Q"
+echo "    CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, CLOUDINARY_API_SECRET"
+echo "    (copy these from your password manager or Cloudinary dashboard)"
 echo "══════════════════════════════════════════════════════"

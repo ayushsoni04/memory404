@@ -4,15 +4,15 @@ description: "Prevent free tier services from sleeping with scheduled health pin
 keywords: ["keep-alive", "cron", "free tier", "github actions"]
 ---
 
-Free tier hosting services sleep when idle. memory404 uses GitHub Actions and in-process pings to stay warm.
+Free tier hosting services can sleep when idle. memory404 uses GitHub Actions to keep HTTP services warm and health routes to verify MongoDB connectivity.
 
 ## Problem
 
 | Service | Sleep threshold | Impact |
 |---------|----------------|--------|
 | Render (free) | ~15 min idle | 30–60s cold start on first request |
-| Supabase (free) | ~7 days idle | Project pauses, requires manual resume |
 | Vercel | Stays warm | Cold starts possible without pings |
+| Supabase Auth | Provider-managed | Health ping verifies Auth availability |
 
 ## GitHub Actions workflow
 
@@ -22,7 +22,7 @@ The workflow at `.github/workflows/keep-alive.yml` pings services on a schedule:
 |---------|----------|----------|
 | Render | Every 14 minutes | `{RENDER_API_URL}/health` |
 | Vercel | Every 14 minutes | `{VERCEL_APP_URL}/api/health` |
-| Supabase | Daily | `{SUPABASE_PROJECT_URL}/auth/v1/health` |
+| Supabase Auth | Daily | `{SUPABASE_PROJECT_URL}/auth/v1/health` |
 
 ### Setup
 
@@ -32,22 +32,15 @@ Set these as GitHub repository variables:
 |----------|---------|
 | `VERCEL_APP_URL` | `https://memory404.vercel.app` |
 | `RENDER_API_URL` | `https://memory404-api.onrender.com` |
-| `SUPABASE_PROJECT_URL` | `https://gucdslwlvrgwfyhmazeq.supabase.co` |
+| `SUPABASE_PROJECT_URL` | `https://<project-ref>.supabase.co` |
 
 ### Manual trigger
 
 Go to **Actions → Keep services alive → Run workflow** in GitHub.
 
-## In-process keep-alive
+## Database health
 
-The Express server runs a DB ping every 3 days via `lib/keep-alive.ts`. This prevents Supabase from pausing due to database inactivity.
-
-```typescript
-// Pings SELECT 1 every 3 days
-startKeepAlive();
-```
-
-Stopped gracefully on SIGTERM during Render shutdown.
+The Vercel and Render health routes issue a MongoDB `ping` through the native driver. Therefore, scheduled HTTP checks also validate that `MONGODB_URI` is configured and Atlas is reachable. MongoDB Atlas is persistence; Supabase remains Auth-only.
 
 ## Render upgrade
 

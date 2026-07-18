@@ -1,11 +1,22 @@
-import { PrismaClientKnownRequestError } from "@prisma/client/runtime/library";
-import { Router } from "express";
+import { Router, type RequestHandler } from "express";
+import type { Filter } from "mongodb";
 import { DEV_USER_ID } from "@/lib/dev-user";
-import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
-  getOrCreateGeneralGroupId,
-  isGeneralName,
-} from "@/lib/groups";
+  getMongoEnvError,
+  isDuplicateKeyError,
+} from "@/lib/db/mongodb";
+import {
+  createGroup,
+  createLink,
+  findGroup,
+  findLink,
+  findLinks,
+  getOrCreateGeneralGroup,
+  updateLink,
+} from "@/lib/db/repositories";
+import type { LinkDocument } from "@/lib/db/types";
+import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { isGeneralName } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
 import { isValidHttpUrl, linkToApiRow } from "@/lib/links";
 import {
@@ -16,7 +27,6 @@ import {
   toLinksPage,
 } from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 
 // No session mechanism exists between this Express API and the Next.js app
 // (different origins), so every request is attributed to the same seeded
@@ -24,6 +34,19 @@ import { getDatabaseEnvError, prisma } from "@/lib/prisma";
 const userId = DEV_USER_ID;
 
 export const linksRouter = Router();
+
+const guardMutationsDuringMaintenance: RequestHandler = (req, res, next) => {
+  if (
+    ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) &&
+    process.env.MAINTENANCE_MODE?.trim().toLowerCase() === "true"
+  ) {
+    res.status(503).json({ error: "Service is temporarily in maintenance mode." });
+    return;
+  }
+  next();
+};
+
+linksRouter.use(guardMutationsDuringMaintenance);
 
 type PostBody = {
   url?: string;
@@ -55,17 +78,14 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
 
   if (newName) {
     if (isGeneralName(newName)) {
-      const id = await getOrCreateGeneralGroupId(userId);
+      const id = await getOrCreateGeneralGroup(userId);
       return { ok: true, groupId: id };
     }
     try {
-      const g = await prisma.group.create({
-        data: { userId, name: newName },
-        select: { id: true },
-      });
+      const g = await createGroup({ userId, name: newName });
       return { ok: true, groupId: g.id };
     } catch (e) {
-      if (e instanceof PrismaClientKnownRequestError && e.code === "P2002") {
+      if (isDuplicateKeyError(e)) {
         return {
           ok: false,
           status: 409,
@@ -85,9 +105,10 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
       };
     }
     const gid = body.groupId.trim();
-    const exists = await prisma.group.findUnique({
-      where: { id: gid, userId },
-      select: { id: true },
+    const exists = await findGroup({
+      _id: gid,
+      userId,
+      deletedAt: null,
     });
     if (!exists) {
       return { ok: false, status: 400, error: "groupId is invalid" };
@@ -95,12 +116,12 @@ async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
     return { ok: true, groupId: gid };
   }
 
-  const fallback = await getOrCreateGeneralGroupId(userId);
+  const fallback = await getOrCreateGeneralGroup(userId);
   return { ok: true, groupId: fallback };
 }
 
 linksRouter.get("/", async (req, res) => {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     res.status(503).json({ error: envErr });
     return;
@@ -146,10 +167,10 @@ linksRouter.get("/", async (req, res) => {
         0,
         LINKS_PAGE_MAX,
       );
-      const rows = await prisma.link.findMany({
-        where: { id: { in: uniqueIds }, userId },
-        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      });
+      const rows = await findLinks(
+        { _id: { $in: uniqueIds }, userId, deletedAt: null },
+        { sort: { createdAt: -1, _id: -1 } },
+      );
       res.json({
         links: rows.map(linkToApiRow),
         nextCursor: null,
@@ -162,9 +183,10 @@ linksRouter.get("/", async (req, res) => {
     if (groupIdParam) {
       filterGroupId = groupIdParam;
     } else if (legacyGroup === "uncategorized" || legacyGroup === "general") {
-      const inbox = await prisma.group.findUnique({
-        where: { userId_name: { userId, name: GENERAL_GROUP_NAME } },
-        select: { id: true },
+      const inbox = await findGroup({
+        userId,
+        name: GENERAL_GROUP_NAME,
+        deletedAt: null,
       });
       if (inbox) filterGroupId = inbox.id;
     } else if (legacyGroup) {
@@ -180,23 +202,21 @@ linksRouter.get("/", async (req, res) => {
       }
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const where: any = {
-      AND: [
-        { userId },
+    const where: Filter<LinkDocument> = {
+      $and: [
+        { userId, deletedAt: null },
         search.trim() ? linkTextSearchWhere(search) : {},
         filterGroupId ? { groupId: filterGroupId } : {},
         tagParams.length
-          ? { tags: { hasSome: Array.from(new Set(tagParams)) } }
+          ? { tags: { $in: Array.from(new Set(tagParams)) } }
           : {},
         linksCursorWhere(cursor),
       ],
     };
 
-    const rows = await prisma.link.findMany({
-      where,
-      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
-      take: limit + 1,
+    const rows = await findLinks(where, {
+      sort: { createdAt: -1, _id: -1 },
+      limit: limit + 1,
     });
     res.json(toLinksPage(rows, limit));
   } catch (e) {
@@ -210,7 +230,7 @@ linksRouter.get("/", async (req, res) => {
 });
 
 linksRouter.post("/", async (req, res) => {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     res.status(503).json({ error: envErr });
     return;
@@ -230,9 +250,7 @@ linksRouter.post("/", async (req, res) => {
       return;
     }
 
-    const existing = await prisma.link.findUnique({
-      where: { userId_url: { userId, url } },
-    });
+    const existing = await findLink({ userId, url });
     if (existing) {
       res.status(409).json({
         error: "A link with this URL already exists.",
@@ -261,19 +279,13 @@ linksRouter.post("/", async (req, res) => {
         ? body.imageUrl.trim()
         : null;
 
-    const created = await prisma.link.create({
-      data: {
-        userId,
-        url,
-        title: titleFromPayload ?? url,
-        description: descriptionFromPayload,
-        imageUrl: imageUrlFromPayload,
-        customTitle: null,
-        tags: [],
-        notes: null,
-        groupId: resolved.groupId,
-        metadataStatus: "pending",
-      },
+    const created = await createLink({
+      userId,
+      url,
+      title: titleFromPayload ?? url,
+      description: descriptionFromPayload,
+      imageUrl: imageUrlFromPayload,
+      groupId: resolved.groupId,
     });
 
     void enrichLinkMetadataInBackground(created.id, url);
@@ -281,17 +293,8 @@ linksRouter.post("/", async (req, res) => {
     res.status(201).json({ link: linkToApiRow(created) });
   } catch (e) {
     console.error("POST /api/links:", e);
-    if (e instanceof PrismaClientKnownRequestError) {
-      const err = e as PrismaClientKnownRequestError;
-      if (err.code === "P2002") {
-        res.status(409).json({ error: "A link with this URL already exists." });
-        return;
-      }
-      res.status(500).json({
-        error: "Could not save link.",
-        hint: err.message,
-        code: err.code,
-      });
+    if (isDuplicateKeyError(e)) {
+      res.status(409).json({ error: "A link with this URL already exists." });
       return;
     }
     res.status(500).json({ error: "Failed to save link" });
@@ -299,7 +302,7 @@ linksRouter.post("/", async (req, res) => {
 });
 
 linksRouter.patch("/:id", async (req, res) => {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     res.status(503).json({ error: envErr });
     return;
@@ -329,25 +332,27 @@ linksRouter.patch("/:id", async (req, res) => {
     }
 
     if (body.refreshPreview === true) {
-      const existing = await prisma.link.findUnique({
-        where: { id, userId },
-        select: { id: true, url: true },
-      });
+      const existing = await findLink({ _id: id, userId, deletedAt: null });
       if (!existing) {
         res.status(404).json({ error: "Link not found" });
         return;
       }
-      const pending = await prisma.link.update({
-        where: { id },
-        data: { metadataStatus: "pending" },
-      });
+      const pending = await updateLink(
+        { _id: id, userId, deletedAt: null },
+        { $set: { metadataStatus: "pending" } },
+      );
+      if (!pending) {
+        res.status(404).json({ error: "Link not found" });
+        return;
+      }
       void enrichLinkMetadataInBackground(existing.id, existing.url);
       res.json({ link: linkToApiRow(pending) });
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const updateData: any = {};
+    const updateData: Partial<
+      Pick<LinkDocument, "customTitle" | "tags" | "notes" | "groupId">
+    > = {};
 
     if ("customTitle" in body) {
       const raw = body.customTitle;
@@ -401,51 +406,40 @@ linksRouter.patch("/:id", async (req, res) => {
       }
       if (typeof rawGroupId === "string" && rawGroupId.trim()) {
         const normalizedGroupId = rawGroupId.trim();
-        const groupExists = await prisma.group.findUnique({
-          where: { id: normalizedGroupId, userId },
-          select: { id: true },
+        const groupExists = await findGroup({
+          _id: normalizedGroupId,
+          userId,
+          deletedAt: null,
         });
         if (!groupExists) {
           res.status(400).json({ error: "groupId is invalid" });
           return;
         }
-        updateData.group = { connect: { id: normalizedGroupId } };
+        updateData.groupId = normalizedGroupId;
       } else {
         res.status(400).json({ error: "groupId must be a non-empty string" });
         return;
       }
     }
 
-    const updated = await prisma.link.update({
-      where: { id, userId },
-      data: updateData,
-    });
-
-    res.json({ link: linkToApiRow(updated) });
-  } catch (e) {
-    if (
-      e instanceof PrismaClientKnownRequestError &&
-      (e as PrismaClientKnownRequestError).code === "P2025"
-    ) {
+    const updated = await updateLink(
+      { _id: id, userId, deletedAt: null },
+      { $set: updateData },
+    );
+    if (!updated) {
       res.status(404).json({ error: "Link not found" });
       return;
     }
+
+    res.json({ link: linkToApiRow(updated) });
+  } catch (e) {
     console.error("PATCH /api/links/:id:", e);
-    if (e instanceof PrismaClientKnownRequestError) {
-      const err = e as PrismaClientKnownRequestError;
-      res.status(500).json({
-        error: "Could not update link.",
-        hint: err.message,
-        code: err.code,
-      });
-      return;
-    }
     res.status(500).json({ error: "Failed to update link" });
   }
 });
 
 linksRouter.delete("/:id", async (req, res) => {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     res.status(503).json({ error: envErr });
     return;
@@ -458,26 +452,17 @@ linksRouter.delete("/:id", async (req, res) => {
   }
 
   try {
-    await prisma.link.delete({ where: { id, userId } });
-    res.json({ ok: true });
-  } catch (e) {
-    if (
-      e instanceof PrismaClientKnownRequestError &&
-      (e as PrismaClientKnownRequestError).code === "P2025"
-    ) {
+    const trashed = await updateLink(
+      { _id: id, userId, deletedAt: null },
+      { $set: { deletedAt: new Date() } },
+    );
+    if (!trashed) {
       res.status(404).json({ error: "Link not found" });
       return;
     }
+    res.json({ ok: true, link: linkToApiRow(trashed) });
+  } catch (e) {
     console.error("DELETE /api/links/:id:", e);
-    if (e instanceof PrismaClientKnownRequestError) {
-      const err = e as PrismaClientKnownRequestError;
-      res.status(500).json({
-        error: "Could not delete link.",
-        hint: err.message,
-        code: err.code,
-      });
-      return;
-    }
     res.status(500).json({ error: "Failed to delete link" });
   }
 });

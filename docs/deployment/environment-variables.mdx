@@ -10,29 +10,33 @@ keywords: ["environment", "configuration", "env vars"]
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `DATABASE_URL` | Next.js + Express | PgBouncer pooler URL (`?pgbouncer=true`, port 6543) |
-| `DIRECT_URL` | Next.js + Express | Direct Postgres URL (port 5432, for migrations) |
+| `MONGODB_URI` | Next.js + Express | MongoDB Atlas connection string; store as a secret |
+| `MONGODB_DB` | Next.js + Express | Database name; optional, defaults to `memory404` |
 
 ```bash
-DATABASE_URL="postgresql://postgres.REF:PASSWORD@HOST:6543/postgres?pgbouncer=true"
-DIRECT_URL="postgresql://postgres.REF:PASSWORD@HOST:5432/postgres"
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>/<database>?retryWrites=true&w=majority"
+MONGODB_DB="memory404"
 ```
+
+Use a dedicated Atlas database user with only the permissions the app needs. Never prefix `MONGODB_URI` with `NEXT_PUBLIC_` or commit its value.
 
 ## Frontend
 
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `NEXT_PUBLIC_API_URL` | Vercel | Render API base URL. Empty = same-origin `/api` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Vercel | Supabase project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Vercel | Supabase publishable key |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel | Legacy fallback anon JWT |
+| `NEXT_PUBLIC_SUPABASE_URL` | Vercel | Supabase Auth project URL |
+| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Vercel | Supabase Auth publishable key |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel | Legacy Auth fallback anon key |
 
 ### Production example
 
 ```bash
 NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
-NEXT_PUBLIC_SUPABASE_URL=https://gucdslwlvrgwfyhmazeq.supabase.co
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 ```
+
+Supabase is Auth-only. Application records are persisted in MongoDB Atlas.
 
 ## Backend (Express)
 
@@ -45,6 +49,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://gucdslwlvrgwfyhmazeq.supabase.co
 ```bash
 CORS_ORIGINS=https://memory404.vercel.app
 ```
+
+The Express service also requires `MONGODB_URI` and uses the same `MONGODB_DB` as Vercel.
 
 ## Optional
 
@@ -69,7 +75,7 @@ Set as repository variables for keep-alive workflows:
 |----------|---------|
 | `VERCEL_APP_URL` | Ping Vercel frontend |
 | `RENDER_API_URL` | Ping Render API health |
-| `SUPABASE_PROJECT_URL` | Ping Supabase (`https://xxx.supabase.co`) |
+| `SUPABASE_PROJECT_URL` | Ping the Supabase Auth health endpoint |
 
 ## Template file
 
@@ -78,6 +84,8 @@ Copy `env.template` to `.env.local` for local development:
 ```bash
 cp env.template .env.local
 ```
+
+Replace placeholders locally; do not paste real credentials into documentation, source control, or public build logs.
 
 ## Variable resolution
 

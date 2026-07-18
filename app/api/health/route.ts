@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import { getMongoEnvError, pingMongo } from "@/lib/db/mongodb";
 
 export const runtime = "nodejs";
 
-/** Lightweight health + DB ping (keeps Supabase active on scheduled pings). */
+/** Lightweight health + MongoDB ping. */
 export async function GET() {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json(
       { ok: false, service: "memory404-web", error: envErr },
@@ -14,7 +14,7 @@ export async function GET() {
   }
 
   try {
-    await prisma.$queryRaw`SELECT 1`;
+    await pingMongo();
     return NextResponse.json({
       ok: true,
       service: "memory404-web",

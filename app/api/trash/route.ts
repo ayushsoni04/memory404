@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import {
+  getCollections,
+  getMongoEnvError,
+  withMongoTransaction,
+} from "@/lib/db/mongodb";
 import { rateLimit } from "@/lib/rate-limit";
 import { effectivePreviewImageUrl, effectiveFaviconUrl } from "@/lib/links";
 
@@ -39,45 +43,59 @@ function daysLeft(deletedAt: Date): number {
 }
 
 export async function GET() {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) return NextResponse.json({ error: envErr }, { status: 503 });
 
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;
 
   try {
-    const [links, groups] = await Promise.all([
-      prisma.link.findMany({
-        where: { userId: auth.id, deletedAt: { not: null } },
-        orderBy: { deletedAt: "desc" },
-        include: { group: { select: { id: true, name: true, deletedAt: true } } },
-      }),
-      prisma.group.findMany({
-        where: { userId: auth.id, deletedAt: { not: null } },
-        orderBy: { deletedAt: "desc" },
-        include: { _count: { select: { links: { where: { deletedAt: { not: null } } } } } },
-      }),
+    const { groups: groupsCollection, links: linksCollection } =
+      await getCollections();
+    const [links, allGroups] = await Promise.all([
+      linksCollection
+        .find({ userId: auth.id, deletedAt: { $ne: null } })
+        .sort({ deletedAt: -1 })
+        .toArray(),
+      groupsCollection.find({ userId: auth.id }).toArray(),
     ]);
+    const groups = allGroups
+      .filter((group) => group.deletedAt !== null)
+      .sort(
+        (a, b) =>
+          (b.deletedAt?.getTime() ?? 0) - (a.deletedAt?.getTime() ?? 0),
+      );
+    const groupById = new Map(allGroups.map((group) => [group._id, group]));
+    const trashedLinksByGroup = new Map<string, number>();
+    for (const link of links) {
+      trashedLinksByGroup.set(
+        link.groupId,
+        (trashedLinksByGroup.get(link.groupId) ?? 0) + 1,
+      );
+    }
 
     const items: TrashApiItem[] = [
       ...groups.map((g): TrashGroupItem => ({
         type: "group",
-        id: g.id,
+        id: g._id,
         name: g.name,
-        linksCount: g._count.links,
+        linksCount: trashedLinksByGroup.get(g._id) ?? 0,
         deletedAt: g.deletedAt!.toISOString(),
         daysLeft: daysLeft(g.deletedAt!),
       })),
       ...links.map((l): TrashLinkItem => ({
         type: "link",
-        id: l.id,
+        id: l._id,
         url: l.url,
         title: l.title,
         displayTitle: l.customTitle ?? l.title,
         imageUrl: effectivePreviewImageUrl(l),
         faviconUrl: effectiveFaviconUrl(l),
         groupId: l.groupId,
-        groupName: l.group.deletedAt ? null : l.group.name,
+        groupName:
+          groupById.get(l.groupId)?.deletedAt === null
+            ? (groupById.get(l.groupId)?.name ?? null)
+            : null,
         deletedAt: l.deletedAt!.toISOString(),
         daysLeft: daysLeft(l.deletedAt!),
       })),
@@ -92,7 +110,13 @@ export async function GET() {
 
 // DELETE /api/trash — permanently purge all (or expired-only via ?expiredOnly=1)
 export async function DELETE(request: Request) {
-  const envErr = getDatabaseEnvError();
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json(
+      { error: "Service is temporarily unavailable during maintenance." },
+      { status: 503 },
+    );
+  }
+  const envErr = getMongoEnvError();
   if (envErr) return NextResponse.json({ error: envErr }, { status: 503 });
 
   const auth = await requireAuth();
@@ -111,16 +135,39 @@ export async function DELETE(request: Request) {
     const expiredOnly = url.searchParams.get("expiredOnly") === "1";
     const cutoff = expiredOnly ? new Date(Date.now() - TRASH_DAYS * 24 * 60 * 60 * 1000) : undefined;
 
-    const where = cutoff
-      ? { userId: auth.id, deletedAt: { not: null, lte: cutoff } }
-      : { userId: auth.id, deletedAt: { not: null } };
+    const deletedAt = cutoff ? { $ne: null, $lte: cutoff } : { $ne: null };
+    const { deletedLinks, deletedGroups } = await withMongoTransaction(
+      async (session) => {
+        const { groups, links } = await getCollections();
+        const groupIds = await groups
+          .find(
+            { userId: auth.id, deletedAt },
+            { session, projection: { _id: 1 } },
+          )
+          .map((group) => group._id)
+          .toArray();
+        const linkFilter = groupIds.length
+          ? {
+              userId: auth.id,
+              $or: [
+                { deletedAt },
+                { groupId: { $in: groupIds } },
+              ],
+            }
+          : { userId: auth.id, deletedAt };
+        const linksResult = await links.deleteMany(linkFilter, { session });
+        const groupsResult = await groups.deleteMany(
+          { userId: auth.id, deletedAt },
+          { session },
+        );
+        return {
+          deletedLinks: linksResult.deletedCount,
+          deletedGroups: groupsResult.deletedCount,
+        };
+      },
+    );
 
-    // Links first (FK constraint: must delete before groups)
-    const deletedLinks = await prisma.link.deleteMany({ where });
-    // Now groups (links are gone, so Restrict FK is satisfied)
-    const deletedGroups = await prisma.group.deleteMany({ where });
-
-    return NextResponse.json({ ok: true, deletedLinks: deletedLinks.count, deletedGroups: deletedGroups.count });
+    return NextResponse.json({ ok: true, deletedLinks, deletedGroups });
   } catch (e) {
     console.error("DELETE /api/trash:", e);
     return NextResponse.json({ error: "Failed to empty Trash" }, { status: 500 });

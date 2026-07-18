@@ -1,9 +1,15 @@
-import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
-import { getOrCreateGeneralGroupId } from "@/lib/groups";
-import { getDatabaseEnvError, prisma } from "@/lib/prisma";
+import {
+  getMongoEnvError,
+  isDuplicateKeyError,
+} from "@/lib/db/mongodb";
+import {
+  createGroup,
+  getOrCreateGeneralGroup,
+  listGroupsWithPreviews,
+  reorderGroups,
+} from "@/lib/db/repositories";
 
 export const runtime = "nodejs";
 
@@ -18,7 +24,7 @@ type PatchBody = {
 };
 
 export async function GET() {
-  const envErr = getDatabaseEnvError();
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -27,25 +33,8 @@ export async function GET() {
   if (auth instanceof Response) return auth;
 
   try {
-    await getOrCreateGeneralGroupId(auth.id);
-    const groups = await prisma.group.findMany({
-      where: { userId: auth.id, deletedAt: null },
-      orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }],
-      include: {
-        _count: { select: { links: { where: { deletedAt: null } } } },
-        links: {
-          where: { deletedAt: null },
-          orderBy: { createdAt: "desc" },
-          take: 3,
-          select: {
-            id: true,
-            title: true,
-            customTitle: true,
-            url: true,
-          },
-        },
-      },
-    });
+    await getOrCreateGeneralGroup(auth.id);
+    const groups = await listGroupsWithPreviews(auth.id);
     return NextResponse.json({
       groups: groups.map((g) => ({
         id: g.id,
@@ -53,8 +42,8 @@ export async function GET() {
         sortOrder: g.sortOrder,
         parentGroupId: g.parentGroupId,
         createdAt: g.createdAt.toISOString(),
-        linksCount: g._count.links,
-        previewTitles: g.links.map((l) => l.customTitle ?? l.title ?? l.url),
+        linksCount: g.linksCount,
+        previewTitles: g.previewTitles,
       })),
     });
   } catch (e) {
@@ -68,7 +57,13 @@ export async function GET() {
 
 
 export async function POST(request: Request) {
-  const envErr = getDatabaseEnvError();
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json(
+      { error: "Service is temporarily unavailable during maintenance." },
+      { status: 503 },
+    );
+  }
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -105,49 +100,19 @@ export async function POST(request: Request) {
         );
       }
       parentGroupId = body.parentGroupId.trim();
-      const parentExists = await prisma.group.findUnique({
-        where: { id: parentGroupId, userId: auth.id },
-        select: { id: true },
-      });
-      if (!parentExists) {
-        return NextResponse.json(
-          { error: "parentGroupId is invalid" },
-          { status: 400 },
-        );
-      }
     }
 
-    const general = await prisma.group.findUnique({
-      where: { userId_name: { userId: auth.id, name: GENERAL_GROUP_NAME } },
-      select: { id: true },
-    });
-    const maxOrder = await prisma.group.aggregate({
-      where: { userId: auth.id },
-      _max: { sortOrder: true },
-    });
-    const nextAppend = (maxOrder._max.sortOrder ?? -1) + 1;
-
-    let sortOrder = nextAppend;
-    if (
+    const insertAt =
       typeof body.insertAt === "number" &&
       Number.isFinite(body.insertAt) &&
       Number.isInteger(body.insertAt)
-    ) {
-      const count = await prisma.group.count({ where: { userId: auth.id } });
-      const minimumInsertAt = general ? 1 : 0;
-      const insertAt = Math.max(
-        minimumInsertAt,
-        Math.min(body.insertAt, count),
-      );
-      sortOrder = insertAt;
-      await prisma.group.updateMany({
-        where: { userId: auth.id, sortOrder: { gte: insertAt } },
-        data: { sortOrder: { increment: 1 } },
-      });
-    }
-
-    const created = await prisma.group.create({
-      data: { userId: auth.id, name, parentGroupId, sortOrder },
+        ? body.insertAt
+        : undefined;
+    const created = await createGroup({
+      userId: auth.id,
+      name,
+      parentGroupId,
+      insertAt,
     });
 
     return NextResponse.json(
@@ -163,7 +128,13 @@ export async function POST(request: Request) {
       { status: 201 },
     );
   } catch (e) {
-    if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
+    if (e instanceof Error && e.message === "INVALID_PARENT_GROUP") {
+      return NextResponse.json(
+        { error: "parentGroupId is invalid" },
+        { status: 400 },
+      );
+    }
+    if (isDuplicateKeyError(e)) {
       return NextResponse.json(
         { error: "A group with this name already exists." },
         { status: 409 },
@@ -178,7 +149,13 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const envErr = getDatabaseEnvError();
+  if (process.env.MAINTENANCE_MODE === "true") {
+    return NextResponse.json(
+      { error: "Service is temporarily unavailable during maintenance." },
+      { status: 503 },
+    );
+  }
+  const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
   }
@@ -217,41 +194,20 @@ export async function PATCH(request: Request) {
       );
     }
 
-    const existing = await prisma.group.findMany({
-      where: { userId: auth.id },
-      select: { id: true, name: true },
-    });
-    const existingIds = new Set(existing.map((g) => g.id));
-    if (
-      orderedIds.length !== existingIds.size ||
-      orderedIds.some((id) => !existingIds.has(id))
-    ) {
+    const result = await reorderGroups(auth.id, orderedIds);
+    if (result === "invalid") {
       return NextResponse.json(
         { error: "orderedIds must include every group exactly once" },
         { status: 400 },
       );
     }
 
-    const general = existing.find((group) => group.name === GENERAL_GROUP_NAME);
-    if (general && orderedIds[0] !== general.id) {
+    if (result === "general-not-first") {
       return NextResponse.json(
         { error: "General must remain first" },
         { status: 400 },
       );
     }
-
-    // Single batched UPDATE via unnest — O(1) DB round-trips instead of N.
-    // Builds: UPDATE groups SET sort_order = v.idx FROM (SELECT unnest($ids), generate_subscripts-1) WHERE id = v.id
-    await prisma.$executeRaw`
-      UPDATE "groups"
-      SET "sort_order" = v.idx
-      FROM (
-        SELECT
-          unnest(${orderedIds}::uuid[]) AS gid,
-          (generate_subscripts(${orderedIds}::uuid[], 1) - 1) AS idx
-      ) AS v
-      WHERE "groups"."id" = v.gid AND "groups"."user_id" = ${auth.id}::uuid
-    `;
 
     return NextResponse.json({ ok: true });
   } catch (e) {

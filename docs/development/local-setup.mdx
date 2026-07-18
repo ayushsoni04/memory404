@@ -10,7 +10,7 @@ Set up a local development environment for memory404.
 
 - Node.js 20+
 - npm
-- PostgreSQL (via Supabase or local)
+- A MongoDB Atlas deployment (or compatible local MongoDB replica set)
 - Chrome (for extension development)
 
 ## Clone and install
@@ -21,22 +21,24 @@ cd memory404
 npm install
 ```
 
-`postinstall` runs `prisma generate` automatically.
-
 ## Environment
 
 ```bash
 cp env.template .env.local
 ```
 
-Fill in `DATABASE_URL` and `DIRECT_URL` from your Supabase project.
+Set the MongoDB connection:
+
+```bash
+MONGODB_URI="mongodb+srv://<user>:<password>@<cluster>/<database>?retryWrites=true&w=majority"
+MONGODB_DB="memory404"
+```
+
+`MONGODB_DB` is optional and defaults to `memory404`. Keep the real URI out of source control. Add `NEXT_PUBLIC_SUPABASE_URL` and a Supabase publishable key only when testing Auth.
 
 ## Database
 
-```bash
-npm run db:deploy    # Apply migrations
-npm run db:studio    # Open data browser
-```
+The app uses the MongoDB native driver. MongoDB creates collections lazily; the Express startup path creates the required indexes for normalized `users`, `groups`, and `links` collections idempotently. Start `npm run backend:dev` once for a new database before relying on the single-stack mode. There is no local SQL migration step.
 
 ## Development modes
 
@@ -83,13 +85,12 @@ Load `extension/dist` as unpacked in Chrome. Set App URL to `http://localhost:30
 |--------|-------------|
 | `npm run dev` | Start Next.js dev server |
 | `npm run backend:dev` | Start Express API on port 4000 |
-| `npm run build` | Production build with migrations |
+| `npm run build` | Create a production Next.js build |
 | `npm run lint` | Run ESLint |
 | `npm run test:metadata` | Test metadata enrichment pipeline |
-| `npm run db:migrate` | Create and apply migration |
-| `npm run db:deploy` | Apply migrations (production) |
-| `npm run db:generate` | Regenerate Prisma Client |
-| `npm run db:studio` | Open Prisma Studio |
+| `npm run db:mongo:dry-run` | Inspect legacy Postgres source counts |
+| `npm run db:mongo:migrate` | Migrate legacy Postgres data to MongoDB |
+| `npm run db:mongo:verify` | Verify migrated counts and relationships |
 
 ## Project structure
 
@@ -105,10 +106,11 @@ memory404/
 ├── components/           # React components
 ├── extension/            # Chrome MV3 extension
 ├── lib/                  # Shared utilities
+│   ├── db/               # MongoDB client, types, and repositories
 │   ├── link-providers/   # Provider-specific metadata rules
 │   ├── enrich-link-metadata.ts
 │   └── api-base.ts       # API URL resolution
-├── prisma/               # Schema and migrations
+├── scripts/              # Migration and maintenance scripts
 └── docs/                 # Mintlify documentation
 ```
 

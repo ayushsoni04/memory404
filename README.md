@@ -32,9 +32,15 @@ Deploy via [Render Dashboard](https://dashboard.render.com) → **New Blueprint*
 | Start Command | `npm start` |
 | Health Check | `/health` |
 
-Env vars on Render: `DATABASE_URL`, `DIRECT_URL`, optional `CORS_ORIGINS=https://memory404.vercel.app`
+Env vars on Render: `MONGODB_URI`, optional `MONGODB_DB=memory404`, and optional `CORS_ORIGINS=https://memory404.vercel.app`. Use a MongoDB Atlas connection string and keep it in the hosting provider's secret store.
 
-Local split-stack dev: run `npm run dev` (frontend) and `cd backend && npm run dev` (API), with `NEXT_PUBLIC_API_URL=http://localhost:4000` in `.env.local`.
+Local split-stack dev: set `MONGODB_URI` (and optionally `MONGODB_DB`) in `.env.local`, run `npm run dev` (frontend) and `cd backend && npm run dev` (API), then set `NEXT_PUBLIC_API_URL=http://localhost:4000`.
+
+### Persistence and authentication
+
+memory404 uses the MongoDB native Node.js driver with MongoDB Atlas. Data is normalized into `users`, `groups`, and `links` collections with per-user uniqueness, relationship, soft-delete, and cursor-pagination indexes created by the Express startup path or migration script.
+
+Supabase is used only for authentication and session refresh. It is not the application database. Configure its public URL and publishable key separately from `MONGODB_URI`.
 
 ### Keep-alive (free tier)
 
@@ -43,10 +49,10 @@ GitHub Actions [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive
 | Service | Why | Schedule |
 |---------|-----|----------|
 | **Render** | Free web services sleep after ~15 min idle | Every 14 minutes |
-| **Supabase** | Free projects pause after ~7 days idle | Daily (+ DB hits every 14 min via health checks) |
+| **Supabase Auth** | Auth health visibility | Daily |
 | **Vercel** | Stays warm; avoids cold starts | Every 14 minutes |
 
-Optional GitHub repo variables: `VERCEL_APP_URL`, `RENDER_API_URL`, `SUPABASE_PROJECT_URL` (your `https://xxx.supabase.co` URL).
+Optional GitHub repo variables: `VERCEL_APP_URL`, `RENDER_API_URL`, `SUPABASE_PROJECT_URL` (your Auth project URL).
 
 Trigger manually: **Actions → Keep services alive → Run workflow**.
 
