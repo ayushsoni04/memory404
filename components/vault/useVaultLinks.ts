@@ -346,9 +346,27 @@ export function useVaultLinks(
     const currentSentinel = sentinelRef.current;
     if (!currentSentinel) return;
 
+    // IntersectionObserver reports its baseline state on the very first
+    // callback after observe() — if the sentinel is already within
+    // rootMargin (e.g. a page of cards doesn't fill the viewport), that
+    // fires immediately, mounting a second page's worth of cards in the
+    // same burst as the first. Still honor it (skipping it entirely would
+    // leave a short page permanently stuck without enough content to
+    // reach the real bottom of the screen), just let the current page
+    // finish its initial paint first instead of piling both on at once.
+    let isBaselineReport = true;
+    let baselineTimer: ReturnType<typeof setTimeout> | null = null;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries[0]?.isIntersecting) {
+        const isIntersecting = entries[0]?.isIntersecting;
+        if (isBaselineReport) {
+          isBaselineReport = false;
+          if (isIntersecting) {
+            baselineTimer = setTimeout(loadMoreLinks, 400);
+          }
+          return;
+        }
+        if (isIntersecting) {
           loadMoreLinks();
         }
       },
@@ -357,6 +375,7 @@ export function useVaultLinks(
 
     observer.observe(currentSentinel);
     return () => {
+      if (baselineTimer !== null) clearTimeout(baselineTimer);
       observer.unobserve(currentSentinel);
     };
   }, [hasMoreLinks, loadMoreLinks, sortedLinks.length]);
