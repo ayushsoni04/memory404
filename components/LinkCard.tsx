@@ -47,6 +47,11 @@ function LinkCard({
     containerRef: mediaContainerRef,
     settleLoad,
   } = useFeedMediaActivation(Boolean(feedSrc));
+  const {
+    activated: faviconActivated,
+    containerRef: faviconContainerRef,
+    settleLoad: settleFaviconLoad,
+  } = useFeedMediaActivation(Boolean(link.faviconUrl));
   const loaded = activated && loadedSrc === imgSrc;
 
   const showLoader = pending;
@@ -137,14 +142,17 @@ function LinkCard({
             />
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
             {link.faviconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
+              // eslint-disable-next-line @next/next/no-img-element -- gated src via feed media controller, same as the hero image
               <img
-                src={getProxiedImageUrl(link.faviconUrl)}
+                ref={faviconContainerRef}
+                src={faviconActivated ? getProxiedImageUrl(link.faviconUrl) : undefined}
                 alt=""
                 width={28}
                 height={28}
                 loading={priority ? "eager" : "lazy"}
                 decoding="async"
+                onLoad={settleFaviconLoad}
+                onError={settleFaviconLoad}
                 className="pointer-events-none absolute bottom-3 left-3 z-[1] size-7 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.08)]"
                 referrerPolicy="no-referrer"
               />
