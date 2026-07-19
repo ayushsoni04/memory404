@@ -157,6 +157,16 @@ export async function listGroupsWithPreviews(
         },
       },
       {
+        // $lookup + $facet nests one array level per stage, so `linkSummary`
+        // here is `[{ count: [{ value: N }], previews: [...] }]` — flatten it
+        // to a single document before pulling `count`/`previews` out of it,
+        // otherwise `$arrayElemAt` below only unwraps the outer array and
+        // `linksCount` ends up as `[N]` instead of `N`.
+        $set: {
+          linkSummary: { $arrayElemAt: ["$linkSummary", 0] },
+        },
+      },
+      {
         $set: {
           linksCount: {
             $ifNull: [
@@ -166,12 +176,7 @@ export async function listGroupsWithPreviews(
           },
           previewTitles: {
             $map: {
-              input: {
-                $ifNull: [
-                  { $arrayElemAt: ["$linkSummary.previews", 0] },
-                  [],
-                ],
-              },
+              input: { $ifNull: ["$linkSummary.previews", []] },
               as: "link",
               in: {
                 $ifNull: [
