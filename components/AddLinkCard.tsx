@@ -154,7 +154,7 @@ export default function AddLinkCard({
     `add-link-panel${active ? " is-active" : ""}${skipMotion ? " is-instant" : ""}`;
 
   return (
-    <article className="mind-card mb-3 break-inside-avoid">
+    <article className="mind-card">
       <div className="mind-card-shell group relative min-h-[140px] overflow-hidden rounded-[4px]">
         <span className="mind-card-stroke" aria-hidden />
         <div className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]">

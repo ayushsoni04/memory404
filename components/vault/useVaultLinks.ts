@@ -30,6 +30,11 @@ export function useVaultLinks(
   initialData: InitialVaultLinks,
 ) {
   const initialMatches = openedGroupId === initialData.openedGroupId;
+  const initialFirstPage = initialData.firstPage;
+  const fallbackData = useMemo(
+    () => (initialMatches ? [initialFirstPage] : undefined),
+    [initialMatches, initialFirstPage],
+  );
   const [links, setLinks] = useState<LinkApiRow[]>(() => {
     if (initialMatches) return initialData.firstPage.links;
     const storedGroupId = readStorageItem("memory404-opened-group-id");
@@ -132,7 +137,7 @@ export function useVaultLinks(
       };
     },
     {
-      fallbackData: initialMatches ? [initialData.firstPage] : undefined,
+      fallbackData,
       revalidateOnMount: !initialMatches,
       revalidateOnFocus: false,
       revalidateFirstPage: false,

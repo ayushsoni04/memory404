@@ -54,7 +54,7 @@ function LinkCard({
   return (
     <article
       ref={cardRef}
-      className={`mind-card mb-3 break-inside-avoid${entering ? " mind-card-enter" : ""}`}
+      className={`mind-card${entering ? " mind-card-enter" : ""}`}
       draggable
       onDragStart={(e) => {
         e.dataTransfer.setData("linkId", link.id);
@@ -82,6 +82,7 @@ function LinkCard({
                 alt=""
                 aria-hidden
                 draggable={false}
+                loading={priority ? "eager" : "lazy"}
                 decoding="async"
                 className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
                   loaded ? "opacity-0" : "opacity-100"
@@ -142,6 +143,8 @@ function LinkCard({
                 alt=""
                 width={28}
                 height={28}
+                loading={priority ? "eager" : "lazy"}
+                decoding="async"
                 className="pointer-events-none absolute bottom-3 left-3 z-[1] size-7 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.08)]"
                 referrerPolicy="no-referrer"
               />

@@ -1,6 +1,14 @@
 /** Soft border spotlight for cards near the pointer (not only the hovered one). */
 
 const VICINITY_PX = 140;
+/**
+ * Cards can only ever glow while within VICINITY_PX of the pointer, which is always
+ * within the viewport. So we only need to track/measure shells within the viewport
+ * plus this margin — measuring every mounted card (some grids hold hundreds after
+ * infinite scroll) forces layout on offscreen `content-visibility: auto` cards for
+ * no benefit.
+ */
+const NEARBY_OBSERVER_MARGIN_PX = VICINITY_PX + 60;
 
 interface CachedCard {
   shell: HTMLElement;
@@ -23,14 +31,53 @@ let scrollActive = false;
 let scrollIdleTimer: ReturnType<typeof setTimeout> | null = null;
 const SCROLL_IDLE_MS = 120;
 
-export function populateCardRectsCache(grid: HTMLElement) {
+let nearbyShells = new Set<HTMLElement>();
+let shellObserver: IntersectionObserver | null = null;
+let observedGrid: HTMLElement | null = null;
+
+function ensureShellObserver() {
+  if (shellObserver || typeof IntersectionObserver === "undefined") return;
+  shellObserver = new IntersectionObserver(
+    (observed) => {
+      for (const observation of observed) {
+        const shell = observation.target as HTMLElement;
+        if (observation.isIntersecting) nearbyShells.add(shell);
+        else nearbyShells.delete(shell);
+      }
+    },
+    { rootMargin: `${NEARBY_OBSERVER_MARGIN_PX}px 0px` },
+  );
+}
+
+/** Registers every mounted card shell for viewport-proximity tracking (cheap; no layout forced). */
+function observeGridShells(grid: HTMLElement) {
+  ensureShellObserver();
+  if (!shellObserver) return;
+  if (observedGrid !== grid) {
+    nearbyShells = new Set();
+    observedGrid = grid;
+  }
   const shells = grid.querySelectorAll<HTMLElement>(".mind-card-shell");
+  for (const shell of shells) {
+    shellObserver.observe(shell);
+  }
+}
+
+export function populateCardRectsCache(grid: HTMLElement) {
+  observeGridShells(grid);
+
   cachedCards = [];
   lastScrollY = typeof window !== "undefined" ? window.scrollY : 0;
   lastScrollX = typeof window !== "undefined" ? window.scrollX : 0;
   lastPopulateTime = Date.now();
 
+  // Fallback for environments without IntersectionObserver: measure everything.
+  const shells = shellObserver
+    ? nearbyShells
+    : grid.querySelectorAll<HTMLElement>(".mind-card-shell");
+
   for (const shell of shells) {
+    if (!grid.contains(shell)) continue;
     const rect = shell.getBoundingClientRect();
     cachedCards.push({
       shell,

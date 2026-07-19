@@ -23,6 +23,10 @@ type FeedMediaEntry = {
 };
 
 const entries = new Map<HTMLElement, FeedMediaEntry>();
+/** Kept in sync with entry.activated so trims don't rescan every registered card. */
+const activatedEntries = new Set<FeedMediaEntry>();
+/** Kept in sync with entry.queued so the activation queue doesn't rescan every registered card. */
+const queuedEntries = new Set<FeedMediaEntry>();
 let nearbyObserver: IntersectionObserver | null = null;
 let visibilityObserver: IntersectionObserver | null = null;
 let activeLoads = 0;
@@ -45,36 +49,34 @@ function deactivate(entry: FeedMediaEntry) {
   clearTimer(entry.releaseTimer);
   entry.releaseTimer = null;
   entry.queued = false;
+  queuedEntries.delete(entry);
   releaseLoadSlot(entry);
   if (!entry.activated) return;
   entry.activated = false;
+  activatedEntries.delete(entry);
   entry.setActivated(false);
 }
 
 function trimRetainedMedia() {
-  const activated = [...entries.values()].filter((entry) => entry.activated);
-  if (activated.length <= MAX_RETAINED_MEDIA) return;
+  if (activatedEntries.size <= MAX_RETAINED_MEDIA) return;
 
-  const releasable = activated
+  const releasable = [...activatedEntries]
     .filter((entry) => !entry.nearby && !entry.visible)
     .sort((a, b) => a.lastVisibleAt - b.lastVisibleAt);
 
   for (const entry of releasable) {
-    if (
-      [...entries.values()].filter((item) => item.activated).length <=
-      MAX_RETAINED_MEDIA
-    ) {
-      break;
-    }
+    if (activatedEntries.size <= MAX_RETAINED_MEDIA) break;
     deactivate(entry);
   }
 }
 
 function activate(entry: FeedMediaEntry) {
   entry.queued = false;
+  queuedEntries.delete(entry);
   if (entry.activated || !entry.nearby || !entries.has(entry.element)) return;
 
   entry.activated = true;
+  activatedEntries.add(entry);
   entry.loading = true;
   entry.lastVisibleAt = Date.now();
   activeLoads += 1;
@@ -92,8 +94,8 @@ function processActivationQueue() {
   }
   processingQueue = true;
   try {
-    const queue = [...entries.values()]
-      .filter((entry) => entry.queued && entry.nearby && !entry.activated)
+    const queue = [...queuedEntries]
+      .filter((entry) => entry.nearby && !entry.activated)
       .sort(
         (a, b) =>
           Number(b.visible) - Number(a.visible) ||
@@ -114,11 +116,13 @@ function queueActivation(entry: FeedMediaEntry) {
   entry.releaseTimer = null;
   if (entry.activated) return;
   entry.queued = true;
+  queuedEntries.add(entry);
   processActivationQueue();
 }
 
 function scheduleRelease(entry: FeedMediaEntry) {
   entry.queued = false;
+  queuedEntries.delete(entry);
   clearTimer(entry.releaseTimer);
   if (!entry.activated) return;
   entry.releaseTimer = setTimeout(() => {
