@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import TrashBin from "@/components/TrashBin";
@@ -80,19 +81,16 @@ export default function VaultSidebar({
           aria-label="memory404"
           className="inline-flex items-center gap-2 text-foreground transition hover:opacity-85"
         >
-          <svg
-            width="28"
-            height="28"
-            viewBox="0 0 32 32"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path
-              d="M0 0.38C0 0.17 0.17 0 0.38 0H22c5.52 0 10 4.48 10 10s-4.48 10-10 10H0V0.38Z"
-              fill="currentColor"
-            />
-            <rect y="20" width="32" height="12" fill="currentColor" />
-          </svg>
+          <Image
+            src="/logo.png"
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 object-contain"
+            aria-hidden
+            draggable={false}
+            priority
+          />
           <span className="font-mono text-sm tracking-widest font-semibold uppercase">
             404
           </span>
@@ -339,7 +337,7 @@ export default function VaultSidebar({
             href="/workspace"
             className="text-[13px] text-muted transition-colors hover:text-foreground"
           >
-            Screen editor
+            Workspace
           </Link>
           <p className="text-[13px] text-subtle">
             © {new Date().getFullYear()} memory404

@@ -90,11 +90,11 @@ export function ScreenWorkspace() {
         <div className="flex items-start justify-between gap-3">
           <div>
             <Link
-              href="/"
+              href="/workspace"
               className="mb-2 inline-flex items-center gap-1.5 text-[12px] text-muted transition-colors hover:text-foreground"
             >
               <ArrowLeft className="size-3.5" strokeWidth={2} aria-hidden />
-              Vault
+              Workspace
             </Link>
             <h1 className="font-mono text-lg tracking-tight text-foreground">
               Screen editor

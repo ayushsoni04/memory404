@@ -221,7 +221,7 @@ export default function PastePrompt({
               }}
             >
               <p className="text-center text-[13px] text-muted">
-                <span className="paste-prompt-accent relative inline-block text-foreground">
+                <span className="relative inline-block text-foreground">
                   Save webpages
                 </span>{" "}
                 worth coming back to.

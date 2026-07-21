@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
-import { PixelWaveLoader } from "./PixelWaveLoader";
+import { ThinkingOrb } from "thinking-orbs";
 import "./styles.css";
 
 const DEFAULT_API_BASE = "http://localhost:3000";
@@ -127,12 +127,12 @@ function useProgressiveMessage(active, initial = "Saving…") {
   return active ? message : initial;
 }
 
-function ProgressiveLoader({ active, label = "Saving…" }) {
+function OrbStatus({ active, label = "Saving…", state = "searching" }) {
   const message = useProgressiveMessage(active, label);
   return (
-    <div className="saving-loader" role="status" aria-live="polite" aria-label={message}>
-      <PixelWaveLoader width={88} label={message} />
-      <span className="saved-text">{message}</span>
+    <div className="orb-status" role="status" aria-live="polite" aria-label={message}>
+      <ThinkingOrb state={state} size={64} speed={0.95} theme="light" />
+      <span className="orb-status-text">{message}</span>
     </div>
   );
 }
@@ -483,7 +483,9 @@ function App() {
           ⚙
         </button>
 
-        {phase === "saving" ? <ProgressiveLoader active label="Saving…" /> : null}
+        {phase === "saving" ? (
+          <OrbStatus active label="Saving…" state="searching" />
+        ) : null}
 
         {phase === "error" ? (
           <div className="saved-row error-row">
@@ -493,13 +495,16 @@ function App() {
 
         {phase === "pick" || phase === "saved" ? (
           <>
-            <div className="saved-row">
-              <span className="saved-text">
-                {phase === "saved"
-                  ? "Saved to memory404"
-                  : "Choose a group, then save"}
-              </span>
-            </div>
+            {phase === "pick" && !groupsLoading ? (
+              <div className="orb-status orb-status--listen">
+                <ThinkingOrb state="listening" size={64} speed={0.95} theme="light" />
+                <span className="orb-status-text">Choose a group, then save</span>
+              </div>
+            ) : phase === "saved" ? (
+              <div className="saved-row">
+                <span className="saved-text">Saved to memory404</span>
+              </div>
+            ) : null}
 
             {phase === "pick" && (highlightedTabs.length > 1 || activeTabGroup) ? (
               <div className="save-mode-selector">
@@ -534,7 +539,7 @@ function App() {
 
             <div className="group-section">
               {groupsLoading ? (
-                <ProgressiveLoader active label="Loading groups…" />
+                <OrbStatus active label="Loading groups…" state="searching" />
               ) : (
                 <>
                   <div className={`group-field ${dropdownOpen ? "open" : ""}`}>

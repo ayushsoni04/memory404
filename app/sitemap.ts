@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://ayushdesign.in";
-  const routes = ["", "/settings", "/workspace", "/trash"];
+  const routes = ["", "/settings", "/workspace", "/workspace/screen", "/workspace/text-swap", "/trash"];
 
   return routes.map((route) => ({
     url: `${baseUrl}${route}`,
