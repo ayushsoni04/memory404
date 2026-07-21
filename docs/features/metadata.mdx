@@ -10,34 +10,23 @@ When you save a link, memory404 enriches it with title, description, favicon, an
 
 ```mermaid
 flowchart LR
-    A[Link saved] --> B[Phase 1: HTML fetch]
+    A[Link saved] --> B[HTML fetch]
     B --> C[Parse OG / meta / JSON-LD]
     C --> D[Apply provider rules]
-    D --> E[Upload to Cloudinary]
-    E --> F{Has preview image?}
-    F -->|No| G[Phase 2: Screenshot]
-    F -->|Yes| H[metadata_status: ready]
-    G --> H
+    D --> E[Upload og image to Cloudinary]
+    E --> F[metadata_status: ready]
 ```
 
-### Phase 1 — HTML metadata
+### HTML metadata
 
 1. Fetch the page HTML
 2. Parse Open Graph, Twitter Card, meta tags, and JSON-LD
 3. Extract favicon URL
 4. Apply provider-specific title and icon rules
-5. Upload images to Cloudinary
+5. Upload the og/twitter image to Cloudinary (if present)
 6. Set `metadata_status: ready`
 
-### Phase 2 — Screenshot fallback
-
-If no preview image was found (and the site is not login-gated):
-
-1. Capture a screenshot via Microlink API
-2. Fall back to WordPress mShots if Microlink fails
-3. Upload the screenshot to Cloudinary
-
-Override the screenshot provider with `SCREENSHOT_URL_TEMPLATE` in your environment.
+If there is no og/twitter image, the feed falls back to the site favicon (or a login placeholder). Live page screenshots are not taken — they lag enrichment and often capture loading interstitials.
 
 ## Metadata status
 

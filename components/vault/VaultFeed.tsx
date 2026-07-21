@@ -3,7 +3,6 @@
 import { useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 import AddLinkCard from "@/components/AddLinkCard";
-import { AppLoader } from "@/components/AppLoader";
 import LinkCard from "@/components/LinkCard";
 import TextSwap from "@/components/TextSwap";
 import type { LinkApiRow } from "@/lib/links";
@@ -212,8 +211,9 @@ export default function VaultFeed({
             <div
               ref={sentinelRef}
               className="mt-8 flex w-full justify-center pb-12"
+              aria-hidden
             >
-              <AppLoader compact progressive label="loading more" />
+              <div className="h-8 w-8 animate-pulse rounded-full bg-neutral-800/40" />
             </div>
           )}
         </>

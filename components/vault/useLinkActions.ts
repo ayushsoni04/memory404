@@ -33,41 +33,49 @@ export function useLinkActions({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [copyFailedId, setCopyFailedId] = useState<string | null>(null);
 
-  const [openedLinkId, setOpenedLinkId] = useState<string | null>(null);
+  const [openedLink, setOpenedLink] = useState<LinkApiRow | null>(null);
   const [overlayOrigin, setOverlayOrigin] = useState<DOMRect | null>(null);
 
-  const openedLink = useMemo(
-    () => sortedLinks.find((l) => l.id === openedLinkId) ?? null,
-    [sortedLinks, openedLinkId],
-  );
   const openedLinkIndex = useMemo(
     () =>
       openedLink ? sortedLinks.findIndex((l) => l.id === openedLink.id) : -1,
     [openedLink, sortedLinks],
   );
 
-  const openLinkDetail = (link: LinkApiRow, originEl: HTMLElement) => {
-    setOverlayOrigin(originEl.getBoundingClientRect());
-    setOpenedLinkId(link.id);
-  };
+  // Keep overlay link in sync when the row updates (e.g. move/rename) without closing.
+  const openedLinkLive = useMemo(() => {
+    if (!openedLink) return null;
+    return sortedLinks.find((l) => l.id === openedLink.id) ?? openedLink;
+  }, [openedLink, sortedLinks]);
 
-  const closeLinkDetail = () => {
-    setOpenedLinkId(null);
-    setOverlayOrigin(null);
-  };
+  const openLinkDetail = useCallback(
+    (link: LinkApiRow, originEl: HTMLElement) => {
+      setOverlayOrigin(originEl.getBoundingClientRect());
+      setOpenedLink(link);
+    },
+    [],
+  );
 
-  const goPrevLink = () => {
-    if (openedLinkIndex <= 0) return;
+  const closeLinkDetail = useCallback(() => {
+    setOpenedLink(null);
     setOverlayOrigin(null);
-    setOpenedLinkId(sortedLinks[openedLinkIndex - 1].id);
-  };
+  }, []);
 
-  const goNextLink = () => {
-    if (openedLinkIndex < 0 || openedLinkIndex >= sortedLinks.length - 1)
-      return;
+  const goPrevLink = useCallback(() => {
+    if (!openedLink) return;
+    const idx = sortedLinks.findIndex((l) => l.id === openedLink.id);
+    if (idx <= 0) return;
     setOverlayOrigin(null);
-    setOpenedLinkId(sortedLinks[openedLinkIndex + 1].id);
-  };
+    setOpenedLink(sortedLinks[idx - 1]);
+  }, [openedLink, sortedLinks]);
+
+  const goNextLink = useCallback(() => {
+    if (!openedLink) return;
+    const idx = sortedLinks.findIndex((l) => l.id === openedLink.id);
+    if (idx < 0 || idx >= sortedLinks.length - 1) return;
+    setOverlayOrigin(null);
+    setOpenedLink(sortedLinks[idx + 1]);
+  }, [openedLink, sortedLinks]);
 
   const handleDelete = async (id: string) => {
     setDeleteErrors((prev) => {
@@ -79,8 +87,8 @@ export function useLinkActions({
     const originalLinks = links;
 
     setLinks((prev) => prev.filter((l) => l.id !== id));
-    if (openedLinkId === id) {
-      setOpenedLinkId(null);
+    if (openedLink?.id === id) {
+      setOpenedLink(null);
       setOverlayOrigin(null);
     }
 
@@ -155,8 +163,8 @@ export function useLinkActions({
 
     if (nextGroupId !== openedGroupId) {
       setLinks((prev) => prev.filter((l) => l.id !== link.id));
-      if (openedLinkId === link.id) {
-        setOpenedLinkId(null);
+      if (openedLink?.id === link.id) {
+        setOpenedLink(null);
         setOverlayOrigin(null);
       }
     } else {
@@ -217,7 +225,7 @@ export function useLinkActions({
     patchErrors,
     copiedId,
     copyFailedId,
-    openedLink,
+    openedLink: openedLinkLive,
     openedLinkIndex,
     overlayOrigin,
     openLinkDetail,

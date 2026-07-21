@@ -1,12 +1,10 @@
 /**
  * Capture a webpage screenshot URL using free providers (no API key required).
- * Order: Microlink (hosted CDN PNG) → WordPress mShots (with warm + retries).
- * thum.io is skipped — free tier often returns solid placeholder frames (e.g. a lone "3").
+ * Provider: Microlink (hosted CDN PNG).
+ * thum.io / WordPress mShots are skipped — placeholders and slow live captures.
  */
 
 const FETCH_MS = 12_000;
-const MSHOTS_RETRY_WAIT_MS = 2_000;
-const MSHOTS_MAX_ATTEMPTS = 2;
 /** Real page shots are rarely this small; placeholders often are. */
 const MIN_IMAGE_BYTES = 8_000;
 
@@ -19,10 +17,6 @@ function isHttpUrl(pageUrl: string): boolean {
   }
 }
 
-function wait(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
 export function isThumIoUrl(url: string | null | undefined): boolean {
   if (!url) return false;
   try {
@@ -30,6 +24,30 @@ export function isThumIoUrl(url: string | null | undefined): boolean {
   } catch {
     return /thum\.io/i.test(url);
   }
+}
+
+/** WordPress mShots live URLs — slow and often return generating placeholders. */
+export function isMshotsUrl(url: string | null | undefined): boolean {
+  if (!url) return false;
+  try {
+    const { hostname, pathname } = new URL(url);
+    return (
+      (hostname === "s0.wp.com" ||
+        hostname === "s.wordpress.com" ||
+        hostname.endsWith(".wp.com") ||
+        hostname.endsWith(".wordpress.com")) &&
+      pathname.includes("/mshots/")
+    );
+  } catch {
+    return /mshots\/v1/i.test(url);
+  }
+}
+
+/** Screenshot hosts we never surface in the feed (placeholders / lag). */
+export function isUnreliableScreenshotUrl(
+  url: string | null | undefined,
+): boolean {
+  return isThumIoUrl(url) || isMshotsUrl(url);
 }
 
 async function responseLooksLikeImage(res: Response): Promise<boolean> {
@@ -102,53 +120,9 @@ async function tryMicrolink(pageUrl: string): Promise<string | null> {
   }
 }
 
-async function tryMshots(pageUrl: string): Promise<string | null> {
-  const screenshotUrl = `https://s0.wp.com/mshots/v1/${encodeURIComponent(pageUrl.trim())}?w=1200`;
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), FETCH_MS);
-  try {
-    // Warm the cache, then poll until we get a real image (not the HTML stub).
-    await fetch(screenshotUrl, {
-      method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
-      headers: {
-        Accept: "image/jpeg,image/png,image/*,*/*;q=0.8",
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-      },
-    }).catch(() => null);
-
-    for (let attempt = 0; attempt < MSHOTS_MAX_ATTEMPTS; attempt += 1) {
-      await wait(MSHOTS_RETRY_WAIT_MS);
-      const res = await fetch(screenshotUrl, {
-        method: "GET",
-        redirect: "follow",
-        signal: controller.signal,
-        headers: {
-          Accept: "image/jpeg,image/png,image/*,*/*;q=0.8",
-          "User-Agent":
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-        },
-      });
-      if (!(await responseLooksLikeImage(res))) continue;
-      const len = Number(res.headers.get("content-length") || 0);
-      if (len > 0 && len < MIN_IMAGE_BYTES) continue;
-      const buf = await res.arrayBuffer();
-      if (buf.byteLength < MIN_IMAGE_BYTES) continue;
-      return screenshotUrl;
-    }
-    return null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
 /**
  * Browser-side: ask Microlink for a real screenshot URL.
- * Used when stored preview is missing, broken, or a known-bad thum.io placeholder.
+ * Used when stored preview is missing or a known-bad placeholder.
  */
 export async function resolveMicrolinkScreenshotUrl(
   pageUrl: string,
@@ -170,14 +144,8 @@ export async function resolveMicrolinkScreenshotUrl(
   }
 }
 
-/** @deprecated Prefer resolveMicrolinkScreenshotUrl — thum.io free tier is unreliable. */
-export function clientScreenshotFallbackUrl(pageUrl: string): string | null {
-  if (!isHttpUrl(pageUrl)) return null;
-  return `https://s0.wp.com/mshots/v1/${encodeURIComponent(pageUrl.trim())}?w=1200`;
-}
-
 /**
- * Returns a validated screenshot URL, or null if all providers fail.
+ * Returns a validated screenshot URL, or null if capture fails.
  * Providers load the page themselves — no local pre-wait needed.
  */
 export async function capturePageScreenshotUrl(
@@ -204,7 +172,7 @@ export async function capturePageScreenshotUrl(
     }
   }
 
-  return (await tryMicrolink(pageUrl)) || (await tryMshots(pageUrl)) || null;
+  return tryMicrolink(pageUrl);
 }
 
 /**
@@ -215,16 +183,22 @@ const DIRECT_SERVE_HOSTS = new Set([
   "res.cloudinary.com",
   "images.unsplash.com",
   "lh3.googleusercontent.com",
-  "www.google.com",        // Google favicons
+  "www.google.com", // Google favicons
   "s.gravatar.com",
   "avatars.githubusercontent.com",
   "github.com",
   "raw.githubusercontent.com",
   "cdn.dribbble.com",
   "mir-s3-cdn-cf.behance.net",
-  "i.ytimg.com",           // YouTube thumbnails
+  "i.ytimg.com", // YouTube thumbnails
   "og.figma.com",
   "pbs.twimg.com",
+  "wsrv.nl",
+  "cdn.simpleicons.org",
+  "miro.medium.com",
+  "substackcdn.com",
+  "cloudinary-res.cloudinary.com",
+  "www.gstatic.com",
 ]);
 
 export function getProxiedImageUrl(url: string | null | undefined): string | undefined {
@@ -242,7 +216,8 @@ export function getProxiedImageUrl(url: string | null | undefined): string | und
 }
 
 const CLOUDINARY_UPLOAD_MARKER = "/image/upload/";
-const FEED_IMAGE_WIDTHS = [320, 480, 640, 960] as const;
+/** Display widths for feed srcset — capped at 640 to keep Large cards snappy. */
+const FEED_IMAGE_WIDTHS = [320, 480, 640] as const;
 
 function withCloudinaryTransform(
   url: string,

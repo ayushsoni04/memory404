@@ -1,9 +1,10 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import { useAddLinkFlow } from "./vault/useAddLinkFlow";
 import { useLinkActions } from "./vault/useLinkActions";
 import { useVaultGroups } from "./vault/useVaultGroups";
@@ -17,11 +18,6 @@ const VaultGroupToolbar = dynamic(() => import("./vault/VaultGroupToolbar"), {
   ssr: false,
   loading: () => <div className="h-10" aria-hidden />,
 });
-
-const LinkDetailOverlay = dynamic(
-  () => import("@/components/LinkDetailOverlay"),
-  { ssr: false },
-);
 
 export default function VaultInbox({
   initialData,
@@ -153,6 +149,18 @@ export default function VaultInbox({
     sortedLinks,
   });
 
+  const overlayGroups = useMemo(
+    () =>
+      groups.map((g) => ({
+        id: g.id,
+        name:
+          g.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase()
+            ? "All"
+            : g.name,
+      })),
+    [groups],
+  );
+
   return (
     <div
       ref={pageRef}
@@ -258,13 +266,7 @@ export default function VaultInbox({
         <LinkDetailOverlay
           link={openedLink}
           groupName={openedGroup?.name ?? null}
-          groups={groups.map((g) => ({
-            id: g.id,
-            name:
-              g.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase()
-                ? "All"
-                : g.name,
-          }))}
+          groups={overlayGroups}
           originRect={overlayOrigin}
           onClose={closeLinkDetail}
           onPrev={goPrevLink}

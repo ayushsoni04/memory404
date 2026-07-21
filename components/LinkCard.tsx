@@ -2,15 +2,18 @@
 
 import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
-import { googleFaviconUrl, linkHostname, requiresLoginPlaceholder, type LinkApiRow } from "@/lib/links";
+import {
+  googleFaviconUrl,
+  linkHostname,
+  requiresLoginPlaceholder,
+  type LinkApiRow,
+} from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import {
   getFeedImageSrcSet,
   getFeedImageUrl,
-  getFeedPosterUrl,
   getProxiedImageUrl,
 } from "@/lib/screenshot";
-import { useFeedMediaActivation } from "@/lib/use-feed-media";
 
 type Props = {
   link: LinkApiRow;
@@ -22,6 +25,11 @@ type Props = {
   onDragToTrash?: (linkId: string) => void;
 };
 
+function isJunkFavicon(url: string | null | undefined): boolean {
+  if (!url) return true;
+  return /dummyimage\.com|placehold\.|via\.placeholder/i.test(url);
+}
+
 function LinkCard({
   link,
   onOpen,
@@ -32,27 +40,22 @@ function LinkCard({
   const cardRef = useRef<HTMLElement | null>(null);
   const host = linkHostname(link.url);
   const pending = link.metadataStatus === "pending" || !!link.isPending;
-  const [fallback, setFallback] = useState<{
-    sourceFor: string;
-    url: string;
-  } | null>(null);
-  const [loadedSrc, setLoadedSrc] = useState<string | null>(null);
-  const imgSrc =
-    fallback?.sourceFor === link.imageUrl ? fallback.url : link.imageUrl;
-  const feedSrc = getFeedImageUrl(imgSrc);
-  const feedSrcSet = getFeedImageSrcSet(imgSrc);
-  const posterSrc = getFeedPosterUrl(imgSrc);
-  const {
-    activated,
-    containerRef: mediaContainerRef,
-    settleLoad,
-  } = useFeedMediaActivation(Boolean(feedSrc));
-  const {
-    activated: faviconActivated,
-    containerRef: faviconContainerRef,
-    settleLoad: settleFaviconLoad,
-  } = useFeedMediaActivation(Boolean(link.faviconUrl));
-  const loaded = activated && loadedSrc === imgSrc;
+  const loginGated = requiresLoginPlaceholder(link.url);
+  const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
+  const [loaded, setLoaded] = useState(false);
+
+  // Prefer placeholder for auth/LMS hosts even if a stale cache still has a
+  // Cloudinary screenshot of a "please wait" interstitial.
+  const resolvedImageUrl = loginGated
+    ? "/placeholder-unicorn.jpg"
+    : (fallbackUrl ?? link.imageUrl);
+  const feedSrc = getFeedImageUrl(resolvedImageUrl);
+  const feedSrcSet = loginGated ? undefined : getFeedImageSrcSet(resolvedImageUrl);
+  const faviconSrc = !isJunkFavicon(link.faviconUrl)
+    ? getProxiedImageUrl(link.faviconUrl)
+    : getProxiedImageUrl(googleFaviconUrl(link.url, 64) ?? undefined);
+  const invert =
+    !loginGated && brandThumbnailInvertInDark(link.url) ? "invert" : "";
 
   const showLoader = pending;
 
@@ -62,8 +65,14 @@ function LinkCard({
       className={`mind-card${entering ? " mind-card-enter" : ""}`}
       draggable
       onDragStart={(e) => {
+        // Avoid treating a normal click as a drag (which suppresses click).
         e.dataTransfer.setData("linkId", link.id);
         e.dataTransfer.effectAllowed = "move";
+      }}
+      onClick={(e) => {
+        // Ignore clicks that originated from the external-link control.
+        if ((e.target as HTMLElement).closest("a[href]")) return;
+        if (cardRef.current) onOpen(link, cardRef.current);
       }}
     >
       <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated">
@@ -72,87 +81,44 @@ function LinkCard({
           type="button"
           aria-label={`Open details for ${link.displayTitle}`}
           className="relative z-[1] block w-full overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
-          onClick={() => {
+          onClick={(e) => {
+            e.stopPropagation();
             if (cardRef.current) onOpen(link, cardRef.current);
           }}
         >
-          <span
-            ref={mediaContainerRef}
-            className="mind-card-preview relative block w-full overflow-hidden"
-          >
-            {posterSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element -- tiny LQIP poster before activation
-              <img
-                src={posterSrc}
-                alt=""
-                aria-hidden
-                draggable={false}
-                loading={priority ? "eager" : "lazy"}
-                decoding="async"
-                className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
-                  loaded ? "opacity-0" : "opacity-100"
-                } ${
-                  !requiresLoginPlaceholder(link.url) &&
-                  brandThumbnailInvertInDark(link.url)
-                    ? "invert"
-                    : ""
-                }`}
-              />
-            ) : null}
-            {/* eslint-disable-next-line @next/next/no-img-element -- gated src via feed media controller + Cloudinary srcset */}
+          <span className="mind-card-preview relative block w-full overflow-hidden bg-surface">
+            {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
             <img
-              key={`${link.id}-${imgSrc}`}
-              src={activated ? feedSrc : undefined}
-              srcSet={activated ? feedSrcSet : undefined}
+              key={`${link.id}-${resolvedImageUrl}`}
+              src={feedSrc}
+              srcSet={feedSrcSet}
               sizes={feedSrcSet ? imageSizes : undefined}
               alt={link.displayTitle}
               loading={priority ? "eager" : "lazy"}
-              fetchPriority={priority ? "high" : "low"}
+              fetchPriority={priority ? "high" : "auto"}
               referrerPolicy="no-referrer"
               decoding="async"
               draggable={false}
-              onLoad={() => {
-                setLoadedSrc(imgSrc);
-                settleLoad();
-              }}
+              onLoad={() => setLoaded(true)}
               className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
                 loaded ? "opacity-100" : "opacity-0"
-              } ${
-                !requiresLoginPlaceholder(link.url) &&
-                brandThumbnailInvertInDark(link.url)
-                  ? "invert"
-                  : ""
-              } ${showLoader ? "opacity-60" : ""}`}
+              } ${invert} ${showLoader ? "opacity-60" : ""}`}
               onError={() => {
-                settleLoad();
-                // Fall back directly to favicon — Microlink screenshot resolution
-                // is handled server-side; a client-side Microlink fetch per card
-                // caused up to 24 simultaneous 5-15s network calls on page load.
-                if (
-                  fallback?.sourceFor === link.imageUrl ||
-                  requiresLoginPlaceholder(link.url)
-                ) {
-                  return;
-                }
-                setFallback({
-                  sourceFor: link.imageUrl,
-                  url: googleFaviconUrl(link.url) ?? "",
-                });
+                if (loginGated || fallbackUrl) return;
+                setFallbackUrl(googleFaviconUrl(link.url) ?? "");
+                setLoaded(false);
               }}
             />
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
-            {link.faviconUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element -- gated src via feed media controller, same as the hero image
+            {faviconSrc ? (
+              // eslint-disable-next-line @next/next/no-img-element -- small badge; native lazy
               <img
-                ref={faviconContainerRef}
-                src={faviconActivated ? getProxiedImageUrl(link.faviconUrl) : undefined}
+                src={faviconSrc}
                 alt=""
                 width={28}
                 height={28}
                 loading={priority ? "eager" : "lazy"}
                 decoding="async"
-                onLoad={settleFaviconLoad}
-                onError={settleFaviconLoad}
                 className="pointer-events-none absolute bottom-3 left-3 z-[1] size-7 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.08)]"
                 referrerPolicy="no-referrer"
               />

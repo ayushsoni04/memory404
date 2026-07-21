@@ -3,7 +3,7 @@ import {
   providerPreviewIcon,
   resolveProviderDisplayTitle,
 } from "@/lib/link-providers";
-import { isThumIoUrl } from "@/lib/screenshot";
+import { isUnreliableScreenshotUrl } from "@/lib/screenshot";
 
 export type LinkApiRow = {
   id: string;
@@ -75,7 +75,10 @@ export function requiresLoginPlaceholder(urlStr: string): boolean {
       host.endsWith("sharepoint.com") ||
       host === "onedrive.live.com" ||
       host === "teams.live.com" ||
-      host.includes("teams.microsoft")
+      host.includes("teams.microsoft") ||
+      // Auth LMS / ebook readers — screenshots capture "please wait" interstitials.
+      host === "molecule.community" ||
+      host.endsWith(".molecule.community")
     );
   } catch {
     return false;
@@ -89,8 +92,10 @@ export function effectivePreviewImageUrl(link: {
   if (requiresLoginPlaceholder(link.url)) {
     return "/placeholder-unicorn.jpg";
   }
-  // thum.io free tier often returns solid placeholders — never surface those.
-  const stored = isThumIoUrl(link.imageUrl) ? null : link.imageUrl;
+  // thum.io / mShots are slow or placeholder-heavy — never surface those live.
+  const stored = isUnreliableScreenshotUrl(link.imageUrl)
+    ? null
+    : link.imageUrl;
   const branded = providerPreviewIcon(link.url, stored);
   if (branded) return branded;
   return googleFaviconUrl(link.url) ?? "";
@@ -101,12 +106,16 @@ export function isGoogleFaviconUrl(url: string | null | undefined): boolean {
   return url.includes("google.com/s2/favicons");
 }
 
+function isJunkFaviconUrl(url: string): boolean {
+  return /dummyimage\.com|placehold\.|via\.placeholder/i.test(url);
+}
+
 export function effectiveFaviconUrl(link: {
   faviconUrl: string | null;
   url: string;
 }): string {
   const stored = link.faviconUrl?.trim();
-  if (stored) return stored;
+  if (stored && !isJunkFaviconUrl(stored)) return stored;
   return googleFaviconUrl(link.url, 64) ?? "";
 }
 

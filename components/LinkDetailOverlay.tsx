@@ -4,9 +4,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
-import { formatRelativeTime, linkHostname, requiresLoginPlaceholder } from "@/lib/links";
+import {
+  formatRelativeTime,
+  linkHostname,
+  requiresLoginPlaceholder,
+} from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
-import { getProxiedImageUrl } from "@/lib/screenshot";
+import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
 
 type GroupOption = { id: string; name: string };
 
@@ -24,6 +28,15 @@ type Props = {
   hasPrev: boolean;
   hasNext: boolean;
 };
+
+function isJunkFavicon(url: string | null | undefined): boolean {
+  if (!url) return true;
+  return /dummyimage\.com|placehold\.|via\.placeholder/i.test(url);
+}
+
+function prefersReducedMotion() {
+  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
 
 export default function LinkDetailOverlay({
   link,
@@ -49,46 +62,50 @@ export default function LinkDetailOverlay({
   const keyboardNavigationRef = useRef(false);
   const host = linkHostname(link.url);
 
-  const animateClose = useCallback((keyboardInitiated = false) => {
-    if (closingRef.current) return;
-    closingRef.current = true;
-    if (keyboardInitiated) {
-      onClose();
-      return;
-    }
-
+  const showVisible = useCallback(() => {
     const backdrop = backdropRef.current;
     const panel = panelRef.current;
     const stage = stageRef.current;
-    if (!backdrop || !panel || !stage) {
-      onClose();
-      return;
-    }
+    if (!backdrop || !panel || !stage) return;
+    gsap.set(backdrop, { opacity: 1 });
+    gsap.set(panel, { opacity: 1, x: 0 });
+    gsap.set(stage, { opacity: 1, x: 0, y: 0, scale: 1 });
+  }, []);
 
-    const reduceMotion =
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const tl = gsap.timeline({
-      defaults: { ease: "power3.out" },
-      onComplete: () => onClose(),
-    });
+  const animateClose = useCallback(
+    (keyboardInitiated = false) => {
+      if (closingRef.current) return;
+      closingRef.current = true;
+      if (keyboardInitiated) {
+        onClose();
+        return;
+      }
 
-    if (reduceMotion) {
-      tl.to([panel, stage, backdrop], { opacity: 0, duration: 0.15 }, 0);
-      return;
-    }
+      const backdrop = backdropRef.current;
+      const panel = panelRef.current;
+      const stage = stageRef.current;
+      if (!backdrop || !panel || !stage) {
+        onClose();
+        return;
+      }
 
-    tl.to(
-      panel,
-      { transform: "translateX(-20px)", opacity: 0, duration: 0.2 },
-      0,
-    )
-      .to(
-        stage,
-        { opacity: 0, transform: "scale(0.95)", duration: 0.2 },
-        0,
-      )
-      .to(backdrop, { opacity: 0, duration: 0.22 }, 0);
-  }, [onClose]);
+      const reduceMotion = prefersReducedMotion();
+      const tl = gsap.timeline({
+        defaults: { ease: "power3.out" },
+        onComplete: () => onClose(),
+      });
+
+      if (reduceMotion) {
+        tl.to([panel, stage, backdrop], { opacity: 0, duration: 0.15 }, 0);
+        return;
+      }
+
+      tl.to(panel, { x: -20, opacity: 0, duration: 0.2 }, 0)
+        .to(stage, { opacity: 0, scale: 0.95, duration: 0.2 }, 0)
+        .to(backdrop, { opacity: 0, duration: 0.22 }, 0);
+    },
+    [onClose],
+  );
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -120,12 +137,20 @@ export default function LinkDetailOverlay({
     const stage = stageRef.current;
     if (!backdrop || !panel || !stage) return;
 
-    const reduceMotion =
-      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const reduceMotion = prefersReducedMotion();
+    const isFirstOpen = !hasOpenedRef.current;
+    const linkChanged = previousLinkIdRef.current !== link.id;
 
-    if (hasOpenedRef.current) {
-      if (previousLinkIdRef.current === link.id) return;
-      previousLinkIdRef.current = link.id;
+    // Strict Mode re-runs this effect after killing the first timeline.
+    // Never early-return while stuck at opacity 0 — force visible instead.
+    if (!isFirstOpen && !linkChanged) {
+      showVisible();
+      return;
+    }
+
+    previousLinkIdRef.current = link.id;
+
+    if (!isFirstOpen && linkChanged) {
       if (keyboardNavigationRef.current) {
         keyboardNavigationRef.current = false;
         gsap.set(stage, { opacity: 1 });
@@ -140,22 +165,21 @@ export default function LinkDetailOverlay({
           ease: "power3.out",
         },
       );
-      return () => tween.kill();
+      return () => {
+        tween.kill();
+        gsap.set(stage, { opacity: 1 });
+      };
     }
 
     hasOpenedRef.current = true;
-    previousLinkIdRef.current = link.id;
     const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+
     gsap.set(backdrop, { opacity: 0 });
-    gsap.set(
-      panel,
-      reduceMotion
-        ? { opacity: 0 }
-        : { transform: "translateX(-24px)", opacity: 0 },
-    );
+    gsap.set(panel, reduceMotion ? { opacity: 0, x: 0 } : { opacity: 0, x: -24 });
 
     if (reduceMotion) {
-      gsap.set(stage, { opacity: 0 });
+      gsap.set(stage, { opacity: 0, x: 0, y: 0, scale: 1 });
+      tl.to([backdrop, panel, stage], { opacity: 1, duration: 0.15 }, 0);
     } else if (originRect) {
       const stageBox = stage.getBoundingClientRect();
       const scaleX = originRect.width / Math.max(stageBox.width, 1);
@@ -171,51 +195,49 @@ export default function LinkDetailOverlay({
         (stageBox.top + stageBox.height / 2);
       gsap.set(stage, {
         opacity: 0.35,
-        transform: `translate(${dx}px, ${dy}px) scale(${scale})`,
+        x: dx,
+        y: dy,
+        scale,
         transformOrigin: "center center",
       });
-    } else {
-      gsap.set(stage, { opacity: 0, transform: "scale(0.95)" });
-    }
-
-    if (reduceMotion) {
-      tl.to([backdrop, panel, stage], { opacity: 1, duration: 0.15 }, 0);
-    } else {
       tl.to(backdrop, { opacity: 1, duration: 0.24 }, 0)
-        .to(
-          panel,
-          { transform: "translateX(0px)", opacity: 1, duration: 0.28 },
-          0.02,
-        )
-        .to(
-          stage,
-          {
-            opacity: 1,
-            transform: "translate(0px, 0px) scale(1)",
-            duration: 0.3,
-          },
-          0.04,
-        );
+        .to(panel, { x: 0, opacity: 1, duration: 0.28 }, 0.02)
+        .to(stage, { opacity: 1, x: 0, y: 0, scale: 1, duration: 0.3 }, 0.04);
+    } else {
+      gsap.set(stage, { opacity: 0, scale: 0.95, x: 0, y: 0 });
+      tl.to(backdrop, { opacity: 1, duration: 0.24 }, 0)
+        .to(panel, { x: 0, opacity: 1, duration: 0.28 }, 0.02)
+        .to(stage, { opacity: 1, scale: 1, duration: 0.3 }, 0.04);
     }
 
     return () => {
       tl.kill();
+      // Leave a visible end-state so Strict Mode remount isn't stuck invisible.
+      showVisible();
     };
-  }, [link.id, originRect]);
+  }, [link.id, originRect, showVisible]);
 
   if (typeof document === "undefined") return null;
+
+  const previewSrc = requiresLoginPlaceholder(link.url)
+    ? "/placeholder-unicorn.jpg"
+    : (getFeedImageUrl(link.imageUrl, 960) ??
+      getProxiedImageUrl(link.imageUrl));
+  const faviconSrc = !isJunkFavicon(link.faviconUrl)
+    ? getProxiedImageUrl(link.faviconUrl)
+    : undefined;
 
   return createPortal(
     <div
       ref={rootRef}
-      className="mind-overlay fixed inset-0 z-[80] flex"
+      className="mind-overlay fixed inset-0 z-[200] flex"
       role="dialog"
       aria-modal="true"
       aria-label={link.displayTitle}
     >
       <div
         ref={backdropRef}
-        className="absolute inset-0 bg-black/70 backdrop-blur-xl"
+        className="absolute inset-0 bg-black/75"
         onClick={() => animateClose()}
       />
 
@@ -263,10 +285,10 @@ export default function LinkDetailOverlay({
           </h2>
 
           <div className="mt-3 flex items-center gap-2">
-            {link.faviconUrl ? (
+            {faviconSrc ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={getProxiedImageUrl(link.faviconUrl)}
+                src={faviconSrc}
                 alt=""
                 width={18}
                 height={18}
@@ -371,11 +393,15 @@ export default function LinkDetailOverlay({
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={getProxiedImageUrl(link.imageUrl)}
+            src={previewSrc}
             alt={link.displayTitle}
             referrerPolicy="no-referrer"
+            decoding="async"
             className={`block max-h-[min(82vh,900px)] w-auto max-w-full object-contain ${
-              !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url) ? "invert" : ""
+              !requiresLoginPlaceholder(link.url) &&
+              brandThumbnailInvertInDark(link.url)
+                ? "invert"
+                : ""
             }`}
           />
         </div>
