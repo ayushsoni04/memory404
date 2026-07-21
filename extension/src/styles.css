@@ -98,6 +98,41 @@ body {
   color: #b42318;
 }
 
+.error-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 14px 14px;
+}
+
+.error-panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #b42318;
+  letter-spacing: -0.01em;
+}
+
+.error-panel-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #7f1d1d;
+  word-break: break-word;
+}
+
+.error-panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.error-settings-link {
+  align-self: center;
+  padding: 4px 8px;
+}
+
 .app-icon {
   display: inline-flex;
   align-items: center;

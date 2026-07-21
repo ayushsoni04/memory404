@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import TextSwap from "@/components/TextSwap";
 import {
   ALIGN_CLASS,
   EASE_VALUE,
@@ -10,7 +9,9 @@ import {
   type SwapAlign,
   type SwapEase,
   type SwapSpeed,
+  type SwapVariant,
 } from "./controls";
+import { VariantTextSwap } from "./VariantTextSwap";
 
 type Props = {
   from: string;
@@ -18,6 +19,7 @@ type Props = {
   speed: SwapSpeed;
   ease: SwapEase;
   align: SwapAlign;
+  variant: SwapVariant;
   debug: boolean;
   running: boolean;
   onFromChange?: (v: string) => void;
@@ -25,6 +27,7 @@ type Props = {
   onSpeed: (v: SwapSpeed) => void;
   onEase: (v: SwapEase) => void;
   onAlign: (v: SwapAlign) => void;
+  onVariant: (v: SwapVariant) => void;
   onDebug: (v: boolean) => void;
   onToggleRun: () => void;
   onCycle?: (showingTo: boolean) => void;
@@ -39,6 +42,7 @@ export function SwapPreview({
   speed,
   ease,
   align,
+  variant,
   debug,
   running,
   onFromChange,
@@ -46,6 +50,7 @@ export function SwapPreview({
   onSpeed,
   onEase,
   onAlign,
+  onVariant,
   onDebug,
   onToggleRun,
   onCycle,
@@ -62,7 +67,10 @@ export function SwapPreview({
 
   useEffect(() => {
     if (!running) return;
-    const ms = Number.parseInt(SPEED_MS[speed], 10) + 280;
+    const base = Number.parseInt(SPEED_MS[speed], 10);
+    // from-below needs exit + enter; tilt needs one crossfade window
+    const extra =
+      variant === "from-below" ? base + 320 : variant === "tilt-crossfade" ? 280 : 280;
     const id = window.setInterval(() => {
       setShowingTo((prev) => {
         const next = !prev;
@@ -70,9 +78,9 @@ export function SwapPreview({
         return next;
       });
       setTick((t) => t + 1);
-    }, Math.max(ms, 200));
+    }, Math.max(base + extra, 320));
     return () => window.clearInterval(id);
-  }, [running, speed, onCycle]);
+  }, [running, speed, variant, onCycle]);
 
   useEffect(() => {
     if (!running) {
@@ -139,6 +147,8 @@ export function SwapPreview({
           {
             "--text-swap-dur": SPEED_MS[speed],
             "--text-swap-ease": EASE_VALUE[ease],
+            "--text-swap-translate-y-below": "10px",
+            "--text-swap-blur-below": "4px",
           } as React.CSSProperties
         }
       >
@@ -147,15 +157,12 @@ export function SwapPreview({
             debug ? "outline outline-1 outline-fuchsia-500/60 outline-offset-2" : ""
           }`}
         >
-          {display ? (
-            <TextSwap key={`${display}-${tick}`}>{display}</TextSwap>
-          ) : (
-            <span className="text-subtle">∅</span>
-          )}
+          <VariantTextSwap text={display} variant={variant} tick={tick} />
         </div>
         {debug ? (
           <p className="mt-2 font-mono text-[10px] text-subtle">
-            jump ≈ {jumpPx.toFixed(1)}px · key={display || "∅"} · tick={tick}
+            variant={variant} · jump ≈ {jumpPx.toFixed(1)}px · key=
+            {display || "∅"} · tick={tick}
           </p>
         ) : null}
       </div>
@@ -164,11 +171,13 @@ export function SwapPreview({
         speed={speed}
         ease={ease}
         align={align}
+        variant={variant}
         debug={debug}
         running={running}
         onSpeed={onSpeed}
         onEase={onEase}
         onAlign={onAlign}
+        onVariant={onVariant}
         onDebug={onDebug}
         onToggleRun={onToggleRun}
       />

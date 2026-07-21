@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { ExtensionErrorBanner } from "@/components/ExtensionErrorBanner";
 import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import { useAddLinkFlow } from "./vault/useAddLinkFlow";
 import { useLinkActions } from "./vault/useLinkActions";
@@ -179,6 +180,8 @@ export default function VaultInbox({
       ref={pageRef}
       className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4 min-[1712px]:border-x min-[1712px]:border-border"
     >
+      <ExtensionErrorBanner />
+
       <VaultSidebar
         gridSize={gridSize}
         setGridSizeAndPersist={setGridSizeAndPersist}

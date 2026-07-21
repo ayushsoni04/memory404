@@ -175,10 +175,25 @@ function App() {
 
   // Load storage states (apiBase, lastSavedGroupId, cachedGroups) exactly once on mount to prevent double loading
   useEffect(() => {
-    chrome.storage.local.get(["apiBase", "lastSavedGroupId", "cachedGroups"], (res) => {
+    chrome.storage.local.get(
+      ["apiBase", "lastSavedGroupId", "cachedGroups", "lastExtensionError"],
+      (res) => {
       const saved = typeof res.apiBase === "string" ? res.apiBase.trim() : "";
       if (saved) {
         setApiBase(saved);
+      }
+
+      const extErr = res.lastExtensionError;
+      if (
+        extErr &&
+        typeof extErr.message === "string" &&
+        extErr.message.trim() &&
+        typeof extErr.at === "number" &&
+        Date.now() - extErr.at < 5 * 60 * 1000
+      ) {
+        setError(extErr.message.trim());
+        setPhase("error");
+        chrome.storage.local.remove(["lastExtensionError", "lastExtensionErrorAt"]);
       }
       
       if (Array.isArray(res.cachedGroups) && res.cachedGroups.length > 0) {
@@ -267,6 +282,7 @@ function App() {
         setTimeout(() => inputRef.current?.focus(), 50);
       } catch (e) {
         if (cancelled) return;
+        setPhase("error");
         setError(e instanceof Error ? e.message : "Failed to load groups");
       } finally {
         if (!cancelled) setGroupsLoading(false);
@@ -422,7 +438,7 @@ function App() {
       // Save lastSavedGroupId to chrome.storage.local to remember selection next time
       chrome.storage.local.set({ lastSavedGroupId: finalGroupId });
     } catch (e) {
-      setPhase("pick");
+      setPhase("error");
       setError(e instanceof Error ? e.message : "Failed to save");
     }
   };
@@ -488,8 +504,32 @@ function App() {
         ) : null}
 
         {phase === "error" ? (
-          <div className="saved-row error-row">
-            <span className="saved-text">{error || "Could not save link"}</span>
+          <div className="error-panel" role="alert">
+            <p className="error-panel-title">Something went wrong</p>
+            <p className="error-panel-message">
+              {error || "Could not complete that action"}
+            </p>
+            <div className="error-panel-actions">
+              <button
+                type="button"
+                className="save-btn"
+                onClick={() => {
+                  setError("");
+                  setPhase("pick");
+                  setDropdownOpen(true);
+                  setTimeout(() => inputRef.current?.focus(), 50);
+                }}
+              >
+                Try again
+              </button>
+              <button
+                type="button"
+                className="ghost-btn error-settings-link"
+                onClick={() => setShowSettings(true)}
+              >
+                Check App URL
+              </button>
+            </div>
           </div>
         ) : null}
 

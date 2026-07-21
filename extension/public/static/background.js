@@ -50,11 +50,33 @@ async function handleSave(url, openAfterSave, options = {}) {
   if (!url || !isLikelyUrl(url)) return null;
   try {
     const { apiBase, link } = await saveUrlToApp(url, options);
+    await chrome.storage.local.remove(["lastExtensionError", "lastExtensionErrorAt"]);
     if (openAfterSave) {
       await chrome.tabs.create({ url: apiBase });
     }
     return link;
-  } catch {
+  } catch (e) {
+    const message =
+      e instanceof Error ? e.message : "Failed to save from extension";
+    const apiBase = await getApiBase();
+    const now = Date.now();
+    const prev = await new Promise((resolve) => {
+      chrome.storage.local.get(["lastExtensionErrorAt"], (res) => resolve(res));
+    });
+    const lastAt =
+      typeof prev.lastExtensionErrorAt === "number"
+        ? prev.lastExtensionErrorAt
+        : 0;
+    await chrome.storage.local.set({
+      lastExtensionError: { message, at: now },
+      lastExtensionErrorAt: now,
+    });
+    // Always surface in the app UI; debounce so multi-tab saves open one tab.
+    if (openAfterSave || now - lastAt > 2000) {
+      await chrome.tabs.create({
+        url: `${apiBase}?error=${encodeURIComponent(message)}`,
+      });
+    }
     return null;
   }
 }

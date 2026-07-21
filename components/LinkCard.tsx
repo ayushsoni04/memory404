@@ -38,6 +38,7 @@ function LinkCard({
   entering = false,
 }: Props) {
   const cardRef = useRef<HTMLElement | null>(null);
+  const previewRef = useRef<HTMLSpanElement | null>(null);
   const host = linkHostname(link.url);
   const pending = link.metadataStatus === "pending" || !!link.isPending;
   const loginGated = requiresLoginPlaceholder(link.url);
@@ -72,7 +73,8 @@ function LinkCard({
       onClick={(e) => {
         // Ignore clicks that originated from the external-link control.
         if ((e.target as HTMLElement).closest("a[href]")) return;
-        if (cardRef.current) onOpen(link, cardRef.current);
+        const origin = previewRef.current ?? cardRef.current;
+        if (origin) onOpen(link, origin);
       }}
     >
       <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated">
@@ -83,11 +85,14 @@ function LinkCard({
           className="relative z-[1] block w-full overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
           onClick={(e) => {
             e.stopPropagation();
-            if (cardRef.current) onOpen(link, cardRef.current);
+            const origin = previewRef.current ?? cardRef.current;
+            if (origin) onOpen(link, origin);
           }}
         >
-          <span className="mind-card-preview relative block w-full overflow-hidden bg-surface">
-            {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
+          <span
+            ref={previewRef}
+            className="mind-card-preview relative block w-full overflow-hidden bg-surface"
+          >            {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
             <img
               key={`${link.id}-${resolvedImageUrl}`}
               src={feedSrc}

@@ -300,8 +300,24 @@ pre,
   overflow: hidden;
 }
 
-.mind-overlay-panel {
-  width: min(100%, var(--mind-overlay-panel));
+/* Link detail overlay — glass panel */
+.mind-overlay-glass {
+  background: color-mix(in srgb, var(--surface) 42%, transparent);
+  border: 1px solid color-mix(in srgb, white 12%, transparent);
+  box-shadow:
+    0 1px 0 color-mix(in srgb, white 8%, transparent) inset,
+    0 8px 40px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+}
+
+.mind-overlay-fly {
+  opacity: 0;
+  visibility: hidden;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
 }
 
 /* Soft entrance */
@@ -411,9 +427,11 @@ pre,
 /* Transitions.dev — Text states swap */
 :root {
   --text-swap-dur: 150ms;
-  --text-swap-translate-y: 4px;
-  --text-swap-blur: 2px;
-  --text-swap-ease: var(--ease-in-out);
+  --text-swap-translate-y: 10px;
+  --text-swap-translate-y-below: 10px;
+  --text-swap-blur: 100px;
+  --text-swap-blur-below: 4px;
+  --text-swap-ease: var(--ease-out);
 }
 
 .t-text-swap {
@@ -443,6 +461,102 @@ pre,
 @media (prefers-reduced-motion: reduce) {
   .t-text-swap-enter {
     animation: none;
+  }
+}
+
+/* Lab: interpolated from-below swap (exit up → enter from below + blur) */
+.t-text-swap-interp {
+  transition:
+    transform var(--text-swap-dur) var(--text-swap-ease),
+    filter var(--text-swap-dur) var(--text-swap-ease),
+    opacity var(--text-swap-dur) var(--text-swap-ease);
+  will-change: transform, filter, opacity;
+}
+
+.t-text-swap-interp.is-exit {
+  transform: translateY(calc(var(--text-swap-translate-y, 4px) * -1));
+  filter: blur(var(--text-swap-blur, 2px));
+  opacity: 0;
+}
+
+.t-text-swap-interp.is-enter-start {
+  transform: translateY(var(--text-swap-translate-y-below, 10px));
+  filter: blur(var(--text-swap-blur-below, 4px));
+  opacity: 0;
+  transition: none;
+}
+
+/* Lab: 3D tilt stage + crossfade (no glyph flip) */
+.t-text-swap-tilt {
+  --text-swap-tilt: 8deg;
+  display: inline-block;
+  perspective: 640px;
+  transform-style: preserve-3d;
+}
+
+.t-text-swap-tilt-stage {
+  position: relative;
+  display: inline-grid;
+  transform-origin: 50% 50%;
+  transition: transform var(--text-swap-dur) var(--text-swap-ease);
+  transform: rotateX(0deg);
+}
+
+.t-text-swap-tilt.is-tilting .t-text-swap-tilt-stage {
+  transform: rotateX(var(--text-swap-tilt));
+}
+
+.t-text-swap-layer {
+  grid-area: 1 / 1;
+  display: inline-block;
+  transition:
+    opacity var(--text-swap-dur) var(--text-swap-ease),
+    filter var(--text-swap-dur) var(--text-swap-ease);
+  will-change: opacity, filter;
+}
+
+.t-text-swap-layer.is-out {
+  opacity: 0;
+  filter: blur(var(--text-swap-blur, 2px));
+  pointer-events: none;
+}
+
+.t-text-swap-layer.is-in {
+  opacity: 1;
+  filter: blur(0);
+}
+
+.t-text-swap-layer.is-in.is-fading-in {
+  animation: t-text-swap-crossfade-in var(--text-swap-dur) var(--text-swap-ease) both;
+}
+
+@keyframes t-text-swap-crossfade-in {
+  from {
+    opacity: 0;
+    filter: blur(var(--text-swap-blur, 2px));
+  }
+  to {
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .t-text-swap-interp {
+    transition: none !important;
+  }
+  .t-text-swap-interp.is-exit,
+  .t-text-swap-interp.is-enter-start {
+    transform: none;
+    filter: none;
+    opacity: 1;
+  }
+  .t-text-swap-tilt.is-tilting .t-text-swap-tilt-stage {
+    transform: none;
+  }
+  .t-text-swap-layer {
+    transition: none !important;
+    animation: none !important;
   }
 }
 

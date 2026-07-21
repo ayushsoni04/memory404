@@ -1,8 +1,11 @@
 "use client";
 
+import type { TextSwapVariant } from "./VariantTextSwap";
+
 export type SwapSpeed = "default" | "slow" | "fast";
 export type SwapEase = "default" | "linear";
 export type SwapAlign = "L" | "C" | "R";
+export type SwapVariant = TextSwapVariant;
 
 export const SPEED_MS: Record<SwapSpeed, string> = {
   default: "220ms",
@@ -19,6 +22,12 @@ export const ALIGN_CLASS: Record<SwapAlign, string> = {
   L: "text-left items-start",
   C: "text-center items-center",
   R: "text-right items-end",
+};
+
+export const VARIANT_LABEL: Record<SwapVariant, string> = {
+  remount: "remount",
+  "from-below": "from below",
+  "tilt-crossfade": "tilt × fade",
 };
 
 type ChipProps = {
@@ -60,11 +69,13 @@ type BarProps = {
   speed: SwapSpeed;
   ease: SwapEase;
   align: SwapAlign;
+  variant: SwapVariant;
   debug: boolean;
   running: boolean;
   onSpeed: (v: SwapSpeed) => void;
   onEase: (v: SwapEase) => void;
   onAlign: (v: SwapAlign) => void;
+  onVariant: (v: SwapVariant) => void;
   onDebug: (v: boolean) => void;
   onToggleRun: () => void;
   compact?: boolean;
@@ -74,11 +85,13 @@ export function SwapControlBar({
   speed,
   ease,
   align,
+  variant,
   debug,
   running,
   onSpeed,
   onEase,
   onAlign,
+  onVariant,
   onDebug,
   onToggleRun,
   compact = false,
@@ -90,6 +103,16 @@ export function SwapControlBar({
       }`}
     >
       <div className="flex flex-wrap items-center gap-1.5">
+        {(["remount", "from-below", "tilt-crossfade"] as const).map((id) => (
+          <ControlChip
+            key={id}
+            active={variant === id}
+            onClick={() => onVariant(id)}
+          >
+            {VARIANT_LABEL[id]}
+          </ControlChip>
+        ))}
+        <span className="mx-0.5 h-3 w-px bg-border" aria-hidden />
         {(["default", "slow", "fast"] as const).map((id) => (
           <ControlChip
             key={id}
@@ -123,11 +146,7 @@ export function SwapControlBar({
           Debug
         </ControlChip>
       </div>
-      <ControlChip
-        active={running}
-        tone="accent"
-        onClick={onToggleRun}
-      >
+      <ControlChip active={running} tone="accent" onClick={onToggleRun}>
         {running ? "Stop" : "Run"}
       </ControlChip>
     </div>

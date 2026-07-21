@@ -8,7 +8,7 @@ import {
   type TextSwapCase,
   type TextSwapFilter,
 } from "./cases";
-import { ControlChip, type SwapAlign, type SwapEase, type SwapSpeed } from "./controls";
+import { ControlChip, type SwapAlign, type SwapEase, type SwapSpeed, type SwapVariant } from "./controls";
 import { SwapPreview } from "./SwapPreview";
 
 type CaseResult = {
@@ -67,6 +67,7 @@ export function TextSwapLab() {
   const [speed, setSpeed] = useState<SwapSpeed>("default");
   const [ease, setEase] = useState<SwapEase>("default");
   const [align, setAlign] = useState<SwapAlign>("L");
+  const [variant, setVariant] = useState<SwapVariant>("from-below");
   const [debug, setDebug] = useState(false);
   const [sandboxRunning, setSandboxRunning] = useState(false);
 
@@ -77,6 +78,7 @@ export function TextSwapLab() {
         speed: SwapSpeed;
         ease: SwapEase;
         align: SwapAlign;
+        variant: SwapVariant;
         debug: boolean;
         running: boolean;
       }
@@ -89,6 +91,7 @@ export function TextSwapLab() {
           speed: "default" as const,
           ease: "default" as const,
           align: "L" as const,
+          variant: "from-below" as const,
           debug: false,
           running: false,
         },
@@ -313,7 +316,8 @@ export function TextSwapLab() {
           </span>
         </div>
         <p className="mb-3 text-[12px] text-muted">
-          Type any text to test TextSwap enter behavior with custom inputs.
+          Type any text to test variants — from-below interpolates frames; tilt
+          uses crossfade (no flip).
         </p>
         <SwapPreview
           from={from}
@@ -321,6 +325,7 @@ export function TextSwapLab() {
           speed={speed}
           ease={ease}
           align={align}
+          variant={variant}
           debug={debug}
           running={sandboxRunning}
           onFromChange={setFrom}
@@ -328,6 +333,7 @@ export function TextSwapLab() {
           onSpeed={setSpeed}
           onEase={setEase}
           onAlign={setAlign}
+          onVariant={setVariant}
           onDebug={setDebug}
           onToggleRun={() => setSandboxRunning((v) => !v)}
           showInputs
@@ -369,6 +375,7 @@ export function TextSwapLab() {
                 speed={ctrl.speed}
                 ease={ctrl.ease}
                 align={ctrl.align}
+                variant={ctrl.variant}
                 debug={ctrl.debug}
                 running={ctrl.running}
                 onSpeed={(v) =>
@@ -387,6 +394,12 @@ export function TextSwapLab() {
                   setCaseControls((prev) => ({
                     ...prev,
                     [c.id]: { ...prev[c.id], align: v },
+                  }))
+                }
+                onVariant={(v) =>
+                  setCaseControls((prev) => ({
+                    ...prev,
+                    [c.id]: { ...prev[c.id], variant: v },
                   }))
                 }
                 onDebug={(v) =>
