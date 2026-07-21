@@ -62,7 +62,7 @@ function LinkCard({
   return (
     <article
       ref={cardRef}
-      className={`mind-card${entering ? " mind-card-enter" : ""}`}
+      className={`mind-card mb-3 break-inside-avoid${entering ? " mind-card-enter" : ""}`}
       draggable
       onDragStart={(e) => {
         // Avoid treating a normal click as a drag (which suppresses click).

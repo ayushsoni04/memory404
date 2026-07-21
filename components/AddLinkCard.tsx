@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
-import { RisingHelixFill } from "@/components/RisingHelixFill";
+import { ThinkingOrb } from "thinking-orbs";
 import type { LinkApiRow } from "@/lib/links";
 
 type Props = {
@@ -154,14 +154,10 @@ export default function AddLinkCard({
     `add-link-panel${active ? " is-active" : ""}${skipMotion ? " is-instant" : ""}`;
 
   return (
-    <article className="mind-card">
+    <article className="mind-card mb-3 break-inside-avoid">
       <div className="mind-card-shell group relative min-h-[140px] overflow-hidden rounded-[4px]">
         <span className="mind-card-stroke" aria-hidden />
         <div className="relative z-[1] min-h-[140px] overflow-hidden rounded-[4px]">
-          {(phase === "saving" || phase === "success") && (
-            <RisingHelixFill active />
-          )}
-
           <div
             className={panelClass(phase === "idle")}
             aria-hidden={phase !== "idle"}
@@ -242,7 +238,7 @@ export default function AddLinkCard({
                   <span className="text-[12px] text-success font-medium">Link added!</span>
                 </div>
               ) : (
-                <span className="text-[12px] text-muted">Saving…</span>
+                <ThinkingOrb state="searching" size={64} speed={0.95} />
               )}
             </div>
           </div>

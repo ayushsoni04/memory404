@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Plus } from "lucide-react";
-import { AppLoader } from "@/components/AppLoader";
+import { ThinkingOrb } from "thinking-orbs";
 import TrashBin from "@/components/TrashBin";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { FIELD_CLASS, GRID_SIZES, type GridSize, type GroupRow } from "./types";
@@ -164,7 +164,7 @@ export default function VaultSidebar({
               </button>
             </div>
           ) : saving ? (
-            <div className="flex flex-col items-center justify-center py-4 w-full h-[38px]">
+            <div className="flex flex-col items-center justify-center py-2 w-full min-h-[64px]">
               {saveSuccess ? (
                 <div className="flex items-center gap-2">
                   <span
@@ -192,9 +192,7 @@ export default function VaultSidebar({
                   </span>
                 </div>
               ) : (
-                <div className="flex items-center gap-2">
-                  <AppLoader compact progressive label="saving" />
-                </div>
+                <ThinkingOrb state="searching" size={64} speed={0.95} />
               )}
             </div>
           ) : savePhase === "paste" ? (
@@ -220,12 +218,15 @@ export default function VaultSidebar({
             </div>
           ) : (
             <>
-              <p className="truncate text-[12px] text-subtle" title={urlInput}>
-                {urlInput}
-              </p>
-              <p className="text-[13px] font-medium text-foreground">
-                Where do you want to save it?
-              </p>
+              <div className="flex flex-col items-center gap-2">
+                <ThinkingOrb state="listening" size={64} speed={0.95} />
+                <p className="w-full truncate text-center text-[12px] text-subtle" title={urlInput}>
+                  {urlInput}
+                </p>
+                <p className="text-center text-[13px] font-medium text-foreground">
+                  Where do you want to save it?
+                </p>
+              </div>
               <div className="flex max-h-36 flex-col gap-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {groups.map((g) => {
                   const isGeneral =

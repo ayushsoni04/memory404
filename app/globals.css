@@ -201,6 +201,29 @@ pre,
   animation: mind-card-enter 200ms var(--ease-out) both;
 }
 
+/* Paste prompt (compress.lochie.me-style cue) */
+.paste-prompt-accent::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: currentColor;
+}
+
+.paste-prompt-arrow {
+  top: 50%;
+  translate: 0 -50%;
+  color: var(--foreground);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .paste-prompt-arrow {
+    opacity: 0.85;
+  }
+}
+
 /* Interruptible AddLinkCard state crossfade (no JS animation library) */
 .add-link-panel {
   position: absolute;

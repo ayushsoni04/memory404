@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import LinkDetailOverlay from "@/components/LinkDetailOverlay";
@@ -161,6 +161,19 @@ export default function VaultInbox({
     [groups],
   );
 
+  const handleFeedLinkSaved = useCallback(
+    (row: (typeof sortedLinks)[number]) => {
+      setNewCardId(row.id);
+      window.setTimeout(() => {
+        setNewCardId((id) => (id === row.id ? null : id));
+      }, 250);
+      setLinks((prev) => [row, ...prev.filter((link) => link.id !== row.id)]);
+      prependLinkToPages(row);
+      void loadGroups();
+    },
+    [loadGroups, prependLinkToPages, setLinks],
+  );
+
   return (
     <div
       ref={pageRef}
@@ -240,15 +253,7 @@ export default function VaultInbox({
           gridSize={gridSize}
           generalGroup={generalGroup}
           saveLink={saveLink}
-          onLinkSaved={(row) => {
-            setNewCardId(row.id);
-            window.setTimeout(() => {
-              setNewCardId((id) => (id === row.id ? null : id));
-            }, 250);
-            setLinks((prev) => [row, ...prev.filter((l) => l.id !== row.id)]);
-            prependLinkToPages(row);
-            void loadGroups();
-          }}
+          onLinkSaved={handleFeedLinkSaved}
           enteringLinkId={newCardId ?? sidebarSavedLinkId}
           sortedLinks={sortedLinks}
           openLinkDetail={openLinkDetail}

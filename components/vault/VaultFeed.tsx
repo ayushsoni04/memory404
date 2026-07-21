@@ -1,33 +1,12 @@
 "use client";
 
-import { useCallback, useMemo } from "react";
-import dynamic from "next/dynamic";
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
 import TextSwap from "@/components/TextSwap";
 import type { LinkApiRow } from "@/lib/links";
-import type { FeedItem } from "./FeedGrid";
-import { useResponsiveColumnCount } from "./use-responsive-columns";
+import FeedGrid from "./FeedGrid";
+import PastePrompt from "./PastePrompt";
 import type { GridSize, GroupRow } from "./types";
-
-const FeedGrid = dynamic(() => import("./FeedGrid"), {
-  ssr: false,
-  loading: () => (
-    <div className="mind-grid" data-grid-size="default">
-      {Array.from({ length: 12 }).map((_, i) => (
-        <div key={i} className="mb-3 break-inside-avoid animate-pulse">
-          <div className="rounded-[4px] bg-surface-elevated p-[1px] border border-border/30">
-            <div className="w-full aspect-[16/10] rounded-[4px] bg-neutral-800/30" />
-          </div>
-          <div className="mt-2 px-0.5 space-y-1">
-            <div className="h-3.5 w-4/5 rounded bg-neutral-800/40" />
-            <div className="h-3 w-2/5 rounded bg-neutral-800/25" />
-          </div>
-        </div>
-      ))}
-    </div>
-  ),
-});
 
 type SaveLinkResult =
   | { ok: true; link: LinkApiRow }
@@ -80,57 +59,8 @@ export default function VaultFeed({
   hasMoreLinks,
   sentinelRef,
 }: VaultFeedProps) {
-  const columnCount = useResponsiveColumnCount(gridSize);
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
-
-  const items = useMemo<FeedItem[]>(
-    () => [
-      { kind: "add-link" },
-      ...sortedLinks.map((link, index) => ({
-        kind: "link" as const,
-        link,
-        priority: index < 2,
-      })),
-    ],
-    [sortedLinks],
-  );
-
-  const renderItem = useCallback(
-    ({ data }: { index: number; width: number; data: FeedItem }) => {
-      if (data.kind === "add-link") {
-        return (
-          <AddLinkCard
-            groupId={addLinkGroupId}
-            saveLink={saveLink}
-            onSaved={onLinkSaved}
-          />
-        );
-      }
-      return (
-        <LinkCard
-          link={data.link}
-          entering={data.link.id === enteringLinkId}
-          onOpen={openLinkDetail}
-          priority={data.priority}
-          imageSizes={feedImageSizes}
-        />
-      );
-    },
-    [
-      addLinkGroupId,
-      saveLink,
-      onLinkSaved,
-      enteringLinkId,
-      openLinkDetail,
-      feedImageSizes,
-    ],
-  );
-
-  const itemKey = useCallback(
-    (data: FeedItem) => (data.kind === "add-link" ? "add-link" : data.link.id),
-    [],
-  );
 
   return (
     <main className="vault-enter relative z-30 flex min-w-0 flex-1 flex-col bg-background">
@@ -198,15 +128,32 @@ export default function VaultFeed({
             Retry
           </button>
         </div>
+      ) : sortedLinks.length === 0 ? (
+        <PastePrompt
+          variant="empty"
+          groupId={addLinkGroupId}
+          saveLink={saveLink}
+          onSaved={onLinkSaved}
+        />
       ) : (
         <>
-          <FeedGrid
-            gridSize={gridSize}
-            columnCount={columnCount}
-            items={items}
-            itemKey={itemKey}
-            render={renderItem}
-          />
+          <FeedGrid gridSize={gridSize}>
+            <AddLinkCard
+              groupId={addLinkGroupId}
+              saveLink={saveLink}
+              onSaved={onLinkSaved}
+            />
+            {sortedLinks.map((link, index) => (
+              <LinkCard
+                key={link.id}
+                link={link}
+                entering={link.id === enteringLinkId}
+                onOpen={openLinkDetail}
+                priority={index < 2}
+                imageSizes={feedImageSizes}
+              />
+            ))}
+          </FeedGrid>
           {hasMoreLinks && (
             <div
               ref={sentinelRef}
@@ -216,6 +163,14 @@ export default function VaultFeed({
               <div className="h-8 w-8 animate-pulse rounded-full bg-neutral-800/40" />
             </div>
           )}
+          {!hasMoreLinks ? (
+            <PastePrompt
+              variant="end"
+              groupId={addLinkGroupId}
+              saveLink={saveLink}
+              onSaved={onLinkSaved}
+            />
+          ) : null}
         </>
       )}
     </main>

@@ -24,6 +24,13 @@ type InitialVaultLinks = {
   firstPage: LinksPage;
 };
 
+function sameLinkList(left: LinkApiRow[], right: LinkApiRow[]) {
+  return (
+    left.length === right.length &&
+    left.every((link, index) => link === right[index])
+  );
+}
+
 export function useVaultLinks(
   openedGroupId: string | null,
   sortBy: SortBy,
@@ -156,12 +163,15 @@ export function useVaultLinks(
       seen.add(link.id);
       deduped.push(link);
     }
-    setLinks(deduped);
+    setLinks((current) =>
+      sameLinkList(current, deduped) ? current : deduped,
+    );
     const lastPage = swrLinkPages[swrLinkPages.length - 1];
     setHasMoreLinks(Boolean(lastPage?.hasMore));
     if (openedGroupId) {
       setLinksCache((prev) => {
         const firstPage = swrLinkPages[0]?.links ?? [];
+        if (sameLinkList(prev[openedGroupId] ?? [], firstPage)) return prev;
         const next = { ...prev, [openedGroupId]: firstPage };
         writeLinksCacheToStorage(next);
         return next;
