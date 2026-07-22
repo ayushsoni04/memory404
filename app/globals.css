@@ -74,6 +74,15 @@ pre,
   font-family: var(--font-fira), var(--font-departure), ui-monospace, monospace;
 }
 
+.font-departure {
+  font-family: var(--font-departure), ui-monospace, monospace;
+  font-feature-settings: normal;
+  font-variation-settings: normal;
+  /* Pixel font reads cleanest on 11px steps */
+  -webkit-font-smoothing: none;
+  -moz-osx-font-smoothing: unset;
+}
+
 /* recent.design-style masonry feed — density via data-grid-size */
 .mind-grid {
   column-count: 1;

@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
+import GlitchText from "@/components/GlitchText";
 import TrashBin from "@/components/TrashBin";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { FIELD_CLASS, GRID_SIZES, type GridSize, type GroupRow } from "./types";
@@ -91,9 +92,9 @@ export default function VaultSidebar({
             draggable={false}
             priority
           />
-          <span className="font-mono text-sm tracking-widest font-semibold uppercase">
+          <GlitchText className="text-sm tracking-widest font-semibold uppercase">
             404
-          </span>
+          </GlitchText>
         </Link>
         <div
           role="group"

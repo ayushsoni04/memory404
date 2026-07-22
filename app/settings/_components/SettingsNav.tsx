@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowLeft, CreditCard, Lock, TrendingUp, User } from "lucide-react";
+import GlitchText from "@/components/GlitchText";
 import type { Tab } from "./constants";
 
 type SettingsNavProps = {
@@ -25,7 +26,9 @@ export function SettingsNav({ activeTab, onTabChange, onOpenAuthModal }: Setting
             draggable={false}
             priority
           />
-          <span className="font-mono text-sm tracking-widest font-semibold uppercase">404</span>
+          <GlitchText className="text-sm tracking-widest font-semibold uppercase">
+            404
+          </GlitchText>
         </Link>
 
         {/* Sub Navigation tabs */}
