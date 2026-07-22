@@ -19,6 +19,13 @@ export const WORKSPACE_LABS: WorkspaceLab[] = [
       "Sandbox and case runner for vault title TextSwap enter animations.",
     status: "beta",
   },
+  {
+    slug: "group-toolbar",
+    title: "Group toolbar",
+    description:
+      "Preview VaultGroupToolbar on every screen, tweak values, copy a change prompt.",
+    status: "ready",
+  },
 ];
 
 export function getLab(slug: string): WorkspaceLab | undefined {

@@ -309,6 +309,132 @@ pre,
   overflow: hidden;
 }
 
+/* Card preview actions — glass cluster; copy emerges from behind open */
+.mind-card-actions {
+  --mind-card-action-size: calc(28px * 1.35);
+  --mind-card-action-gap: 8px;
+  --mind-card-copy-emerge-blur: 8px;
+  --mind-card-copy-emerge-x: 10px;
+  --mind-card-copy-dur: 220ms;
+  gap: var(--mind-card-action-gap);
+}
+
+.mind-card-action {
+  box-sizing: border-box;
+  width: var(--mind-card-action-size);
+  height: var(--mind-card-action-size);
+  min-width: var(--mind-card-action-size);
+  min-height: var(--mind-card-action-size);
+  border: 1px solid rgb(255 255 255 / 0.4);
+  background: rgb(0 0 0 / 0.28);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
+  backdrop-filter: blur(10px) saturate(1.4);
+  -webkit-backdrop-filter: blur(10px) saturate(1.4);
+}
+
+.mind-card-copy {
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+  /* Overlap open + gap so the cluster hugs to one button at rest */
+  margin-right: calc(-1 * var(--mind-card-action-size) - var(--mind-card-action-gap));
+  padding-inline: 0;
+  opacity: 0;
+  filter: blur(var(--mind-card-copy-emerge-blur));
+  transform: translateX(var(--mind-card-copy-emerge-x)) scale(0.92);
+  transition:
+    margin-right var(--mind-card-copy-dur) var(--ease-out),
+    transform var(--mind-card-copy-dur) var(--ease-out),
+    filter var(--mind-card-copy-dur) var(--ease-out),
+    opacity var(--mind-card-copy-dur) var(--ease-out),
+    width var(--mind-card-copy-dur) var(--ease-out),
+    min-width var(--mind-card-copy-dur) var(--ease-out),
+    padding-inline var(--mind-card-copy-dur) var(--ease-out);
+  will-change: margin-right, transform, filter, opacity, width;
+}
+
+.mind-card-copy[data-copied="true"] {
+  width: auto;
+  min-width: calc(var(--mind-card-action-size) + 2.75rem);
+  padding-inline: 10px 12px;
+}
+
+.mind-card-copy .t-icon-swap {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.mind-card-copy .t-icon-swap .t-icon {
+  grid-area: 1 / 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity var(--text-swap-dur) var(--text-swap-ease),
+    filter var(--text-swap-dur) var(--text-swap-ease),
+    transform var(--text-swap-dur) var(--text-swap-ease);
+}
+
+.mind-card-copy .t-icon-swap[data-state="a"] .t-icon[data-icon="a"],
+.mind-card-copy .t-icon-swap[data-state="b"] .t-icon[data-icon="b"] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+  position: relative;
+}
+
+.mind-card-copy .t-icon-swap[data-state="a"] .t-icon[data-icon="b"],
+.mind-card-copy .t-icon-swap[data-state="b"] .t-icon[data-icon="a"] {
+  position: absolute;
+  opacity: 0;
+  filter: blur(2px);
+  transform: scale(0.5);
+  pointer-events: none;
+}
+
+.mind-card-copy-done {
+  gap: 5px;
+  white-space: nowrap;
+}
+
+.mind-card-copy-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  /* Stay expanded while feedback holds, even if hover ends mid-animation */
+  .group:hover .mind-card-copy,
+  .group:focus-within .mind-card-copy,
+  .mind-card-copy[data-hold="true"] {
+    pointer-events: auto;
+    margin-right: 0;
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (hover: none), (pointer: coarse) {
+  .mind-card-copy {
+    pointer-events: auto;
+    margin-right: 0;
+    opacity: 1;
+    filter: blur(0);
+    transform: translateX(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mind-card-copy,
+  .mind-card-copy .t-icon-swap .t-icon {
+    transition: none !important;
+  }
+}
+
 /* Link detail overlay — glass panel */
 .mind-overlay-glass {
   background: color-mix(in srgb, var(--surface) 42%, transparent);

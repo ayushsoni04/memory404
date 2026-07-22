@@ -138,7 +138,6 @@ export default function VaultInbox({
     goPrevLink,
     goNextLink,
     handleDelete,
-    copyLinkUrl,
     moveLinkToGroup,
   } = useLinkActions({
     router,
@@ -281,7 +280,6 @@ export default function VaultInbox({
           onNext={goNextLink}
           onDelete={(id) => void handleDelete(id)}
           onMove={(link, groupId) => void moveLinkToGroup(link, groupId)}
-          onCopy={(link) => void copyLinkUrl(link)}
           hasPrev={openedLinkIndex > 0}
           hasNext={
             openedLinkIndex >= 0 && openedLinkIndex < links.length - 1

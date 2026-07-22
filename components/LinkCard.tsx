@@ -2,6 +2,7 @@
 
 import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
+import MindCardActions from "@/components/vault/MindCardActions";
 import {
   googleFaviconUrl,
   linkHostname,
@@ -71,8 +72,8 @@ function LinkCard({
         e.dataTransfer.effectAllowed = "move";
       }}
       onClick={(e) => {
-        // Ignore clicks that originated from the external-link control.
-        if ((e.target as HTMLElement).closest("a[href]")) return;
+        // Ignore clicks from in-preview action controls.
+        if ((e.target as HTMLElement).closest("[data-card-action]")) return;
         const origin = previewRef.current ?? cardRef.current;
         if (origin) onOpen(link, origin);
       }}
@@ -128,31 +129,7 @@ function LinkCard({
                 referrerPolicy="no-referrer"
               />
             ) : null}
-            <a
-              href={link.url}
-              target="_blank"
-              rel="noreferrer"
-              title={`Open ${host}`}
-              aria-label={`Open original link: ${host}`}
-              onClick={(e) => e.stopPropagation()}
-              className="absolute right-3 bottom-3 z-10 box-border flex size-[28px] min-h-[28px] min-w-[28px] shrink-0 items-center justify-center rounded-full bg-[rgba(90,90,90,0.4)] text-white leading-none opacity-100 shadow-[0_-1px_0_rgba(255,255,255,0.35),1px_0_0_rgba(255,255,255,0.15),-1px_0_0_rgba(255,255,255,0.15),0_1px_0_rgba(255,255,255,0.3),0_1px_1px_rgba(0,0,0,0.2)] backdrop-saturate-150"
-            >
-              <svg
-                width="14"
-                height="14"
-                viewBox="0 0 16 16"
-                fill="none"
-                aria-hidden="true"
-              >
-                <path
-                  d="M4.5 11.5L11.5 4.5M11.5 4.5H6.5M11.5 4.5V9.5"
-                  stroke="currentColor"
-                  strokeWidth="1.75"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </a>
+            <MindCardActions url={link.url} host={host} />
             {showLoader ? (
               <span className="absolute inset-0 flex items-center justify-center bg-black/30">
                 <AppLoader compact progressive label="capturing" />

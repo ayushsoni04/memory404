@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { play } from "cuelume";
 import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { apiUrl } from "@/lib/api-base";
@@ -418,6 +419,7 @@ export function useVaultLinks(
             data.link &&
             typeof data.link === "object"
           ) {
+            play("sparkle");
             return { ok: true, link: data.link as LinkApiRow };
           }
           const msg =
@@ -429,6 +431,7 @@ export function useVaultLinks(
           return { ok: false, error: `${msg}${hint}` };
         }
         if (data.link && typeof data.link === "object") {
+          play("sparkle");
           return { ok: true, link: data.link as LinkApiRow };
         }
         return { ok: false, error: "Failed to save" };

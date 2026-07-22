@@ -11,6 +11,7 @@ import {
 } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
+import MindCardActions from "@/components/vault/MindCardActions";
 
 type GroupOption = { id: string; name: string };
 
@@ -24,7 +25,6 @@ type Props = {
   onNext: () => void;
   onDelete: (id: string) => void;
   onMove: (link: LinkApiRow, groupId: string) => void;
-  onCopy: (link: LinkApiRow) => void;
   hasPrev: boolean;
   hasNext: boolean;
 };
@@ -87,7 +87,6 @@ export default function LinkDetailOverlay({
   onNext,
   onDelete,
   onMove,
-  onCopy,
   hasPrev,
   hasNext,
 }: Props) {
@@ -487,7 +486,7 @@ export default function LinkDetailOverlay({
         >
           <div
             ref={stageRef}
-            className="mind-overlay-stage w-full max-w-[min(90vw,920px)] overflow-hidden rounded-[4px] bg-surface-elevated shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
+            className="mind-overlay-stage group relative w-full max-w-[min(90vw,920px)] overflow-hidden rounded-[4px] bg-surface-elevated shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -498,6 +497,7 @@ export default function LinkDetailOverlay({
               decoding="async"
               className={`mx-auto block max-h-[min(62vh,720px)] w-auto max-w-full object-contain ${invertClass}`}
             />
+            <MindCardActions url={link.url} host={host} />
           </div>
 
           <div
@@ -537,26 +537,13 @@ export default function LinkDetailOverlay({
                 </div>
 
                 {link.description ? (
-                  <p className="mt-4 text-[13px] leading-relaxed text-subtle">
+                  <p className="mt-4 text-[15px] leading-relaxed text-muted">
                     {link.description}
                   </p>
                 ) : null}
 
-                <dl className="mt-5 space-y-0 border-t border-white/10">
-                  <div className="flex items-start justify-between gap-3 border-b border-white/10 py-3">
-                    <dt className="shrink-0 text-[12px] text-subtle">Source</dt>
-                    <dd className="min-w-0 text-right text-[12px] break-all text-muted">
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="hover:text-foreground hover:underline"
-                      >
-                        {link.url}
-                      </a>
-                    </dd>
-                  </div>
-                  {link.tags.length ? (
+                {link.tags.length ? (
+                  <dl className="mt-5 space-y-0 border-t border-white/10">
                     <div className="flex items-start justify-between gap-3 border-b border-white/10 py-3">
                       <dt className="shrink-0 text-[12px] text-subtle">Tags</dt>
                       <dd className="flex flex-wrap justify-end gap-1">
@@ -570,26 +557,11 @@ export default function LinkDetailOverlay({
                         ))}
                       </dd>
                     </div>
-                  ) : null}
-                </dl>
+                  </dl>
+                ) : null}
               </div>
 
               <div className="flex w-full shrink-0 flex-col gap-2 md:w-[200px]">
-                <a
-                  href={link.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center rounded-[4px] bg-pill-active px-3 py-2 text-sm font-medium text-pill-active-fg hover:opacity-90"
-                >
-                  Open link
-                </a>
-                <button
-                  type="button"
-                  onClick={() => onCopy(link)}
-                  className="rounded-[4px] border border-white/12 bg-white/5 px-3 py-2 text-sm font-medium text-muted backdrop-blur-sm hover:bg-white/10 hover:text-foreground"
-                >
-                  Copy URL
-                </button>
                 <label className="flex flex-col gap-1 text-[11px] font-medium text-subtle">
                   Move to group
                   <select
