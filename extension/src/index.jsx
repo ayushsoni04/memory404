@@ -131,7 +131,7 @@ function OrbStatus({ active, label = "Saving…", state = "searching" }) {
   const message = useProgressiveMessage(active, label);
   return (
     <div className="orb-status" role="status" aria-live="polite" aria-label={message}>
-      <ThinkingOrb state={state} size={64} speed={0.95} theme="light" />
+      <ThinkingOrb state={state} size={64} speed={0.95} theme="dark" />
       <span className="orb-status-text">{message}</span>
     </div>
   );
@@ -537,7 +537,7 @@ function App() {
           <>
             {phase === "pick" && !groupsLoading ? (
               <div className="orb-status orb-status--listen">
-                <ThinkingOrb state="listening" size={64} speed={0.95} theme="light" />
+                <ThinkingOrb state="listening" size={64} speed={0.95} theme="dark" />
                 <span className="orb-status-text">Choose a group, then save</span>
               </div>
             ) : phase === "saved" ? (
