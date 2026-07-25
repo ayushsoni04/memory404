@@ -136,6 +136,20 @@ export function SignupForm() {
           Sign in
         </Link>
       </p>
+
+      {process.env.NODE_ENV !== "production" && (
+        <button
+          type="button"
+          onClick={async () => {
+            await fetch("/api/auth/dev-skip", { method: "POST" });
+            router.push(redirectPath);
+            router.refresh();
+          }}
+          className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer"
+        >
+          Skip (dev only)
+        </button>
+      )}
     </div>
   );
 }

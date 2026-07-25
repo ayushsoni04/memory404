@@ -118,18 +118,20 @@ export async function getOrCreateGeneralGroup(
       );
 
       if (general && legacy) {
-        await Promise.all([
-          links.updateMany(
-            { userId, groupId: legacy._id },
-            { $set: { groupId: general._id } },
-            { session },
-          ),
-          groups.updateMany(
-            { userId, parentGroupId: legacy._id },
-            { $set: { parentGroupId: general._id } },
-            { session },
-          ),
-        ]);
+        // A ClientSession must not be used for concurrent operations — running
+        // these in parallel intermittently trips "Only servers in a sharded
+        // cluster can start a new transaction at the active transaction
+        // number" on a replica set, so they must run sequentially.
+        await links.updateMany(
+          { userId, groupId: legacy._id },
+          { $set: { groupId: general._id } },
+          { session },
+        );
+        await groups.updateMany(
+          { userId, parentGroupId: legacy._id },
+          { $set: { parentGroupId: general._id } },
+          { session },
+        );
         await groups.deleteOne({ _id: legacy._id, userId }, { session });
         return general._id;
       }
@@ -277,17 +279,20 @@ export async function createGroup(input: {
       if (!parent) throw new Error("INVALID_PARENT_GROUP");
     }
 
-    const [general, last, count] = await Promise.all([
-      groups.findOne(
-        { userId: input.userId, name: GENERAL_GROUP_NAME },
-        { session, projection: { _id: 1 } },
-      ),
-      groups.find({ userId: input.userId }, { session })
-        .sort({ sortOrder: -1 })
-        .limit(1)
-        .next(),
-      groups.countDocuments({ userId: input.userId }, { session }),
-    ]);
+    // A ClientSession must not be used for concurrent operations — running
+    // these in parallel intermittently trips "Only servers in a sharded
+    // cluster can start a new transaction at the active transaction number"
+    // on a replica set, so they must run sequentially.
+    const general = await groups.findOne(
+      { userId: input.userId, name: GENERAL_GROUP_NAME },
+      { session, projection: { _id: 1 } },
+    );
+    const last = await groups
+      .find({ userId: input.userId }, { session })
+      .sort({ sortOrder: -1 })
+      .limit(1)
+      .next();
+    const count = await groups.countDocuments({ userId: input.userId }, { session });
 
     let sortOrder = (last?.sortOrder ?? -1) + 1;
     if (Number.isInteger(input.insertAt)) {

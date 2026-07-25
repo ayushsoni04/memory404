@@ -14,8 +14,8 @@ export async function sendPasswordResetEmail(
 ): Promise<void> {
   const resend = getResendClient();
   if (!resend) {
-    console.error(
-      "sendPasswordResetEmail: RESEND_API_KEY is not configured — email not sent.",
+    console.warn(
+      `sendPasswordResetEmail: RESEND_API_KEY is not configured — email not sent. Reset link for ${email}: ${resetUrl}`,
     );
     return;
   }
