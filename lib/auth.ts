@@ -1,7 +1,6 @@
-import { upsertUser } from "@/lib/db/repositories";
+import { findUserById } from "@/lib/db/repositories";
 import { DEV_USER_EMAIL, DEV_USER_ID } from "@/lib/dev-user";
-import { getSupabaseEnvError } from "@/lib/supabase-config";
-import { createServerSupabase } from "@/utils/supabase/server";
+import { getSession } from "@/lib/session";
 
 export type AuthUser = {
   id: string;
@@ -16,21 +15,17 @@ const DEV_USER: AuthUser = {
 };
 
 /**
- * Resolves the signed-in Supabase user, if any, upserting a matching `User`
- * row so foreign keys on Link/Group resolve. Returns null when there is no
- * session — callers decide whether that's an error (see requireAuth).
+ * Resolves the signed-in user from the session cookie, if any. Returns null
+ * when there is no session — callers decide whether that's an error (see
+ * requireAuth).
  */
 export async function getAuthUser(): Promise<AuthUser | null> {
-  if (getSupabaseEnvError()) return null;
-
   try {
-    const supabase = await createServerSupabase();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user?.email) return null;
+    const session = await getSession();
+    if (!session) return null;
 
-    const row = await upsertUser({ id: user.id, email: user.email });
+    const row = await findUserById(session.userId);
+    if (!row) return null;
 
     return { id: row.id, email: row.email, plan: row.plan as AuthUser["plan"] };
   } catch (e) {
@@ -40,11 +35,12 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 }
 
 /**
- * Guard for API routes: returns the signed-in user, or — until real sign-in
- * ships — the seeded dev user, so every route keeps working for everyone.
+ * Guard for API routes: returns the signed-in user, or — for the Chrome
+ * extension and standalone Express backend, which have no cross-origin
+ * session mechanism yet — the seeded dev user, so those callers keep working.
  *
- * TODO(auth): once a sign-in flow exists, delete the DEV_USER fallback below
- * and uncomment the 401 response instead.
+ * TODO(auth): once the extension/backend have real per-request auth, delete
+ * the DEV_USER fallback below and uncomment the 401 response instead.
  */
 export async function requireAuth(): Promise<AuthUser | Response> {
   const user = await getAuthUser();

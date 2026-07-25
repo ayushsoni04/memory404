@@ -78,7 +78,7 @@
           "deployment/overview",
           "deployment/vercel",
           "deployment/render",
-          "deployment/supabase",
+          "deployment/auth",
           "deployment/environment-variables",
           "deployment/keep-alive"
         ]

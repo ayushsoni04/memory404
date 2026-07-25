@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AuthModal } from "./_components/AuthModal";
 import type { BillingCycle, Plan, Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
 import { MembershipTab } from "./_components/MembershipTab";
@@ -31,31 +30,19 @@ export default function SettingsPage() {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [deactivatedSuccess, setDeactivatedSuccess] = useState(false);
 
-  // Mock Onboarding Modal States
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [authStep, setAuthStep] = useState(1); // 1 = Login, 2 = Role, 3 = Theme
-  const [authEmail, setAuthEmail] = useState("");
-  const [authPassword, setAuthPassword] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [authRole, setAuthRole] = useState("designer");
-  const [authTheme, setAuthTheme] = useState("midnight");
-  const [authSuccess, setAuthSuccess] = useState(false);
-
   useEffect(() => {
-    if (!showAuthModal && !showDeactivateModal) return;
+    if (!showDeactivateModal) return;
 
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
-      setShowAuthModal(false);
       setShowDeactivateModal(false);
-      setAuthStep(1);
       setDeactivateInput("");
     };
 
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [showAuthModal, showDeactivateModal]);
+  }, [showDeactivateModal]);
 
   // Load profile from localStorage. Runs post-mount (not a lazy initializer)
   // so server and first-client-render markup match; localStorage isn't
@@ -143,46 +130,12 @@ export default function SettingsPage() {
     }, 1500);
   };
 
-  // Mock Onboarding submit
-  const handleMockOnboardingSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (authStep === 1) {
-      if (!authEmail || !authPassword) return;
-      setAuthStep(2);
-    } else if (authStep === 2) {
-      setAuthStep(3);
-    } else if (authStep === 3) {
-      setAuthSuccess(true);
-      // Save changes to workspace profile
-      setName("Developer Account");
-      setUsername(authEmail.split("@")[0] || "dev");
-      setEmail(authEmail);
-      setBannerStyle(authTheme);
-      localStorage.setItem("m404-profile-name", "Developer Account");
-      localStorage.setItem("m404-profile-username", authEmail.split("@")[0] || "dev");
-      localStorage.setItem("m404-profile-email", authEmail);
-      localStorage.setItem("m404-profile-banner", authTheme);
-
-      setTimeout(() => {
-        setShowAuthModal(false);
-        setAuthSuccess(false);
-        setAuthStep(1);
-        setAuthEmail("");
-        setAuthPassword("");
-      }, 2000);
-    }
-  };
-
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4 min-[1712px]:border-x min-[1712px]:border-border lg:flex-row">
 
       <SettingsNav
         activeTab={activeTab}
         onTabChange={setActiveTab}
-        onOpenAuthModal={() => {
-          setAuthStep(1);
-          setShowAuthModal(true);
-        }}
       />
 
       {/* Main Settings Panel */}
@@ -249,28 +202,6 @@ export default function SettingsPage() {
         isDeactivating={isDeactivating}
         deactivatedSuccess={deactivatedSuccess}
         onSubmit={handleDeactivate}
-      />
-
-      <AuthModal
-        open={showAuthModal}
-        onClose={() => {
-          setShowAuthModal(false);
-          setAuthStep(1);
-        }}
-        authStep={authStep}
-        setAuthStep={setAuthStep}
-        authEmail={authEmail}
-        setAuthEmail={setAuthEmail}
-        authPassword={authPassword}
-        setAuthPassword={setAuthPassword}
-        showPassword={showPassword}
-        setShowPassword={setShowPassword}
-        authRole={authRole}
-        setAuthRole={setAuthRole}
-        authTheme={authTheme}
-        setAuthTheme={setAuthTheme}
-        authSuccess={authSuccess}
-        onSubmit={handleMockOnboardingSubmit}
       />
 
     </div>

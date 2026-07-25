@@ -20,23 +20,30 @@ MONGODB_DB="memory404"
 
 Use a dedicated Atlas database user with only the permissions the app needs. Never prefix `MONGODB_URI` with `NEXT_PUBLIC_` or commit its value.
 
+### Auth
+
+| Variable | Where | Description |
+|----------|-------|-------------|
+| `SESSION_SECRET` | Vercel | Signs session cookies; `openssl rand -base64 32`. Rotating it signs everyone out |
+| `RESEND_API_KEY` | Vercel | Sends password-reset emails via [Resend](https://resend.com) |
+
+See [Auth](/deployment/auth) for how these are used.
+
 ## Frontend
 
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `NEXT_PUBLIC_API_URL` | Vercel | Render API base URL. Empty = same-origin `/api` |
-| `NEXT_PUBLIC_SUPABASE_URL` | Vercel | Supabase Auth project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | Vercel | Supabase Auth publishable key |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Vercel | Legacy Auth fallback anon key |
 
 ### Production example
 
 ```bash
 NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+SESSION_SECRET=<generated-secret>
+RESEND_API_KEY=<resend-api-key>
 ```
 
-Supabase is Auth-only. Application records are persisted in MongoDB Atlas.
+Auth is self-contained (MongoDB + signed session cookies) — no third-party identity provider is involved. Application records and user accounts both live in MongoDB Atlas.
 
 ## Backend (Express)
 
@@ -75,7 +82,6 @@ Set as repository variables for keep-alive workflows:
 |----------|---------|
 | `VERCEL_APP_URL` | Ping Vercel frontend |
 | `RENDER_API_URL` | Ping Render API health |
-| `SUPABASE_PROJECT_URL` | Ping the Supabase Auth health endpoint |
 
 ## Template file
 

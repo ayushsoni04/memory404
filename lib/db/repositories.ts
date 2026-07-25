@@ -20,6 +20,7 @@ import {
   type LinkDocument,
   type LinkRow,
   type UserRow,
+  type UserUtm,
 } from "@/lib/db/types";
 
 const LEGACY_UNCATEGORIZED_GROUP_NAME = "Uncategorized";
@@ -29,27 +30,75 @@ export type GroupWithPreview = GroupRow & {
   previewTitles: string[];
 };
 
-export async function upsertUser(input: {
-  id: string;
+export async function createUserWithPassword(input: {
   email: string;
+  passwordHash: string;
+  leadSource?: string | null;
+  utm?: UserUtm | null;
 }): Promise<UserRow> {
   const { users } = await getCollections();
-  const now = new Date();
-  const document = await users.findOneAndUpdate(
-    { _id: input.id },
-    {
-      $set: { email: input.email },
-      $setOnInsert: {
-        name: null,
-        avatarUrl: null,
-        plan: "free",
-        createdAt: now,
-      },
-    },
-    { upsert: true, returnDocument: "after" },
-  );
-  if (!document) throw new Error("Failed to upsert user");
+  const document = {
+    _id: randomUUID(),
+    email: input.email,
+    name: null,
+    avatarUrl: null,
+    plan: "free",
+    passwordHash: input.passwordHash,
+    resetToken: null,
+    resetTokenExpiresAt: null,
+    leadSource: input.leadSource ?? null,
+    utm: input.utm ?? null,
+    createdAt: new Date(),
+  };
+  await users.insertOne(document);
   return userDocumentToRow(document);
+}
+
+export async function findUserByEmail(email: string): Promise<UserRow | null> {
+  const { users } = await getCollections();
+  const document = await users.findOne({ email });
+  return document ? userDocumentToRow(document) : null;
+}
+
+export async function findUserById(id: string): Promise<UserRow | null> {
+  const { users } = await getCollections();
+  const document = await users.findOne({ _id: id });
+  return document ? userDocumentToRow(document) : null;
+}
+
+export async function setPasswordResetToken(
+  userId: string,
+  token: string,
+  expiresAt: Date,
+): Promise<void> {
+  const { users } = await getCollections();
+  await users.updateOne(
+    { _id: userId },
+    { $set: { resetToken: token, resetTokenExpiresAt: expiresAt } },
+  );
+}
+
+export async function findUserByValidResetToken(token: string): Promise<UserRow | null> {
+  const { users } = await getCollections();
+  const document = await users.findOne({
+    resetToken: token,
+    resetTokenExpiresAt: { $gt: new Date() },
+  });
+  return document ? userDocumentToRow(document) : null;
+}
+
+export async function updateUserPassword(
+  userId: string,
+  passwordHash: string,
+): Promise<void> {
+  const { users } = await getCollections();
+  await users.updateOne(
+    { _id: userId },
+    {
+      $set: { passwordHash },
+      $unset: { resetToken: "", resetTokenExpiresAt: "" },
+    },
+  );
 }
 
 export async function getOrCreateGeneralGroup(

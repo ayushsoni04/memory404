@@ -1,0 +1,46 @@
+---
+title: "Auth"
+description: "Configure memory404's self-contained MongoDB-based authentication."
+keywords: ["auth", "authentication", "sessions", "password reset"]
+---
+
+memory404 authenticates users entirely on its own — passwords hashed and stored in MongoDB, sessions as signed cookies, password-reset emails via Resend. No third-party identity provider is involved.
+
+## How it works
+
+- **Passwords**: hashed with Node's built-in `crypto.scrypt` (`lib/password.ts`) — never stored or logged in plaintext.
+- **Sessions**: a signed JWT in an httpOnly, secure, `sameSite=lax` cookie (`lib/session.ts`), valid for 14 days. `proxy.ts` verifies this cookie on every request and redirects signed-out visitors to `/login` for any page outside `/login`, `/signup`, `/forgot-password`, `/reset-password`, and `/api/*`.
+- **Signup/login/logout/password-reset**: handled by Route Handlers under `app/api/auth/*`, called via `fetch()` from the corresponding pages in `app/login/`, `app/signup/`, `app/forgot-password/`, `app/reset-password/`.
+- **API routes are not gated the same way.** `requireAuth()` (`lib/auth.ts`) falls back to a hardcoded development user when a request carries no session — this keeps the Chrome extension and the standalone Express `backend/` working, since neither currently has a way to attach a session cookie (cross-origin, no shared cookies). Do not treat that fallback as production access control for `/api/*`; wiring real per-request auth there is a separate, larger project.
+
+## Environment variables
+
+```bash
+SESSION_SECRET=   # openssl rand -base64 32 — server-only, never NEXT_PUBLIC_
+RESEND_API_KEY=   # from resend.com — server-only
+```
+
+Set both in `.env.local` for development and in Vercel for production. Rotating `SESSION_SECRET` invalidates every existing session (all users get signed out).
+
+## Password-reset email (Resend)
+
+1. Create an account at [resend.com](https://resend.com) and generate an API key.
+2. Set `RESEND_API_KEY`.
+3. `lib/email.ts` sends from `onboarding@resend.dev` by default — Resend's shared sandbox sender, fine for development but rate-limited and not meant for real users. Before going live, [verify your own domain in Resend](https://resend.com/docs/dashboard/domains/introduction) and update `FROM_ADDRESS` in `lib/email.ts`.
+
+If `RESEND_API_KEY` is unset, `sendPasswordResetEmail` logs an error and silently no-ops rather than throwing — `/forgot-password` still returns success either way (the endpoint never reveals whether an email exists, so failures on the send side don't leak that either).
+
+## Password policy
+
+Enforced in two places that must stay in sync:
+
+- Client-side hint: `lib/password-policy.ts` (`PASSWORD_MIN_LENGTH`, `getPasswordRequirementIssues`)
+- Server-side: `app/api/auth/signup/route.ts` and `app/api/auth/reset-password/route.ts` both call `getPasswordRequirementIssues` before hashing
+
+Current policy: at least 8 characters, with an uppercase letter, a lowercase letter, and a number.
+
+## What's not built yet
+
+OAuth (Google/GitHub/X) is deferred — it was previously wired through Supabase, which handled the OAuth2 token exchange. Rebuilding it without a managed provider means implementing that exchange per-provider; the plan is to use [`arctic`](https://arcticjs.dev) rather than hand-rolling it. Until then, email/password is the only sign-in method.
+
+See [Database schema](/database/schema) for the MongoDB `users` collection shape and [Environment variables](/deployment/environment-variables) for the full configuration reference.

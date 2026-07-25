@@ -1,16 +1,26 @@
+"use client";
+
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowLeft, CreditCard, Lock, TrendingUp, User } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { ArrowLeft, CreditCard, LogOut, TrendingUp, User } from "lucide-react";
 import GlitchText from "@/components/GlitchText";
 import type { Tab } from "./constants";
 
 type SettingsNavProps = {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
-  onOpenAuthModal: () => void;
 };
 
-export function SettingsNav({ activeTab, onTabChange, onOpenAuthModal }: SettingsNavProps) {
+export function SettingsNav({ activeTab, onTabChange }: SettingsNavProps) {
+  const router = useRouter();
+
+  const handleSignOut = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    router.push("/login");
+    router.refresh();
+  };
+
   return (
     <aside className="flex w-full shrink-0 flex-col gap-8 py-4 lg:fixed lg:left-[max(1rem,calc((100vw-var(--content-max))/2+1rem))] lg:top-0 lg:box-border lg:h-dvh lg:w-[var(--sidebar-w)] lg:justify-between">
       <div className="flex flex-col gap-6">
@@ -66,11 +76,11 @@ export function SettingsNav({ activeTab, onTabChange, onOpenAuthModal }: Setting
       {/* Global Footer Links & Login CTA */}
       <div className="flex flex-col gap-4">
         <button
-          onClick={onOpenAuthModal}
+          onClick={handleSignOut}
           className="flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground transition-[transform,background-color,color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97] py-2 px-3 text-center"
         >
-          <Lock className="size-3.5 text-subtle" />
-          Join / Mock Sign In
+          <LogOut className="size-3.5 text-subtle" />
+          Sign out
         </button>
 
         <div className="hidden flex-col gap-2 lg:flex">

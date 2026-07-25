@@ -1,6 +1,6 @@
 ---
 title: "Deployment overview"
-description: "Production architecture with Vercel, Render, and Supabase."
+description: "Production architecture with Vercel, Render, and MongoDB Atlas."
 keywords: ["deployment", "production", "hosting"]
 ---
 
@@ -10,13 +10,13 @@ memory404 runs as a three-service stack in production.
 
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
-│ Chrome Extension│────▶│  Render Express  │────▶│ Supabase Postgres│
-└────────┬────────┘     └────────▲─────────┘     └─────────────────┘
-         │                       │
-         │              NEXT_PUBLIC_API_URL
-         ▼                       │
-┌─────────────────┐              │
-│ Vercel Next.js  │──────────────┘
+│ Chrome Extension│────▶│  Render Express  │────▶│  MongoDB Atlas  │
+└────────┬────────┘     └────────▲─────────┘     └────────▲────────┘
+         │                       │                        │
+         │              NEXT_PUBLIC_API_URL                │
+         ▼                       │                        │
+┌─────────────────┐              │                        │
+│ Vercel Next.js  │──────────────┘────────────────────────┘
 │ memory404.vercel│
 └────────┬────────┘
          │
@@ -32,7 +32,7 @@ memory404 runs as a three-service stack in production.
 |---------|----------|-----|---------|
 | Frontend | Vercel | memory404.vercel.app | Next.js web app |
 | API | Render | memory404-api.onrender.com | Express backend |
-| Database | Supabase | — | PostgreSQL |
+| Database | MongoDB Atlas | — | Application data + auth |
 | Images | Cloudinary | — | Preview image storage |
 
 ## Deployment guides
@@ -44,8 +44,8 @@ memory404 runs as a three-service stack in production.
   <Card title="Render" icon="server" href="/deployment/render">
     Deploy the Express API.
   </Card>
-  <Card title="Supabase" icon="database" href="/deployment/supabase">
-    Set up PostgreSQL.
+  <Card title="Auth" icon="lock" href="/deployment/auth">
+    Session secret and password-reset email setup.
   </Card>
   <Card title="Environment variables" icon="settings" href="/deployment/environment-variables">
     Full configuration reference.
@@ -55,7 +55,7 @@ memory404 runs as a three-service stack in production.
 ## Build command
 
 ```bash
-prisma migrate deploy && prisma generate && next build
+next build
 ```
 
 ## Split-stack configuration

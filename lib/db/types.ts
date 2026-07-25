@@ -1,11 +1,24 @@
 export type LinkMetadataStatus = "pending" | "ready";
 
+export type UserUtm = {
+  source?: string;
+  medium?: string;
+  campaign?: string;
+};
+
 export type UserDocument = {
   _id: string;
   email: string;
   name: string | null;
   avatarUrl: string | null;
   plan: string;
+  /** scrypt salt+hash, e.g. "<salt>:<hash>". Null reserved for future OAuth-only accounts. */
+  passwordHash: string | null;
+  resetToken: string | null;
+  resetTokenExpiresAt: Date | null;
+  /** How the user found the product, captured once at signup. */
+  leadSource: string | null;
+  utm: UserUtm | null;
   createdAt: Date;
 };
 

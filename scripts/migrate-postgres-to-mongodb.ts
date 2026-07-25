@@ -139,6 +139,11 @@ async function copyData(): Promise<void> {
     name: user.name,
     avatarUrl: user.avatarUrl,
     plan: user.plan,
+    passwordHash: null,
+    resetToken: null,
+    resetTokenExpiresAt: null,
+    leadSource: null,
+    utm: null,
     createdAt: user.createdAt,
   }));
   const groupDocuments: GroupDocument[] = groups.map((group) => ({

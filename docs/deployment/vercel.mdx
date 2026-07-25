@@ -30,8 +30,8 @@ Set these in **Vercel → Project → Settings → Environment Variables**:
 | `MONGODB_URI` | Yes | MongoDB Atlas connection string; store as a secret |
 | `MONGODB_DB` | No | Database name; defaults to `memory404` |
 | `NEXT_PUBLIC_API_URL` | Yes | Render API URL |
-| `NEXT_PUBLIC_SUPABASE_URL` | No | Supabase Auth project URL |
-| `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY` | No | Supabase Auth publishable key |
+| `SESSION_SECRET` | Yes | Signs session cookies; `openssl rand -base64 32` |
+| `RESEND_API_KEY` | Yes | Sends password-reset emails |
 | `CLOUDINARY_CLOUD_NAME` | No | Image upload |
 | `CLOUDINARY_API_KEY` | No | Cloudinary API key |
 | `CLOUDINARY_API_SECRET` | No | Cloudinary signing secret |
@@ -41,12 +41,11 @@ Set these in **Vercel → Project → Settings → Environment Variables**:
 ```bash
 NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
 MONGODB_DB=memory404
-NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 ```
 
-Add `MONGODB_URI` through Vercel's environment-variable UI; do not paste a real URI into source files or documentation. Use the same MongoDB database on Vercel and Render.
+Add `MONGODB_URI`, `SESSION_SECRET`, and `RESEND_API_KEY` through Vercel's environment-variable UI; do not paste real values into source files or documentation. Use the same MongoDB database on Vercel and Render.
 
-Supabase remains Auth-only. Next.js Route Handlers persist application records directly to the normalized MongoDB `users`, `groups`, and `links` collections.
+Auth is self-contained: Next.js Route Handlers under `app/api/auth/*` hash passwords, issue session cookies, and persist everything — application records and user accounts alike — directly to MongoDB's `users`, `groups`, and `links` collections. See [Auth](/deployment/auth).
 
 ## What Vercel serves
 
