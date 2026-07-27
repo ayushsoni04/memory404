@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import MorphText from "@/components/MorphText";
 
 export function LoginForm() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export function LoginForm() {
   };
 
   return (
-    <div className="w-full max-w-[380px] space-y-6">
+    <div className="w-full space-y-6">
       <div className="space-y-1">
         <h1 className="text-lg font-bold font-mono uppercase text-foreground">
           Sign in
@@ -98,7 +99,9 @@ export function LoginForm() {
           disabled={isSubmitting}
           className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
         >
-          {isSubmitting ? "Signing in…" : "Sign in"}
+          <MorphText duration={220}>
+            {isSubmitting ? "Signing in…" : "Sign in"}
+          </MorphText>
         </button>
       </form>
 

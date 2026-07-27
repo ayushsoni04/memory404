@@ -1,12 +1,13 @@
 import { Suspense } from "react";
+import AuthShell from "@/components/auth/AuthShell";
 import { ResetPasswordForm } from "./_components/ResetPasswordForm";
 
 export default function ResetPasswordPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+    <AuthShell>
       <Suspense>
         <ResetPasswordForm />
       </Suspense>
-    </div>
+    </AuthShell>
   );
 }

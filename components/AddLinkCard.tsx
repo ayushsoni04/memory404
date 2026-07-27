@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
+import MorphText from "@/components/MorphText";
 import type { LinkApiRow } from "@/lib/links";
 
 type Props = {
@@ -250,7 +251,9 @@ export default function AddLinkCard({
             <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted">
-                  {timerActive ? `Add notes (auto-done in ${countdown}s)` : "Add notes"}
+                  <MorphText duration={220}>
+                    {timerActive ? `Add notes (auto-done in ${countdown}s)` : "Add notes"}
+                  </MorphText>
                 </span>
                 {timerActive && (
                   <button
@@ -282,7 +285,9 @@ export default function AddLinkCard({
                   tabIndex={phase === "notes" ? 0 : -1}
                   className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg"
                 >
-                  {notes.trim() ? "Save Notes" : "Done"}
+                  <MorphText duration={220}>
+                    {notes.trim() ? "Save Notes" : "Done"}
+                  </MorphText>
                 </button>
               </div>
             </div>

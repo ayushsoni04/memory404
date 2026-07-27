@@ -1,9 +1,9 @@
 "use client";
 
-import { Plus, RotateCw, X } from "lucide-react";
+import { Plus, RotateCw, Search, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
-import ClearSearchInput from "@/components/ClearSearchInput";
+import GroupSearchCommand from "./GroupSearchCommand";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { pillActive, pillIdle, type GroupRow, type SortBy } from "./types";
 
@@ -32,6 +32,7 @@ type VaultGroupToolbarProps = {
   groupSearch: string;
   setGroupSearch: (value: string) => void;
   loadGroups: () => Promise<unknown>;
+  onOpenPalette: () => void;
 };
 
 export default function VaultGroupToolbar({
@@ -59,6 +60,7 @@ export default function VaultGroupToolbar({
   groupSearch,
   setGroupSearch,
   loadGroups,
+  onOpenPalette,
 }: VaultGroupToolbarProps) {
   return (
     <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background pt-3 pb-4 pr-4">
@@ -230,12 +232,23 @@ export default function VaultGroupToolbar({
           <option value="type">Link Type</option>
           <option value="details">Details Size</option>
         </select>
-        <ClearSearchInput
+        <GroupSearchCommand
           value={groupSearch}
           onChange={setGroupSearch}
+          groups={filteredFolders}
+          onSelectGroup={selectGroup}
           placeholder="Search"
-          className="hidden h-7 w-28 rounded-full border border-border bg-surface text-[13px] text-foreground outline-none focus-within:border-border-strong sm:block"
+          className="hidden w-28 sm:block"
         />
+        <button
+          type="button"
+          onClick={onOpenPalette}
+          aria-label="Search everything"
+          title="Search everything (⌘K)"
+          className={`${pillIdle} justify-center px-2`}
+        >
+          <Search className="size-3.5" strokeWidth={2} aria-hidden />
+        </button>
         <button
           type="button"
           onClick={() => void loadGroups()}

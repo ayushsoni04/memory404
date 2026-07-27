@@ -1,18 +1,22 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import AuthShell from "@/components/auth/AuthShell";
 import { LoginForm } from "./_components/LoginForm";
 
 export const metadata: Metadata = {
-  title: "Sign in — memory404",
+  title: "Sign in",
   description: "Sign in to your memory404 workspace.",
+  alternates: {
+    canonical: "/login",
+  },
 };
 
 export default function LoginPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+    <AuthShell>
       <Suspense>
         <LoginForm />
       </Suspense>
-    </div>
+    </AuthShell>
   );
 }

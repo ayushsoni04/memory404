@@ -8,15 +8,20 @@ import { getInitialVaultData } from "@/lib/vault-initial-data";
 export const runtime = "nodejs";
 
 export const metadata: Metadata = {
-  title: "memory404 — saved links feed",
+  title: {
+    absolute: "memory404 — saved links feed",
+  },
   description:
     "Save links into groups and browse them like a dark inspiration feed.",
+  alternates: {
+    canonical: "/",
+  },
 };
 
 function VaultFallback() {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4">
-      <div className="flex min-w-0 flex-1 flex-col lg:ml-[252px]">
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-[calc(var(--sidebar-w)+12px)]">
         <div className="pt-[17px]">
           <div className="h-5 w-40 animate-pulse rounded bg-neutral-800/40" />
           <div className="mt-2 h-4 w-72 max-w-full animate-pulse rounded bg-neutral-800/25" />

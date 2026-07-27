@@ -20,7 +20,7 @@
   --studio-stage: #0a0a0a;
   --mind-card-radius: 4px;
   --mind-overlay-panel: 292px;
-  --sidebar-w: 220px;
+  --sidebar-w: 264px;
   --content-max: 1680px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
@@ -309,13 +309,12 @@ pre,
   overflow: hidden;
 }
 
-/* Card preview actions — glass cluster; copy emerges from behind open */
+/* Card preview actions — Virio-style come-up (opacity + rise) on hover */
 .mind-card-actions {
   --mind-card-action-size: calc(28px * 1.35);
   --mind-card-action-gap: 8px;
-  --mind-card-copy-emerge-blur: 8px;
-  --mind-card-copy-emerge-x: 10px;
-  --mind-card-copy-dur: 220ms;
+  --mind-card-action-rise: 6px;
+  --mind-card-action-dur: 160ms;
   gap: var(--mind-card-action-gap);
 }
 
@@ -330,27 +329,47 @@ pre,
   box-shadow: 0 1px 2px rgb(0 0 0 / 0.2);
   backdrop-filter: blur(10px) saturate(1.4);
   -webkit-backdrop-filter: blur(10px) saturate(1.4);
+  transition:
+    background-color var(--duration-press) var(--ease-out),
+    border-color var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out);
+}
+
+/* Open arrow — hidden until hover, then rises into place */
+.mind-card-open {
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(var(--mind-card-action-rise));
+  transition:
+    opacity var(--mind-card-action-dur) var(--ease-out),
+    transform var(--mind-card-action-dur) var(--ease-out),
+    background-color var(--duration-press) var(--ease-out),
+    border-color var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out);
+  will-change: opacity, transform;
 }
 
 .mind-card-copy {
   z-index: 0;
   pointer-events: none;
   overflow: hidden;
-  /* Overlap open + gap so the cluster hugs to one button at rest */
+  /* Overlap open + gap so the cluster hugs tight at rest */
   margin-right: calc(-1 * var(--mind-card-action-size) - var(--mind-card-action-gap));
   padding-inline: 0;
   opacity: 0;
-  filter: blur(var(--mind-card-copy-emerge-blur));
-  transform: translateX(var(--mind-card-copy-emerge-x)) scale(0.92);
+  transform: translateY(var(--mind-card-action-rise));
   transition:
-    margin-right var(--mind-card-copy-dur) var(--ease-out),
-    transform var(--mind-card-copy-dur) var(--ease-out),
-    filter var(--mind-card-copy-dur) var(--ease-out),
-    opacity var(--mind-card-copy-dur) var(--ease-out),
-    width var(--mind-card-copy-dur) var(--ease-out),
-    min-width var(--mind-card-copy-dur) var(--ease-out),
-    padding-inline var(--mind-card-copy-dur) var(--ease-out);
-  will-change: margin-right, transform, filter, opacity, width;
+    margin-right var(--mind-card-action-dur) var(--ease-out),
+    transform var(--mind-card-action-dur) var(--ease-out),
+    opacity var(--mind-card-action-dur) var(--ease-out),
+    width var(--mind-card-action-dur) var(--ease-out),
+    min-width var(--mind-card-action-dur) var(--ease-out),
+    padding-inline var(--mind-card-action-dur) var(--ease-out),
+    background-color var(--duration-press) var(--ease-out),
+    border-color var(--duration-press) var(--ease-out),
+    box-shadow var(--duration-press) var(--ease-out);
+  will-change: margin-right, transform, opacity, width;
 }
 
 .mind-card-copy[data-copied="true"] {
@@ -406,6 +425,14 @@ pre,
 }
 
 @media (hover: hover) and (pointer: fine) {
+  .group:hover .mind-card-open,
+  .group:focus-within .mind-card-open,
+  .mind-card-copy[data-hold="true"] ~ .mind-card-open {
+    pointer-events: auto;
+    opacity: 1;
+    transform: translateY(0);
+  }
+
   /* Stay expanded while feedback holds, even if hover ends mid-animation */
   .group:hover .mind-card-copy,
   .group:focus-within .mind-card-copy,
@@ -413,22 +440,53 @@ pre,
     pointer-events: auto;
     margin-right: 0;
     opacity: 1;
-    filter: blur(0);
-    transform: translateX(0) scale(1);
+    transform: translateY(0);
+  }
+
+  /* Per-button hover — brighter glass + slight lift */
+  .group:hover .mind-card-open:hover,
+  .group:focus-within .mind-card-open:hover,
+  .group:hover .mind-card-copy:hover,
+  .group:focus-within .mind-card-copy:hover,
+  .mind-card-copy[data-hold="true"]:hover {
+    background: rgb(0 0 0 / 0.48);
+    border-color: rgb(255 255 255 / 0.7);
+    box-shadow:
+      0 2px 8px rgb(0 0 0 / 0.35),
+      0 0 0 1px rgb(255 255 255 / 0.08);
+    transform: translateY(0) scale(1.06);
+  }
+
+  .group:hover .mind-card-open:active,
+  .group:focus-within .mind-card-open:active,
+  .group:hover .mind-card-copy:active,
+  .group:focus-within .mind-card-copy:active {
+    transform: translateY(0) scale(0.97);
   }
 }
 
 @media (hover: none), (pointer: coarse) {
+  .mind-card-open,
   .mind-card-copy {
     pointer-events: auto;
-    margin-right: 0;
     opacity: 1;
-    filter: blur(0);
-    transform: translateX(0) scale(1);
+    transform: translateY(0);
+  }
+
+  .mind-card-copy {
+    margin-right: 0;
+  }
+
+  .mind-card-open:active,
+  .mind-card-copy:active {
+    background: rgb(0 0 0 / 0.48);
+    border-color: rgb(255 255 255 / 0.7);
+    transform: translateY(0) scale(0.97);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .mind-card-open,
   .mind-card-copy,
   .mind-card-copy .t-icon-swap .t-icon {
     transition: none !important;
@@ -832,49 +890,6 @@ pre,
 @media (prefers-reduced-motion: reduce) {
   .t-success-check { animation: none !important; opacity: 1; }
   .t-success-check svg path { animation: none !important; stroke-dashoffset: 0 !important; }
-}
-
-/* Input Clear with Dissolve */
-.t-clear {
-  position: relative;
-  overflow: hidden;
-}
-.t-clear-mirror,
-.t-clear-placeholder {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  pointer-events: none;
-  white-space: nowrap;
-  overflow: hidden;
-  z-index: 2;
-}
-.t-clear-mirror {
-  opacity: 0;
-}
-.t-clear.has-value .t-clear-mirror,
-.t-clear.is-clearing .t-clear-mirror {
-  opacity: 1;
-}
-.t-clear.has-value > input,
-.t-clear.is-clearing > input {
-  -webkit-text-fill-color: transparent;
-}
-.t-clear.has-value .t-clear-placeholder {
-  opacity: 0;
-}
-.t-clear-glow {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  opacity: 0;
-  z-index: 3;
-  mix-blend-mode: screen; /* screen for dark mode */
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .t-clear-glow { opacity: 0 !important; }
 }
 
 /* Skeleton Loader & Reveal */

@@ -1,18 +1,22 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import AuthShell from "@/components/auth/AuthShell";
 import { SignupForm } from "./_components/SignupForm";
 
 export const metadata: Metadata = {
-  title: "Sign up — memory404",
+  title: "Sign up",
   description: "Create a memory404 account to start archiving links.",
+  alternates: {
+    canonical: "/signup",
+  },
 };
 
 export default function SignupPage() {
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
+    <AuthShell>
       <Suspense>
         <SignupForm />
       </Suspense>
-    </div>
+    </AuthShell>
   );
 }

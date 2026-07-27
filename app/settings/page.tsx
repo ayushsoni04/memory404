@@ -139,7 +139,7 @@ export default function SettingsPage() {
       />
 
       {/* Main Settings Panel */}
-      <main className="flex min-w-0 flex-1 flex-col lg:ml-[252px]">
+      <main className="flex min-w-0 flex-1 flex-col lg:ml-[calc(var(--sidebar-w)+12px)]">
         <div className="max-w-[720px] space-y-8 pt-4 pb-12">
 
           {/* Header */}

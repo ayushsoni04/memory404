@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import MorphText from "@/components/MorphText";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
 
 export function ResetPasswordForm() {
@@ -50,7 +51,7 @@ export function ResetPasswordForm() {
   };
 
   return (
-    <div className="w-full max-w-[380px] space-y-6">
+    <div className="w-full space-y-6">
       <div className="space-y-1">
         <h1 className="text-lg font-bold font-mono uppercase text-foreground">
           Choose a new password
@@ -94,7 +95,9 @@ export function ResetPasswordForm() {
             disabled={isSubmitting}
             className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
           >
-            {isSubmitting ? "Updating…" : "Update password"}
+            <MorphText duration={220}>
+              {isSubmitting ? "Updating…" : "Update password"}
+            </MorphText>
           </button>
         </form>
       )}

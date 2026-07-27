@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import { useQueryState } from "nuqs";
 import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
@@ -26,9 +27,14 @@ export function useVaultGroups(
   initialOpenedGroupId: string,
 ) {
   const [groups, setGroups] = useState<GroupRow[]>(initialGroups);
-  const [openedGroupId, setOpenedGroupId] = useState<string | null>(
-    initialOpenedGroupId,
-  );
+  const [openedGroupId, setOpenedGroupId] = useQueryState("group", {
+    defaultValue: initialOpenedGroupId,
+    history: "push" as const,
+  });
+
+  useEffect(() => {
+    persistOpenedGroup(openedGroupId);
+  }, [openedGroupId]);
 
   const [createGroupName, setCreateGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
@@ -79,19 +85,6 @@ export function useVaultGroups(
           JSON.stringify(swrGroups),
         );
       } catch {}
-
-      const general =
-        swrGroups.find(
-          (g) =>
-            g.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase(),
-        ) ?? swrGroups[0];
-      if (general) {
-        setOpenedGroupId((prev) => {
-          const next = prev ?? "all";
-          persistOpenedGroup(next);
-          return next;
-        });
-      }
     }
   }, [swrGroups]);
 
@@ -99,10 +92,12 @@ export function useVaultGroups(
     return mutateGroups();
   }, [mutateGroups]);
 
-  const selectGroup = useCallback((id: string) => {
-    setOpenedGroupId(id);
-    persistOpenedGroup(id);
-  }, []);
+  const selectGroup = useCallback(
+    (id: string) => {
+      void setOpenedGroupId(id);
+    },
+    [setOpenedGroupId],
+  );
 
   const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
   const allLinksCount = useMemo(
@@ -152,8 +147,7 @@ export function useVaultGroups(
       setAddingAt(null);
       await loadGroups();
       if (created?.id) {
-        setOpenedGroupId(created.id);
-        persistOpenedGroup(created.id);
+        void setOpenedGroupId(created.id);
       }
     } catch {
       setGroupsError("Failed to create group");

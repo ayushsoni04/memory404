@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import AuthShell from "@/components/auth/AuthShell";
+import MorphText from "@/components/MorphText";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -30,8 +32,8 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <div className="flex min-h-screen w-full flex-col items-center justify-center bg-background p-4">
-      <div className="w-full max-w-[380px] space-y-6">
+    <AuthShell>
+      <div className="w-full space-y-6">
         <div className="space-y-1">
           <h1 className="text-lg font-bold font-mono uppercase text-foreground">
             Reset your password
@@ -67,7 +69,9 @@ export default function ForgotPasswordPage() {
               disabled={isSubmitting}
               className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
             >
-              {isSubmitting ? "Sending…" : "Send reset link"}
+              <MorphText duration={220}>
+                {isSubmitting ? "Sending…" : "Send reset link"}
+              </MorphText>
             </button>
           </form>
         )}
@@ -78,6 +82,6 @@ export default function ForgotPasswordPage() {
           </Link>
         </p>
       </div>
-    </div>
+    </AuthShell>
   );
 }

@@ -1,13 +1,11 @@
 import type { MetadataRoute } from "next";
+import { absoluteUrl, PUBLIC_SEO_ROUTES } from "@/lib/seo";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const baseUrl = "https://ayushdesign.in";
-  const routes = ["", "/settings", "/workspace", "/workspace/screen", "/workspace/text-swap", "/trash"];
-
-  return routes.map((route) => ({
-    url: `${baseUrl}${route}`,
+  return PUBLIC_SEO_ROUTES.map((route) => ({
+    url: absoluteUrl(route.path),
     lastModified: new Date(),
-    changeFrequency: route === "" ? "daily" : "weekly",
-    priority: route === "" ? 1.0 : 0.5,
+    changeFrequency: route.changeFrequency,
+    priority: route.priority,
   }));
 }

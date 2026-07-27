@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import CommandPalette from "@/components/CommandPalette";
 import { ExtensionErrorBanner } from "@/components/ExtensionErrorBanner";
 import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import { useAddLinkFlow } from "./vault/useAddLinkFlow";
@@ -28,6 +29,7 @@ export default function VaultInbox({
   const router = useRouter();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [newCardId, setNewCardId] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   const {
     sortBy,
@@ -161,6 +163,11 @@ export default function VaultInbox({
     [groups],
   );
 
+  const paletteGroups = useMemo(
+    () => [{ id: "all", name: "All" }, ...groups],
+    [groups],
+  );
+
   const handleFeedLinkSaved = useCallback(
     (row: (typeof sortedLinks)[number]) => {
       setNewCardId(row.id);
@@ -214,7 +221,7 @@ export default function VaultInbox({
         onDeleteGroup={handleDeleteGroup}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col lg:ml-[252px]">
+      <div className="flex min-w-0 flex-1 flex-col lg:ml-[calc(var(--sidebar-w)+12px)]">
         <VaultFeed
           groupToolbar={
             <VaultGroupToolbar
@@ -242,6 +249,7 @@ export default function VaultInbox({
               groupSearch={groupSearch}
               setGroupSearch={setGroupSearch}
               loadGroups={loadGroups}
+              onOpenPalette={() => setPaletteOpen(true)}
             />
           }
           openedGroupId={openedGroupId}
@@ -286,6 +294,13 @@ export default function VaultInbox({
           }
         />
       ) : null}
+
+      <CommandPalette
+        open={paletteOpen}
+        onOpenChange={setPaletteOpen}
+        groups={paletteGroups}
+        onSelectGroup={selectGroup}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import localFont from "next/font/local";
+import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { DeferredVitals } from "@/components/DeferredVitals";
 import "./globals.css";
 
@@ -38,9 +39,6 @@ export const metadata: Metadata = {
   description:
     "Save links into groups and browse them like a dark inspiration feed.",
   metadataBase: new URL(siteUrl),
-  alternates: {
-    canonical: "/",
-  },
   robots: {
     index: true,
     follow: true,
@@ -112,7 +110,7 @@ export default function RootLayout({
         />
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        {children}
+        <NuqsAdapter>{children}</NuqsAdapter>
         <DeferredVitals />
       </body>
     </html>

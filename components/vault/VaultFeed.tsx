@@ -2,7 +2,7 @@
 
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
-import TextSwap from "@/components/TextSwap";
+import MorphText from "@/components/MorphText";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
 import PastePrompt from "./PastePrompt";
@@ -67,24 +67,24 @@ export default function VaultFeed({
       <header className="-mr-4 flex flex-col gap-y-1 pr-4 pt-[17px] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4">
         <div className="flex flex-col gap-y-1 lg:min-w-0 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
           <h1 className="font-departure shrink-0 text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
-            <TextSwap>
+            <MorphText>
               {openedGroupId === "all"
                 ? "All Links"
                 : (openedGroup?.name ?? "memory404")}
-            </TextSwap>
+            </MorphText>
           </h1>
           <p className="min-w-0 text-balance text-[15px] text-subtle">
             Links you save, browsed like a dark inspiration feed.
           </p>
         </div>
         <span className="shrink-0 text-[13px] text-subtle">
-          <TextSwap>
+          <MorphText>
             {openedGroupId === "all"
               ? `${allLinksCount} link${allLinksCount === 1 ? "" : "s"}`
               : openedGroup
                 ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
                 : ""}
-          </TextSwap>
+          </MorphText>
         </span>
       </header>
 

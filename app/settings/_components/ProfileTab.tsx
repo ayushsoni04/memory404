@@ -1,6 +1,6 @@
 import { useState } from "react";
 import Image from "next/image";
-import TextSwap from "@/components/TextSwap";
+import MorphText from "@/components/MorphText";
 import { AppLoader } from "@/components/AppLoader";
 import {
   AlertTriangle,
@@ -197,9 +197,9 @@ export function ProfileTab({
           type="submit"
           className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-md"
         >
-          <TextSwap>
+          <MorphText>
             {isSaved ? "Saved!" : "Save profile changes"}
-          </TextSwap>
+          </MorphText>
         </button>
         {isSaved && (
           <span className="inline-flex items-center gap-1.5 text-xs text-success font-mono">

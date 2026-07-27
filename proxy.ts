@@ -2,7 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 import { decryptSession, SESSION_COOKIE_NAME } from "@/lib/session";
 
 /** Routes reachable while signed out. Everything else redirects to /login. */
-const PUBLIC_PATHS = ["/login", "/signup", "/forgot-password", "/reset-password"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/forgot-password",
+  "/reset-password",
+  "/brand",
+  "/sidebar", // redirects to /brand
+];
 
 function isPublicPath(pathname: string): boolean {
   return (
@@ -12,6 +19,12 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
+  // TEMP: skip login gate until public launch. APIs already fall back to DEV_USER.
+  // Remove AUTH_BYPASS (or set to "0") when hosting for real users.
+  if (process.env.AUTH_BYPASS === "1") {
+    return NextResponse.next();
+  }
+
   const { pathname, search } = request.nextUrl;
   if (isPublicPath(pathname)) return NextResponse.next();
 

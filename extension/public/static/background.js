@@ -242,3 +242,42 @@ chrome.omnibox.onInputEntered.addListener(async (text) => {
   }
   await chrome.tabs.create({ url: apiBase });
 });
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (!message || message.type !== "REMEMBER_LINK") return;
+
+  void (async () => {
+    const url = typeof message.url === "string" ? message.url.trim() : "";
+    if (!isLikelyUrl(url)) {
+      sendResponse({ ok: false, error: "Invalid link" });
+      return;
+    }
+
+    await chrome.storage.local.set({
+      pendingRememberUrl: url,
+      pendingRememberAt: Date.now(),
+    });
+
+    // Prefer opening the popup so the user can pick a group (add-link flow).
+    try {
+      await chrome.action.openPopup();
+      sendResponse({ ok: true, mode: "popup" });
+      return;
+    } catch {
+      // Restricted pages / no user-gesture chain — save with last group.
+    }
+
+    const lastSavedGroupId = await getLastSavedGroupId();
+    const link = await handleSave(url, false, {
+      groupId: lastSavedGroupId || undefined,
+    });
+    await chrome.storage.local.remove(["pendingRememberUrl", "pendingRememberAt"]);
+    if (link) {
+      sendResponse({ ok: true, mode: "saved" });
+    } else {
+      sendResponse({ ok: false, error: "Save failed" });
+    }
+  })();
+
+  return true;
+});

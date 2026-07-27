@@ -7,6 +7,16 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["lucide-react", "framer-motion"],
   },
   compress: true,
+  async redirects() {
+    return [
+      // Permanent rename: vague /sidebar → keyword slug /brand (Yoast: change carefully + redirect)
+      {
+        source: "/sidebar",
+        destination: "/brand",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

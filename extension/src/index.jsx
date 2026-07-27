@@ -82,6 +82,33 @@ async function saveTab(apiBase, tab, groupId, isFirstGroupLink = false, groupNam
   throw new Error(data?.error || "Failed to save");
 }
 
+async function saveUrl(apiBase, url, groupId) {
+  const payload = { url };
+  if (groupId) payload.groupId = groupId;
+
+  const res = await fetch(`${apiBase}/api/links`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (res.ok) {
+    return data.link;
+  }
+  if (res.status === 409 && (data.existingId || data.link?.id)) {
+    return data.link ?? { id: data.existingId, groupId: data.link?.groupId ?? groupId };
+  }
+  throw new Error(data?.error || "Failed to save");
+}
+
+function hostnameOf(url) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    return url;
+  }
+}
+
 async function fetchGroups(apiBase) {
   const res = await fetch(`${apiBase}/api/groups`);
   const data = await res.json().catch(() => ({}));
@@ -154,6 +181,7 @@ function App() {
   const [highlightedTabs, setHighlightedTabs] = useState([]);
   const [activeTabGroup, setActiveTabGroup] = useState(null);
   const [saveMode, setSaveMode] = useState("active");
+  const [pendingRememberUrl, setPendingRememberUrl] = useState(null);
   const inputRef = useRef(null);
 
   useEffect(() => {
@@ -176,11 +204,33 @@ function App() {
   // Load storage states (apiBase, lastSavedGroupId, cachedGroups) exactly once on mount to prevent double loading
   useEffect(() => {
     chrome.storage.local.get(
-      ["apiBase", "lastSavedGroupId", "cachedGroups", "lastExtensionError"],
+      [
+        "apiBase",
+        "lastSavedGroupId",
+        "cachedGroups",
+        "lastExtensionError",
+        "pendingRememberUrl",
+        "pendingRememberAt",
+      ],
       (res) => {
       const saved = typeof res.apiBase === "string" ? res.apiBase.trim() : "";
       if (saved) {
         setApiBase(saved);
+      }
+
+      const pendingUrl =
+        typeof res.pendingRememberUrl === "string"
+          ? res.pendingRememberUrl.trim()
+          : "";
+      const pendingAt =
+        typeof res.pendingRememberAt === "number" ? res.pendingRememberAt : 0;
+      // Ignore stale pending URLs older than 2 minutes
+      if (pendingUrl && Date.now() - pendingAt < 2 * 60 * 1000) {
+        setPendingRememberUrl(pendingUrl);
+        setSaveMode("remember");
+      }
+      if (pendingUrl) {
+        chrome.storage.local.remove(["pendingRememberUrl", "pendingRememberAt"]);
       }
 
       const extErr = res.lastExtensionError;
@@ -397,33 +447,38 @@ function App() {
     try {
       const target = await resolveTargetGroup();
 
-      let tabsToSave = [];
-      if (saveMode === "active") {
-        const activeTab = await getActiveTab();
-        if (activeTab) tabsToSave = [activeTab];
-      } else if (saveMode === "selected") {
-        tabsToSave = highlightedTabs.length > 0
-          ? highlightedTabs
-          : [await getActiveTab()];
-      } else if (saveMode === "group") {
-        if (activeTabGroup) {
-          const groupTabs = await chrome.tabs.query({ groupId: activeTabGroup.id });
-          tabsToSave = groupTabs;
-        } else {
-          tabsToSave = [await getActiveTab()];
-        }
-      }
-
-      tabsToSave = tabsToSave.filter((t) => t && t.url);
-      if (tabsToSave.length === 0) {
-        throw new Error("No tabs found to save");
-      }
-
       let savedLink = null;
-      for (const tab of tabsToSave) {
-        const result = await saveTab(base, tab, target.id);
-        if (tab.active || !savedLink) {
-          savedLink = result;
+
+      if (saveMode === "remember" && pendingRememberUrl) {
+        savedLink = await saveUrl(base, pendingRememberUrl, target.id);
+      } else {
+        let tabsToSave = [];
+        if (saveMode === "active") {
+          const activeTab = await getActiveTab();
+          if (activeTab) tabsToSave = [activeTab];
+        } else if (saveMode === "selected") {
+          tabsToSave = highlightedTabs.length > 0
+            ? highlightedTabs
+            : [await getActiveTab()];
+        } else if (saveMode === "group") {
+          if (activeTabGroup) {
+            const groupTabs = await chrome.tabs.query({ groupId: activeTabGroup.id });
+            tabsToSave = groupTabs;
+          } else {
+            tabsToSave = [await getActiveTab()];
+          }
+        }
+
+        tabsToSave = tabsToSave.filter((t) => t && t.url);
+        if (tabsToSave.length === 0) {
+          throw new Error("No tabs found to save");
+        }
+
+        for (const tab of tabsToSave) {
+          const result = await saveTab(base, tab, target.id);
+          if (tab.active || !savedLink) {
+            savedLink = result;
+          }
         }
       }
 
@@ -434,6 +489,7 @@ function App() {
       setGroupQuery(target.name);
       setPhase("saved");
       setDropdownOpen(false);
+      setPendingRememberUrl(null);
 
       // Save lastSavedGroupId to chrome.storage.local to remember selection next time
       chrome.storage.local.set({ lastSavedGroupId: finalGroupId });
@@ -538,7 +594,11 @@ function App() {
             {phase === "pick" && !groupsLoading ? (
               <div className="orb-status orb-status--listen">
                 <ThinkingOrb state="listening" size={64} speed={0.95} theme="dark" />
-                <span className="orb-status-text">Choose a group, then save</span>
+                <span className="orb-status-text">
+                  {saveMode === "remember" && pendingRememberUrl
+                    ? `Remember ${hostnameOf(pendingRememberUrl)}`
+                    : "Choose a group, then save"}
+                </span>
               </div>
             ) : phase === "saved" ? (
               <div className="saved-row">
@@ -546,7 +606,15 @@ function App() {
               </div>
             ) : null}
 
-            {phase === "pick" && (highlightedTabs.length > 1 || activeTabGroup) ? (
+            {phase === "pick" && saveMode === "remember" && pendingRememberUrl ? (
+              <p className="hint" title={pendingRememberUrl}>
+                {pendingRememberUrl}
+              </p>
+            ) : null}
+
+            {phase === "pick" &&
+            saveMode !== "remember" &&
+            (highlightedTabs.length > 1 || activeTabGroup) ? (
               <div className="save-mode-selector">
                 <button
                   type="button"
@@ -660,7 +728,9 @@ function App() {
                       disabled={!selectedGroupId && !groupQuery.trim()}
                       onClick={() => void saveToSelectedGroup()}
                     >
-                      {saveMode === "active"
+                      {saveMode === "remember"
+                        ? "Remember link"
+                        : saveMode === "active"
                         ? "Save tab to group"
                         : saveMode === "selected"
                         ? `Save ${highlightedTabs.length} tabs to group`
@@ -674,7 +744,9 @@ function App() {
 
                   {phase === "saved" && linkId ? (
                     <p className="assign-note">
-                      {saveMode === "active"
+                      {saveMode === "remember"
+                        ? "Link remembered"
+                        : saveMode === "active"
                         ? "Link saved"
                         : saveMode === "selected"
                         ? `${highlightedTabs.length} links saved`

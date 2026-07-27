@@ -61,6 +61,11 @@ function LinkCard({
 
   const showLoader = pending;
 
+  const openDetails = () => {
+    const origin = previewRef.current ?? cardRef.current;
+    if (origin) onOpen(link, origin);
+  };
+
   return (
     <article
       ref={cardRef}
@@ -80,14 +85,20 @@ function LinkCard({
     >
       <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated">
         <span className="mind-card-stroke" aria-hidden />
-        <button
-          type="button"
+        <div
+          role="button"
+          tabIndex={0}
           aria-label={`Open details for ${link.displayTitle}`}
-          className="relative z-[1] block w-full overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+          className="relative z-[1] block w-full cursor-pointer overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
           onClick={(e) => {
             e.stopPropagation();
-            const origin = previewRef.current ?? cardRef.current;
-            if (origin) onOpen(link, origin);
+            openDetails();
+          }}
+          onKeyDown={(e) => {
+            if (e.key !== "Enter" && e.key !== " ") return;
+            e.preventDefault();
+            e.stopPropagation();
+            openDetails();
           }}
         >
           <span
@@ -136,7 +147,7 @@ function LinkCard({
               </span>
             ) : null}
           </span>
-        </button>
+        </div>
       </div>
       <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
         {link.displayTitle}

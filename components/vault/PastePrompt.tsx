@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
+import MorphText from "@/components/MorphText";
 import type { LinkApiRow } from "@/lib/links";
 import { applyShellStroke, clearShellStroke } from "@/lib/card-vicinity-stroke";
 import { FIELD_CLASS } from "./types";
@@ -179,9 +180,11 @@ export default function PastePrompt({
             <div className="relative z-[2] flex w-full flex-col gap-2">
               <div className="flex items-center justify-between">
                 <span className="text-[11px] text-muted">
-                  {timerActive
-                    ? `Add notes (auto-done in ${countdown}s)`
-                    : "Add notes"}
+                  <MorphText duration={220}>
+                    {timerActive
+                      ? `Add notes (auto-done in ${countdown}s)`
+                      : "Add notes"}
+                  </MorphText>
                 </span>
                 {timerActive ? (
                   <button
@@ -209,7 +212,9 @@ export default function PastePrompt({
                 onClick={() => void finishFlow()}
                 className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg"
               >
-                {notes.trim() ? "Save Notes" : "Done"}
+                <MorphText duration={220}>
+                  {notes.trim() ? "Save Notes" : "Done"}
+                </MorphText>
               </button>
             </div>
           ) : (
