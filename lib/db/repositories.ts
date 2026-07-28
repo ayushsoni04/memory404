@@ -19,6 +19,7 @@ import {
   type GroupRow,
   type LinkDocument,
   type LinkRow,
+  type UserDocument,
   type UserRow,
   type UserUtm,
 } from "@/lib/db/types";
@@ -64,6 +65,40 @@ export async function findUserById(id: string): Promise<UserRow | null> {
   const { users } = await getCollections();
   const document = await users.findOne({ _id: id });
   return document ? userDocumentToRow(document) : null;
+}
+
+/** Ensures the seeded demo user exists (used by Skip for now). */
+export async function ensureDemoUser(id: string, email: string): Promise<UserRow> {
+  const existing = await findUserById(id);
+  if (existing) return existing;
+
+  const { users } = await getCollections();
+  const document: UserDocument = {
+    _id: id,
+    email,
+    name: null,
+    avatarUrl: null,
+    plan: "free",
+    passwordHash: null,
+    resetToken: null,
+    resetTokenExpiresAt: null,
+    leadSource: null,
+    utm: null,
+    createdAt: new Date(),
+  };
+
+  try {
+    await users.insertOne(document);
+    return userDocumentToRow(document);
+  } catch (e) {
+    if (isDuplicateKeyError(e)) {
+      const raced = await findUserById(id);
+      if (raced) return raced;
+      const byEmail = await findUserByEmail(email);
+      if (byEmail) return byEmail;
+    }
+    throw e;
+  }
 }
 
 export async function setPasswordResetToken(

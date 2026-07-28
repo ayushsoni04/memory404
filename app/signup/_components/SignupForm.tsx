@@ -1,17 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
 
+function safeRedirectPath(raw: string | null): string {
+  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) {
+    return "/";
+  }
+  return raw;
+}
+
 export function SignupForm() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectPath = searchParams.get("redirect") || "/";
+  const redirectPath = safeRedirectPath(searchParams.get("redirect"));
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,6 +25,7 @@ export function SignupForm() {
   const [leadSource, setLeadSource] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSkipping, setIsSkipping] = useState(false);
 
   const passwordIssues = getPasswordRequirementIssues(password);
 
@@ -52,8 +59,25 @@ export function SignupForm() {
       return;
     }
 
-    router.push(redirectPath);
-    router.refresh();
+    window.location.assign(redirectPath);
+  };
+
+  const handleSkip = async () => {
+    setError(null);
+    setIsSkipping(true);
+    try {
+      const res = await fetch("/api/auth/dev-skip", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || "Failed to skip sign-in");
+        setIsSkipping(false);
+        return;
+      }
+      window.location.assign(redirectPath);
+    } catch {
+      setError("Failed to skip sign-in");
+      setIsSkipping(false);
+    }
   };
 
   return (
@@ -124,7 +148,7 @@ export function SignupForm() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
+          disabled={isSubmitting || isSkipping}
           className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
         >
           <MorphText duration={220}>
@@ -142,14 +166,11 @@ export function SignupForm() {
 
       <button
         type="button"
-        onClick={async () => {
-          await fetch("/api/auth/dev-skip", { method: "POST" });
-          router.push(redirectPath);
-          router.refresh();
-        }}
-        className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer"
+        onClick={handleSkip}
+        disabled={isSubmitting || isSkipping}
+        className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer disabled:opacity-50"
       >
-        Skip for now
+        {isSkipping ? "Skipping…" : "Skip for now"}
       </button>
     </div>
   );

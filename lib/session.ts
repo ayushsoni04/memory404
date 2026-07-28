@@ -1,5 +1,6 @@
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
+import type { NextResponse } from "next/server";
 
 export const SESSION_COOKIE_NAME = "m404_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 14; // 14 days
@@ -10,6 +11,16 @@ function getSecretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
   if (!secret) throw new Error("SESSION_SECRET is not configured");
   return new TextEncoder().encode(secret);
+}
+
+function sessionCookieOptions() {
+  return {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    maxAge: SESSION_DURATION_SECONDS,
+    path: "/",
+  };
 }
 
 export async function encryptSession(payload: SessionPayload): Promise<string> {
@@ -37,13 +48,17 @@ export async function decryptSession(token: string): Promise<SessionPayload | nu
 export async function createSession(userId: string): Promise<void> {
   const token = await encryptSession({ userId });
   const cookieStore = await cookies();
-  cookieStore.set(SESSION_COOKIE_NAME, token, {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    maxAge: SESSION_DURATION_SECONDS,
-    path: "/",
-  });
+  cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());
+}
+
+/** Prefer this in Route Handlers so Set-Cookie is attached to the returned response. */
+export async function attachSessionCookie(
+  response: NextResponse,
+  userId: string,
+): Promise<NextResponse> {
+  const token = await encryptSession({ userId });
+  response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());
+  return response;
 }
 
 /** Route Handlers / Server Components only — resolves the current session, if any. */

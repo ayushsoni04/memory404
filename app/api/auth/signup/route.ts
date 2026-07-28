@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createSession } from "@/lib/session";
+import { attachSessionCookie } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 import { getPasswordRequirementIssues } from "@/lib/password-policy";
 import { getMongoEnvError, isDuplicateKeyError } from "@/lib/db/mongodb";
@@ -58,12 +58,11 @@ export async function POST(request: Request) {
 
     const passwordHash = await hashPassword(password);
     const user = await createUserWithPassword({ email, passwordHash, leadSource, utm });
-    await createSession(user.id);
-
-    return NextResponse.json(
+    const response = NextResponse.json(
       { user: { id: user.id, email: user.email, plan: user.plan } },
       { status: 201 },
     );
+    return attachSessionCookie(response, user.id);
   } catch (e) {
     if (isDuplicateKeyError(e)) {
       return NextResponse.json(
