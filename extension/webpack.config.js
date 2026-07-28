@@ -1,15 +1,17 @@
 const path = require("path");
-const HtmlWebpackPlugin = require("html-webpack-plugin");
 const CopyPlugin = require("copy-webpack-plugin");
 
 module.exports = {
   entry: {
-    popup: "./src/index.jsx",
+    overlay: "./src/overlay.jsx",
   },
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].js",
     clean: true,
+    // Single-file content script; avoid chunked loading.
+    chunkLoading: false,
+    wasmLoading: false,
   },
   resolve: {
     extensions: [".js", ".jsx"],
@@ -28,16 +30,11 @@ module.exports = {
       },
       {
         test: /\.css$/i,
-        use: ["style-loader", "css-loader"],
+        type: "asset/source",
       },
     ],
   },
   plugins: [
-    new HtmlWebpackPlugin({
-      template: "./public/popup.html",
-      filename: "popup.html",
-      chunks: ["popup"],
-    }),
     new CopyPlugin({
       patterns: [{ from: "./public/static", to: "." }],
     }),

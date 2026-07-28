@@ -1,4 +1,5 @@
 const DEFAULT_API_BASE = "http://localhost:3000";
+const OVERLAY_FILE = "overlay.js";
 
 function getApiBase() {
   return new Promise((resolve) => {
@@ -6,6 +7,24 @@ function getApiBase() {
       const value = typeof res.apiBase === "string" ? res.apiBase.trim() : "";
       resolve(value || DEFAULT_API_BASE);
     });
+  });
+}
+
+function storageGet(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.get(keys, resolve);
+  });
+}
+
+function storageSet(obj) {
+  return new Promise((resolve) => {
+    chrome.storage.local.set(obj, resolve);
+  });
+}
+
+function storageRemove(keys) {
+  return new Promise((resolve) => {
+    chrome.storage.local.remove(keys, resolve);
   });
 }
 
@@ -27,30 +46,126 @@ function escapeOmniboxXml(text) {
     .replaceAll("'", "&apos;");
 }
 
+function jobId() {
+  return `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
+}
+
+async function setBadge(text) {
+  try {
+    await chrome.action.setBadgeBackgroundColor({ color: "#0c0c0c" });
+    await chrome.action.setBadgeText({ text: text || "" });
+  } catch {
+    // ignore
+  }
+}
+
+async function setActiveSaveJob(job) {
+  await storageSet({ activeSaveJob: job });
+  try {
+    if (job?.tabId != null) {
+      await chrome.tabs.sendMessage(job.tabId, {
+        type: "SAVE_JOB_UPDATE",
+        job,
+      });
+    }
+  } catch {
+    // Overlay may not be injected yet
+  }
+}
+
+async function extractPageMeta(tabId) {
+  try {
+    const [{ result }] = await chrome.scripting.executeScript({
+      target: { tabId },
+      func: () => {
+        const text = (sel) => document.querySelector(sel)?.content?.trim() || null;
+        const title =
+          text('meta[property="og:title"]') ||
+          text('meta[name="twitter:title"]') ||
+          document.title ||
+          null;
+        const description =
+          text('meta[property="og:description"]') ||
+          text('meta[name="twitter:description"]') ||
+          text('meta[name="description"]') ||
+          null;
+        const imageUrl =
+          text('meta[property="og:image"]') ||
+          text('meta[name="twitter:image"]') ||
+          null;
+        return { title, description, imageUrl };
+      },
+    });
+    return result ?? { title: null, description: null, imageUrl: null };
+  } catch {
+    return { title: null, description: null, imageUrl: null };
+  }
+}
+
 async function saveUrlToApp(url, options = {}) {
   const apiBase = await getApiBase();
   const payload = { url };
   if (options.groupId) payload.groupId = options.groupId;
   if (options.newGroupName) payload.newGroupName = options.newGroupName;
+  if (options.title) payload.title = options.title;
+  if (options.description != null) payload.description = options.description;
+  if (options.imageUrl != null) payload.imageUrl = options.imageUrl;
 
   const res = await fetch(`${apiBase}/api/links`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  if (!res.ok) {
-    const data = await res.json().catch(() => ({}));
-    throw new Error(data?.error || `Save failed (${res.status})`);
-  }
   const data = await res.json().catch(() => ({}));
-  return { apiBase, link: data?.link };
+  if (res.ok) {
+    return { apiBase, link: data?.link };
+  }
+  if (res.status === 409 && (data.existingId || data.link?.id)) {
+    return {
+      apiBase,
+      link: data.link ?? {
+        id: data.existingId,
+        groupId: data.link?.groupId ?? options.groupId,
+      },
+    };
+  }
+  throw new Error(data?.error || `Save failed (${res.status})`);
+}
+
+async function fetchGroupsFromApi() {
+  const apiBase = await getApiBase();
+  const res = await fetch(`${apiBase}/api/groups`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Failed to load groups");
+  const groups = Array.isArray(data.groups) ? data.groups : [];
+  await storageSet({ cachedGroups: groups });
+  return groups;
+}
+
+async function createGroupFromApi(name) {
+  const apiBase = await getApiBase();
+  const res = await fetch(`${apiBase}/api/groups`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ name }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data?.error || "Failed to create group");
+  const group = data.group;
+  const prev = await storageGet(["cachedGroups"]);
+  const currentCache = Array.isArray(prev.cachedGroups) ? prev.cachedGroups : [];
+  const updatedCache = [...currentCache, group].sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
+  await storageSet({ cachedGroups: updatedCache });
+  return group;
 }
 
 async function handleSave(url, openAfterSave, options = {}) {
   if (!url || !isLikelyUrl(url)) return null;
   try {
     const { apiBase, link } = await saveUrlToApp(url, options);
-    await chrome.storage.local.remove(["lastExtensionError", "lastExtensionErrorAt"]);
+    await storageRemove(["lastExtensionError", "lastExtensionErrorAt"]);
     if (openAfterSave) {
       await chrome.tabs.create({ url: apiBase });
     }
@@ -60,18 +175,15 @@ async function handleSave(url, openAfterSave, options = {}) {
       e instanceof Error ? e.message : "Failed to save from extension";
     const apiBase = await getApiBase();
     const now = Date.now();
-    const prev = await new Promise((resolve) => {
-      chrome.storage.local.get(["lastExtensionErrorAt"], (res) => resolve(res));
-    });
+    const prev = await storageGet(["lastExtensionErrorAt"]);
     const lastAt =
       typeof prev.lastExtensionErrorAt === "number"
         ? prev.lastExtensionErrorAt
         : 0;
-    await chrome.storage.local.set({
+    await storageSet({
       lastExtensionError: { message, at: now },
       lastExtensionErrorAt: now,
     });
-    // Always surface in the app UI; debounce so multi-tab saves open one tab.
     if (openAfterSave || now - lastAt > 2000) {
       await chrome.tabs.create({
         url: `${apiBase}?error=${encodeURIComponent(message)}`,
@@ -82,11 +194,8 @@ async function handleSave(url, openAfterSave, options = {}) {
 }
 
 async function getLastSavedGroupId() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(["lastSavedGroupId"], (res) => {
-      resolve(res.lastSavedGroupId || null);
-    });
-  });
+  const res = await storageGet(["lastSavedGroupId"]);
+  return res.lastSavedGroupId || null;
 }
 
 function getUrlFromContext(info, tab) {
@@ -100,64 +209,318 @@ function getUrlFromContext(info, tab) {
   return null;
 }
 
+async function getTabContext(tabId) {
+  const tab =
+    tabId != null ? await chrome.tabs.get(tabId).catch(() => null) : null;
+  const windowId = tab?.windowId;
+  const highlightedTabs = await chrome.tabs.query(
+    windowId != null
+      ? { highlighted: true, windowId }
+      : { highlighted: true, currentWindow: true },
+  );
+
+  let activeTabGroup = null;
+  const activeTab =
+    highlightedTabs.find((t) => t.id === tabId) ||
+    highlightedTabs.find((t) => t.active) ||
+    highlightedTabs[0] ||
+    tab;
+
+  if (
+    chrome.tabGroups &&
+    activeTab &&
+    activeTab.groupId !== chrome.tabGroups.TAB_GROUP_ID_NONE
+  ) {
+    try {
+      activeTabGroup = await chrome.tabGroups.get(activeTab.groupId);
+    } catch {
+      activeTabGroup = null;
+    }
+  }
+
+  return {
+    tabId: activeTab?.id ?? tabId ?? null,
+    activeTab: activeTab
+      ? {
+          id: activeTab.id,
+          url: activeTab.url,
+          title: activeTab.title,
+          active: activeTab.active,
+          groupId: activeTab.groupId,
+        }
+      : null,
+    highlightedTabs: highlightedTabs.map((t) => ({
+      id: t.id,
+      url: t.url,
+      title: t.title,
+      active: t.active,
+      groupId: t.groupId,
+    })),
+    activeTabGroup: activeTabGroup
+      ? { id: activeTabGroup.id, title: activeTabGroup.title }
+      : null,
+  };
+}
+
+async function ensureOverlay(tabId, payload = {}) {
+  if (tabId == null) return { ok: false, error: "No tab" };
+
+  const tab = await chrome.tabs.get(tabId).catch(() => null);
+  const url = tab?.url || "";
+  if (
+    !url ||
+    url.startsWith("chrome://") ||
+    url.startsWith("chrome-extension://") ||
+    url.startsWith("https://chrome.google.com/webstore") ||
+    url.startsWith("https://chromewebstore.google.com") ||
+    url.startsWith("edge://") ||
+    url.startsWith("about:")
+  ) {
+    await setBadge("!");
+    return {
+      ok: false,
+      error: "Can't open on this page. Try a normal http(s) tab.",
+    };
+  }
+
+  await storageSet({
+    overlaySession: {
+      tabId,
+      open: true,
+      at: Date.now(),
+      rememberUrl: payload.rememberUrl || null,
+    },
+  });
+
+  // Opening a fresh UI should not keep a stale completed job around.
+  const existing = await storageGet(["activeSaveJob"]);
+  const job = existing.activeSaveJob;
+  if (
+    job &&
+    job.status !== "saving" &&
+    Date.now() - (job.updatedAt || 0) > 8000
+  ) {
+    await storageRemove(["activeSaveJob"]);
+  } else if (payload.rememberUrl && job && job.status !== "saving") {
+    await storageRemove(["activeSaveJob"]);
+  }
+
+  try {
+    await chrome.scripting.executeScript({
+      target: { tabId },
+      files: [OVERLAY_FILE],
+    });
+  } catch (e) {
+    console.warn("Overlay inject failed:", e);
+    await setBadge("!");
+    return {
+      ok: false,
+      error: "Can't open on this page. Try a normal http(s) tab.",
+    };
+  }
+
+  // Give the content script a tick to register listeners, then show.
+  await new Promise((r) => setTimeout(r, 30));
+
+  try {
+    await chrome.tabs.sendMessage(tabId, {
+      type: "SHOW_OVERLAY",
+      rememberUrl: payload.rememberUrl || null,
+    });
+  } catch (e) {
+    console.warn("SHOW_OVERLAY message failed:", e);
+  }
+
+  await setBadge("");
+  return { ok: true };
+}
+
+async function openSaveUi(tab, options = {}) {
+  const target =
+    tab ||
+    (await chrome.tabs.query({ active: true, currentWindow: true }))[0] ||
+    null;
+  if (!target?.id) return { ok: false, error: "No active tab" };
+  return ensureOverlay(target.id, options);
+}
+
+async function runSaveJob(message) {
+  const tabId = message.tabId ?? null;
+  const items = Array.isArray(message.items) ? message.items : [];
+  const groupId = message.groupId || null;
+  const newGroupName = message.newGroupName || null;
+  const groupName = message.groupName || newGroupName || null;
+  const id = message.jobId || jobId();
+  const saveMode = message.saveMode || "active";
+
+  if (!items.length) {
+    throw new Error("No links to save");
+  }
+
+  const job = {
+    id,
+    tabId,
+    status: "saving",
+    groupId,
+    groupName,
+    saveMode,
+    linkId: null,
+    error: null,
+    done: 0,
+    total: items.length,
+    updatedAt: Date.now(),
+  };
+  await setActiveSaveJob(job);
+  await setBadge("…");
+
+  let savedLink = null;
+  let resolvedGroupId = groupId;
+
+  try {
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const url = typeof item.url === "string" ? item.url.trim() : "";
+      if (!isLikelyUrl(url)) continue;
+
+      let meta = {
+        title: item.title || null,
+        description: item.description ?? null,
+        imageUrl: item.imageUrl ?? null,
+      };
+
+      if ((!meta.title || !meta.imageUrl) && item.tabId != null) {
+        const pageMeta = await extractPageMeta(item.tabId);
+        meta = {
+          title: meta.title || pageMeta.title,
+          description: meta.description ?? pageMeta.description,
+          imageUrl: meta.imageUrl ?? pageMeta.imageUrl,
+        };
+      }
+
+      const options = {
+        title: meta.title || item.title || url,
+        description: meta.description,
+        imageUrl: meta.imageUrl,
+      };
+
+      if (i === 0 && newGroupName && !resolvedGroupId) {
+        options.newGroupName = newGroupName;
+      } else if (resolvedGroupId) {
+        options.groupId = resolvedGroupId;
+      } else if (newGroupName) {
+        options.newGroupName = newGroupName;
+      }
+
+      const { link } = await saveUrlToApp(url, options);
+      if (link?.groupId) resolvedGroupId = link.groupId;
+      if (!savedLink || item.active) savedLink = link;
+
+      job.done = i + 1;
+      job.groupId = resolvedGroupId;
+      job.updatedAt = Date.now();
+      await setActiveSaveJob({ ...job });
+    }
+
+    if (resolvedGroupId) {
+      await storageSet({ lastSavedGroupId: resolvedGroupId });
+    }
+
+    const doneJob = {
+      ...job,
+      status: "saved",
+      linkId: savedLink?.id || (items.length > 1 ? "multiple" : null),
+      groupId: resolvedGroupId,
+      groupName,
+      updatedAt: Date.now(),
+    };
+    await setActiveSaveJob(doneJob);
+    await setBadge("✓");
+    setTimeout(() => void setBadge(""), 2500);
+    return doneJob;
+  } catch (e) {
+    const failed = {
+      ...job,
+      status: "error",
+      error: e instanceof Error ? e.message : "Failed to save",
+      updatedAt: Date.now(),
+    };
+    await setActiveSaveJob(failed);
+    await setBadge("!");
+    throw e;
+  }
+}
+
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: "lk-parent",
-    title: "Add to LK",
-    contexts: ["page", "link", "selection", "tab"],
+  chrome.contextMenus.removeAll(() => {
+    chrome.contextMenus.create({
+      id: "lk-parent",
+      title: "Add to LK",
+      contexts: ["page", "link", "selection", "tab"],
+    });
+    chrome.contextMenus.create({
+      id: "lk-save",
+      parentId: "lk-parent",
+      title: "Just Save",
+      contexts: ["page", "link", "selection", "tab"],
+    });
+    chrome.contextMenus.create({
+      id: "lk-save-open",
+      parentId: "lk-parent",
+      title: "Save & Open",
+      contexts: ["page", "link", "selection", "tab"],
+    });
+    chrome.contextMenus.create({
+      id: "lk-save-selected",
+      parentId: "lk-parent",
+      title: "Save Selected Tabs",
+      contexts: ["page", "tab"],
+    });
+    chrome.contextMenus.create({
+      id: "lk-save-group",
+      parentId: "lk-parent",
+      title: "Save Current Tab Group",
+      contexts: ["page", "tab"],
+    });
   });
-  chrome.contextMenus.create({
-    id: "lk-save",
-    parentId: "lk-parent",
-    title: "Just Save",
-    contexts: ["page", "link", "selection", "tab"],
-  });
-  chrome.contextMenus.create({
-    id: "lk-save-open",
-    parentId: "lk-parent",
-    title: "Save & Open",
-    contexts: ["page", "link", "selection", "tab"],
-  });
-  chrome.contextMenus.create({
-    id: "lk-save-selected",
-    parentId: "lk-parent",
-    title: "Save Selected Tabs",
-    contexts: ["page", "tab"],
-  });
-  chrome.contextMenus.create({
-    id: "lk-save-group",
-    parentId: "lk-parent",
-    title: "Save Current Tab Group",
-    contexts: ["page", "tab"],
-  });
+});
+
+chrome.action.onClicked.addListener((tab) => {
+  void openSaveUi(tab);
 });
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const url = getUrlFromContext(info, tab);
 
-  if (info.menuItemId === "lk-save" || info.menuItemId === "lk-save-open") {
+  if (info.menuItemId === "lk-save") {
+    if (tab?.id) {
+      const opened = await openSaveUi(tab, {
+        rememberUrl: url && isLikelyUrl(url) ? url : null,
+      });
+      if (opened.ok) return;
+    }
     if (!url) return;
     const lastSavedGroupId = await getLastSavedGroupId();
-    if (info.menuItemId === "lk-save") {
-      try {
-        await chrome.action.openPopup();
-      } catch {
-        await handleSave(url, false, { groupId: lastSavedGroupId });
-      }
-    } else {
-      await handleSave(url, true, { groupId: lastSavedGroupId });
-    }
+    await handleSave(url, false, { groupId: lastSavedGroupId || undefined });
+    return;
+  }
+
+  if (info.menuItemId === "lk-save-open") {
+    if (!url) return;
+    const lastSavedGroupId = await getLastSavedGroupId();
+    await handleSave(url, true, { groupId: lastSavedGroupId || undefined });
     return;
   }
 
   if (info.menuItemId === "lk-save-selected") {
-    const tabs = await chrome.tabs.query({ highlighted: true, currentWindow: true });
+    const tabs = await chrome.tabs.query({
+      highlighted: true,
+      currentWindow: true,
+    });
     const urls = tabs.map((t) => t.url).filter(isLikelyUrl);
     if (!urls.length) return;
-
     const lastSavedGroupId = await getLastSavedGroupId();
     for (const u of urls) {
-      await handleSave(u, false, { groupId: lastSavedGroupId });
+      await handleSave(u, false, { groupId: lastSavedGroupId || undefined });
     }
     return;
   }
@@ -165,14 +528,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   if (info.menuItemId === "lk-save-group") {
     if (!chrome.tabGroups) return;
     const targetGroupId = tab?.groupId;
-    if (targetGroupId == null || targetGroupId === chrome.tabGroups.TAB_GROUP_ID_NONE) return;
+    if (
+      targetGroupId == null ||
+      targetGroupId === chrome.tabGroups.TAB_GROUP_ID_NONE
+    ) {
+      return;
+    }
 
     let groupName = "";
     try {
       const gInfo = await chrome.tabGroups.get(targetGroupId);
-      if (gInfo && gInfo.title) {
-        groupName = gInfo.title.trim();
-      }
+      if (gInfo && gInfo.title) groupName = gInfo.title.trim();
     } catch (e) {
       console.error("Failed to get tab group info:", e);
     }
@@ -185,16 +551,17 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
     let isFirst = true;
     for (const u of urls) {
       if (isFirst && groupName) {
-        const savedLink = await handleSave(u, false, { newGroupName: groupName });
+        const savedLink = await handleSave(u, false, {
+          newGroupName: groupName,
+        });
         if (savedLink && savedLink.groupId) {
           activeGroupId = savedLink.groupId;
         }
         isFirst = false;
       } else {
-        await handleSave(u, false, { groupId: activeGroupId });
+        await handleSave(u, false, { groupId: activeGroupId || undefined });
       }
     }
-    return;
   }
 });
 
@@ -231,7 +598,7 @@ chrome.omnibox.onInputEntered.addListener(async (text) => {
   }
   if (isLikelyUrl(input)) {
     try {
-      const base = await saveUrlToApp(input);
+      const { apiBase: base } = await saveUrlToApp(input);
       await chrome.tabs.create({ url: base });
     } catch (e) {
       const msg =
@@ -243,41 +610,262 @@ chrome.omnibox.onInputEntered.addListener(async (text) => {
   await chrome.tabs.create({ url: apiBase });
 });
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (!message || message.type !== "REMEMBER_LINK") return;
-
+chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
+  if (changeInfo.status !== "complete") return;
   void (async () => {
-    const url = typeof message.url === "string" ? message.url.trim() : "";
-    if (!isLikelyUrl(url)) {
-      sendResponse({ ok: false, error: "Invalid link" });
-      return;
-    }
+    const { overlaySession, activeSaveJob } = await storageGet([
+      "overlaySession",
+      "activeSaveJob",
+    ]);
+    const sessionOpen =
+      overlaySession && overlaySession.open && overlaySession.tabId === tabId;
+    const jobActive =
+      activeSaveJob &&
+      activeSaveJob.tabId === tabId &&
+      (activeSaveJob.status === "saving" ||
+        (activeSaveJob.status === "saved" &&
+          Date.now() - (activeSaveJob.updatedAt || 0) < 8000));
 
-    await chrome.storage.local.set({
-      pendingRememberUrl: url,
-      pendingRememberAt: Date.now(),
+    if (!sessionOpen && !jobActive) return;
+
+    await ensureOverlay(tabId, {
+      rememberUrl: overlaySession?.rememberUrl || null,
     });
-
-    // Prefer opening the popup so the user can pick a group (add-link flow).
-    try {
-      await chrome.action.openPopup();
-      sendResponse({ ok: true, mode: "popup" });
-      return;
-    } catch {
-      // Restricted pages / no user-gesture chain — save with last group.
-    }
-
-    const lastSavedGroupId = await getLastSavedGroupId();
-    const link = await handleSave(url, false, {
-      groupId: lastSavedGroupId || undefined,
-    });
-    await chrome.storage.local.remove(["pendingRememberUrl", "pendingRememberAt"]);
-    if (link) {
-      sendResponse({ ok: true, mode: "saved" });
-    } else {
-      sendResponse({ ok: false, error: "Save failed" });
-    }
   })();
+});
 
-  return true;
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (!message || typeof message.type !== "string") return;
+
+  if (message.type === "REMEMBER_LINK") {
+    void (async () => {
+      const url = typeof message.url === "string" ? message.url.trim() : "";
+      if (!isLikelyUrl(url)) {
+        sendResponse({ ok: false, error: "Invalid link" });
+        return;
+      }
+
+      await storageSet({
+        pendingRememberUrl: url,
+        pendingRememberAt: Date.now(),
+      });
+
+      const tabId = sender.tab?.id;
+      if (tabId != null) {
+        const opened = await ensureOverlay(tabId, { rememberUrl: url });
+        if (opened.ok) {
+          sendResponse({ ok: true, mode: "overlay" });
+          return;
+        }
+      }
+
+      const lastSavedGroupId = await getLastSavedGroupId();
+      const link = await handleSave(url, false, {
+        groupId: lastSavedGroupId || undefined,
+      });
+      await storageRemove(["pendingRememberUrl", "pendingRememberAt"]);
+      sendResponse(
+        link
+          ? { ok: true, mode: "saved" }
+          : { ok: false, error: "Save failed" },
+      );
+    })();
+    return true;
+  }
+
+  if (message.type === "OPEN_SAVE_UI") {
+    void (async () => {
+      const tab =
+        sender.tab ||
+        (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+      const result = await openSaveUi(tab, {
+        rememberUrl: message.rememberUrl || null,
+      });
+      sendResponse(result);
+    })();
+    return true;
+  }
+
+  if (message.type === "GET_OVERLAY_CONTEXT") {
+    void (async () => {
+      try {
+        const tabId = message.tabId ?? sender.tab?.id ?? null;
+        const ctx = await getTabContext(tabId);
+        const stored = await storageGet([
+          "apiBase",
+          "lastSavedGroupId",
+          "cachedGroups",
+          "pendingRememberUrl",
+          "pendingRememberAt",
+          "activeSaveJob",
+          "lastExtensionError",
+        ]);
+
+        let pendingRememberUrl = null;
+        const pendingUrl =
+          typeof stored.pendingRememberUrl === "string"
+            ? stored.pendingRememberUrl.trim()
+            : "";
+        const pendingAt =
+          typeof stored.pendingRememberAt === "number"
+            ? stored.pendingRememberAt
+            : 0;
+        if (pendingUrl && Date.now() - pendingAt < 2 * 60 * 1000) {
+          pendingRememberUrl = pendingUrl;
+        }
+        if (pendingUrl) {
+          await storageRemove(["pendingRememberUrl", "pendingRememberAt"]);
+        }
+
+        let lastError = null;
+        const extErr = stored.lastExtensionError;
+        if (
+          extErr &&
+          typeof extErr.message === "string" &&
+          extErr.message.trim() &&
+          typeof extErr.at === "number" &&
+          Date.now() - extErr.at < 5 * 60 * 1000
+        ) {
+          lastError = extErr.message.trim();
+          await storageRemove(["lastExtensionError", "lastExtensionErrorAt"]);
+        }
+
+        sendResponse({
+          ok: true,
+          apiBase:
+            typeof stored.apiBase === "string" && stored.apiBase.trim()
+              ? stored.apiBase.trim()
+              : DEFAULT_API_BASE,
+          lastSavedGroupId: stored.lastSavedGroupId || null,
+          cachedGroups: Array.isArray(stored.cachedGroups)
+            ? stored.cachedGroups
+            : [],
+          pendingRememberUrl,
+          activeSaveJob: stored.activeSaveJob || null,
+          lastError,
+          ...ctx,
+        });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to load context",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "FETCH_GROUPS") {
+    void (async () => {
+      try {
+        const groups = await fetchGroupsFromApi();
+        sendResponse({ ok: true, groups });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to load groups",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "CREATE_GROUP") {
+    void (async () => {
+      try {
+        const name =
+          typeof message.name === "string" ? message.name.trim() : "";
+        if (!name) {
+          sendResponse({ ok: false, error: "Group name required" });
+          return;
+        }
+        const group = await createGroupFromApi(name);
+        sendResponse({ ok: true, group });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to create group",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "SET_API_BASE") {
+    void (async () => {
+      const value =
+        typeof message.apiBase === "string" ? message.apiBase.trim() : "";
+      await storageSet({ apiBase: value || DEFAULT_API_BASE });
+      sendResponse({ ok: true, apiBase: value || DEFAULT_API_BASE });
+    })();
+    return true;
+  }
+
+  if (message.type === "START_SAVE_JOB") {
+    void (async () => {
+      try {
+        const tabId = message.tabId ?? sender.tab?.id ?? null;
+        const job = await runSaveJob({ ...message, tabId });
+        sendResponse({ ok: true, job });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to save",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "CLOSE_OVERLAY") {
+    void (async () => {
+      const tabId = message.tabId ?? sender.tab?.id ?? null;
+      const stored = await storageGet(["overlaySession", "activeSaveJob"]);
+      const saving =
+        stored.activeSaveJob?.tabId === tabId &&
+        stored.activeSaveJob?.status === "saving";
+      // Keep session while a save is in flight so navigation can restore the overlay.
+      if (stored.overlaySession?.tabId === tabId && !saving) {
+        await storageRemove(["overlaySession"]);
+      }
+      if (
+        stored.activeSaveJob?.tabId === tabId &&
+        stored.activeSaveJob?.status !== "saving"
+      ) {
+        await storageRemove(["activeSaveJob"]);
+      }
+      sendResponse({ ok: true });
+    })();
+    return true;
+  }
+
+  if (message.type === "GET_GROUP_TABS") {
+    void (async () => {
+      try {
+        const groupId = message.groupId;
+        if (groupId == null) {
+          sendResponse({ ok: false, error: "No group" });
+          return;
+        }
+        const tabs = await chrome.tabs.query({ groupId });
+        sendResponse({
+          ok: true,
+          tabs: tabs.map((t) => ({
+            id: t.id,
+            url: t.url,
+            title: t.title,
+            active: t.active,
+          })),
+        });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to query tabs",
+        });
+      }
+    })();
+    return true;
+  }
+
+  return undefined;
 });

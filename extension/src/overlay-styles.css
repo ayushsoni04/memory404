@@ -1,0 +1,380 @@
+#m404-save-root {
+  all: initial;
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483647;
+  width: 300px;
+  max-width: calc(100vw - 24px);
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color-scheme: dark;
+  pointer-events: none;
+}
+
+#m404-save-root *,
+#m404-save-root *::before,
+#m404-save-root *::after {
+  box-sizing: border-box;
+}
+
+#m404-save-root .wrap {
+  pointer-events: auto;
+  width: 100%;
+  min-height: 0;
+  padding: 0;
+  --background: #0c0c0c;
+  --foreground: #f5f5f5;
+  --surface: #141414;
+  --surface-elevated: #1a1a1a;
+  --subtle: #737373;
+  --muted: #a3a3a3;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --pill: #262626;
+  --pill-hover: #333333;
+  --pill-active: #f5f5f5;
+  --pill-active-fg: #0c0c0c;
+  --danger: #f87171;
+  --success: #4ade80;
+  background: transparent;
+  color: var(--foreground);
+}
+
+#m404-save-root .panel {
+  position: relative;
+  background: var(--background);
+  border-radius: 12px;
+  border: 1px solid var(--border-strong);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+}
+
+#m404-save-root .settings-btn,
+#m404-save-root .close-btn {
+  position: absolute;
+  top: 8px;
+  z-index: 2;
+  border: 0;
+  background: transparent;
+  color: var(--subtle);
+  font-size: 14px;
+  line-height: 1;
+  padding: 4px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+#m404-save-root .settings-btn {
+  right: 32px;
+}
+
+#m404-save-root .close-btn {
+  right: 8px;
+}
+
+#m404-save-root .settings-btn:hover,
+#m404-save-root .close-btn:hover {
+  color: var(--muted);
+  background: var(--pill);
+}
+
+#m404-save-root .saved-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px 12px;
+}
+
+#m404-save-root .orb-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px 12px;
+}
+
+#m404-save-root .orb-status--listen {
+  padding-bottom: 4px;
+}
+
+#m404-save-root .orb-status-text {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+  text-align: center;
+}
+
+#m404-save-root .save-btn {
+  width: 100%;
+  margin-top: 10px;
+  border: 0;
+  border-radius: 8px;
+  background: var(--pill-active);
+  color: var(--pill-active-fg);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 10px 12px;
+  cursor: pointer;
+}
+
+#m404-save-root .save-btn:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+#m404-save-root .save-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+#m404-save-root .error-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 14px 14px;
+}
+
+#m404-save-root .error-panel-title {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--danger);
+  letter-spacing: -0.01em;
+}
+
+#m404-save-root .error-panel-message {
+  margin: 0;
+  font-size: 13px;
+  line-height: 1.4;
+  color: color-mix(in srgb, var(--danger) 80%, white);
+  word-break: break-word;
+}
+
+#m404-save-root .error-panel-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+#m404-save-root .error-settings-link {
+  align-self: center;
+  padding: 4px 8px;
+}
+
+#m404-save-root .saved-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--foreground);
+  letter-spacing: -0.01em;
+}
+
+#m404-save-root .group-section {
+  border-top: 1px solid var(--border);
+  padding: 10px 12px 12px;
+}
+
+#m404-save-root .group-field {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+#m404-save-root .group-field.open {
+  background: var(--surface-elevated);
+}
+
+#m404-save-root .group-input {
+  flex: 1;
+  width: auto;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 14px;
+  padding: 8px 4px 8px 8px;
+  outline: none;
+  box-shadow: none;
+}
+
+#m404-save-root .group-input::placeholder {
+  color: var(--subtle);
+}
+
+#m404-save-root .chevron-btn {
+  border: 0;
+  background: transparent;
+  color: var(--subtle);
+  font-size: 16px;
+  line-height: 1;
+  padding: 4px 8px 4px 4px;
+  cursor: pointer;
+}
+
+#m404-save-root .chevron-btn:hover {
+  color: var(--muted);
+}
+
+#m404-save-root .group-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+  max-height: 160px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+#m404-save-root .group-option {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+#m404-save-root .group-option:hover,
+#m404-save-root .group-option.active {
+  background: var(--pill);
+  color: var(--foreground);
+}
+
+#m404-save-root .check {
+  color: var(--success);
+  font-size: 12px;
+}
+
+#m404-save-root .create-option {
+  width: 100%;
+  margin-top: 6px;
+  border: 1px dashed var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  text-align: left;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+#m404-save-root .create-option:hover {
+  background: var(--pill);
+  color: var(--foreground);
+}
+
+#m404-save-root .current-group,
+#m404-save-root .assign-note,
+#m404-save-root .field-error,
+#m404-save-root .hint {
+  margin: 8px 2px 0;
+  font-size: 12px;
+}
+
+#m404-save-root .current-group {
+  color: var(--subtle);
+}
+
+#m404-save-root .assign-note {
+  color: var(--success);
+}
+
+#m404-save-root .field-error {
+  color: var(--danger);
+}
+
+#m404-save-root .panel-head {
+  padding: 12px 12px 0;
+}
+
+#m404-save-root .ghost-btn {
+  border: 0;
+  background: transparent;
+  color: var(--subtle);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+}
+
+#m404-save-root .ghost-btn:hover {
+  color: var(--muted);
+}
+
+#m404-save-root .field-label {
+  display: block;
+  font-size: 12px;
+  margin: 12px 12px 6px;
+  color: var(--subtle);
+}
+
+#m404-save-root input.settings-input {
+  width: calc(100% - 24px);
+  margin: 0 12px 12px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--foreground);
+  padding: 9px 10px;
+  outline: none;
+  font-size: 13px;
+  box-shadow: none;
+}
+
+#m404-save-root input.settings-input:focus {
+  border-color: var(--muted);
+  box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.08);
+}
+
+#m404-save-root .hint {
+  padding: 0 12px 12px;
+  color: var(--subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#m404-save-root .save-mode-selector {
+  display: flex;
+  background: var(--surface);
+  border-radius: 8px;
+  padding: 2px;
+  margin: 0 12px 12px;
+  gap: 2px;
+}
+
+#m404-save-root .save-mode-btn {
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: var(--subtle);
+  font-size: 11px;
+  font-weight: 500;
+  padding: 6px 4px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#m404-save-root .save-mode-btn:hover {
+  color: var(--foreground);
+}
+
+#m404-save-root .save-mode-btn.active {
+  background: var(--surface-elevated);
+  color: var(--foreground);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+}

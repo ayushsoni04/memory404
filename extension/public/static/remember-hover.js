@@ -197,7 +197,10 @@
       if (res?.ok) {
         statusEl.textContent =
           res.mode === "saved" ? "Remembered" : "Choose a group…";
-        window.setTimeout(() => hideChip(), res.mode === "saved" ? 1200 : 600);
+        window.setTimeout(
+          () => hideChip(),
+          res.mode === "saved" ? 1200 : 400,
+        );
       } else {
         statusEl.textContent = res?.error || "Failed";
         chip.dataset.busy = "false";

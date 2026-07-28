@@ -2,10 +2,9 @@
   "manifest_version": 3,
   "name": "memory404",
   "description": "Save current tab to memory404 groups.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "action": {
-    "default_title": "Save Link",
-    "default_popup": "popup.html"
+    "default_title": "Save Link"
   },
   "background": {
     "service_worker": "background.js"
@@ -27,7 +26,7 @@
         "default": "Alt+Shift+L",
         "mac": "Option+Shift+L"
       },
-      "description": "Open memory404 popup"
+      "description": "Open memory404 save overlay"
     }
   },
   "permissions": [
@@ -47,5 +46,11 @@
     "https://*.onrender.com/*",
     "https://*/*",
     "http://*/*"
+  ],
+  "web_accessible_resources": [
+    {
+      "resources": ["overlay.js"],
+      "matches": ["http://*/*", "https://*/*"]
+    }
   ]
 }

@@ -1,16 +1,15 @@
 # memory404 Chrome Extension
 
-React + webpack Chrome extension (Manifest V3) to save the current tab into your memory404 app.
+React + webpack Chrome extension (Manifest V3) that opens an in-page save overlay (mymind-style) so picking a group and saving stays visible while the background service worker finishes the request.
 
 ## Features
 
-- Saves active tab to `POST /api/links`
-- Captures page metadata from the tab:
-  - title
-  - description
-  - og image
-- Lets you choose an existing group or create a new one inline
-- Configurable app URL (defaults to `http://localhost:3000`; use `https://memory404.vercel.app` for production)
+- Toolbar icon / `Alt+Shift+L` (`Option+Shift+L` on Mac) opens the save overlay on the current page
+- Overlay stays on the page while you browse; save runs in the service worker
+- Saves to `POST /api/links` with page metadata when available
+- Choose an existing group or create one inline
+- Hover “Remember this link” opens the same overlay
+- Configurable app URL (⚙ in overlay; defaults to `http://localhost:3000`)
 
 ## Setup
 
@@ -23,6 +22,7 @@ npm run build
 For watch mode during development:
 
 ```bash
+cd extension
 npm run dev
 ```
 
@@ -32,9 +32,10 @@ npm run dev
 2. Enable **Developer mode**
 3. Click **Load unpacked**
 4. Select `extension/dist`
+5. Reload the extension after rebuilding
 
 ## Notes
 
-- **Local:** run `npm run dev` in the project root, keep App URL as `http://localhost:3000`
-- **Production:** set App URL in the popup (⚙) to `https://memory404.vercel.app`
-- Reload the extension in `chrome://extensions` after rebuilding
+- **Local:** run the app on `http://localhost:3000`, keep App URL as that in overlay settings
+- **Production:** set App URL to `https://memory404.vercel.app`
+- Restricted pages (`chrome://`, Chrome Web Store, etc.) cannot host the overlay; use a normal http(s) tab
