@@ -11,11 +11,27 @@ export const runtime = "nodejs";
  */
 export async function POST() {
   try {
-    const user = await ensureDemoUser(DEV_USER_ID, DEV_USER_EMAIL);
-    const response = NextResponse.json({ ok: true, userId: user.id });
-    return attachSessionCookie(response, user.id);
+    if (!process.env.SESSION_SECRET?.trim()) {
+      return NextResponse.json(
+        { error: "Auth is misconfigured: SESSION_SECRET is missing" },
+        { status: 503 },
+      );
+    }
+
+    // Best-effort seed; requireAuth already falls back to DEV_USER if the row is absent.
+    let userId = DEV_USER_ID;
+    try {
+      const user = await ensureDemoUser(DEV_USER_ID, DEV_USER_EMAIL);
+      userId = user.id;
+    } catch (e) {
+      console.error("ensureDemoUser (non-fatal):", e);
+    }
+
+    const response = NextResponse.json({ ok: true });
+    return attachSessionCookie(response, userId);
   } catch (e) {
     console.error("POST /api/auth/dev-skip:", e);
-    return NextResponse.json({ error: "Failed to skip sign-in" }, { status: 500 });
+    const message = e instanceof Error ? e.message : "Failed to skip sign-in";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
