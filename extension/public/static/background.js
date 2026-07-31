@@ -58,7 +58,12 @@ function jobId() {
   return `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
-const FETCH_TIMEOUT_MS = 20_000;
+const FETCH_TIMEOUT_MS = 12_000;
+const STALE_SAVE_MS = 15_000;
+const DEAD_SAVE_MS = 3 * 60_000;
+
+/** Job id currently being executed in this service-worker instance. */
+let activeRunnerId = null;
 
 function withTimeout(promise, ms, label = "Operation") {
   let timer;
@@ -79,7 +84,8 @@ async function fetchWithTimeout(url, options = {}, ms = FETCH_TIMEOUT_MS) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), ms);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    const res = await fetch(url, { ...options, signal: controller.signal });
+    return res;
   } catch (e) {
     if (e && typeof e === "object" && e.name === "AbortError") {
       throw new Error(`Request timed out after ${ms / 1000}s`);
@@ -169,7 +175,8 @@ async function saveUrlToApp(url, options = {}) {
   if (options.newGroupName) payload.newGroupName = options.newGroupName;
   if (options.title) payload.title = options.title;
   if (options.description != null) payload.description = options.description;
-  if (options.imageUrl != null) payload.imageUrl = options.imageUrl;
+  // Skip client imageUrl on batch saves — uploading it server-side can hang;
+  // enrichLinkMetadataInBackground fills previews after create.
 
   const attempt = async () => {
     const res = await fetchWithTimeout(`${apiBase}/api/links`, {
@@ -177,11 +184,16 @@ async function saveUrlToApp(url, options = {}) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
-    const data = await res.json().catch(() => ({}));
+    // Guard against a hung body read as well.
+    const data = await withTimeout(
+      res.json().catch(() => ({})),
+      5_000,
+      "Response parse",
+    );
     return { res, data };
   };
 
-  let { res, data } = await attempt();
+  let { res, data } = await withTimeout(attempt(), FETCH_TIMEOUT_MS + 6_000, "Save");
 
   // Batch saves can hit the create rate limit — wait and retry once.
   if (res.status === 429) {
@@ -189,7 +201,7 @@ async function saveUrlToApp(url, options = {}) {
     await new Promise((r) =>
       setTimeout(r, Math.min(60, Math.max(1, retryAfter)) * 1000),
     );
-    ({ res, data } = await attempt());
+    ({ res, data } = await withTimeout(attempt(), FETCH_TIMEOUT_MS + 6_000, "Save retry"));
   }
 
   if (res.ok) {
@@ -481,8 +493,15 @@ async function executeSaveJob(job, opts) {
   const groupName = opts.groupName || null;
   let resolvedGroupId = opts.resolvedGroupId || opts.groupId || null;
   let savedLink = null;
-  let failed = 0;
-  let skipped = 0;
+  let failed = opts.failed || 0;
+  let skipped = opts.skipped || 0;
+  const startIndex = Math.max(0, Math.min(items.length, opts.startIndex || 0));
+
+  if (activeRunnerId && activeRunnerId !== job.id) {
+    // Another job is in flight in this worker.
+    return job;
+  }
+  activeRunnerId = job.id;
 
   // Keep the MV3 service worker alive across long multi-link batches.
   const keepAliveAlarm = `m404-save-${job.id}`;
@@ -493,7 +512,7 @@ async function executeSaveJob(job, opts) {
   }
 
   try {
-    for (let i = 0; i < items.length; i++) {
+    for (let i = startIndex; i < items.length; i++) {
       const item = items[i];
       const url = typeof item.url === "string" ? item.url.trim() : "";
 
@@ -508,9 +527,7 @@ async function executeSaveJob(job, opts) {
       }
 
       try {
-        // Snapshot-only save: never touch the live tab. Users can close tabs
-        // mid-batch; URL (+ title from when Save was clicked) is enough.
-        // The API enriches og:image / description in the background.
+        // Snapshot-only save: never touch the live tab.
         const title =
           (typeof item.title === "string" && item.title.trim()) ||
           hostnameOfUrl(url) ||
@@ -520,7 +537,6 @@ async function executeSaveJob(job, opts) {
           title,
           description:
             typeof item.description === "string" ? item.description : null,
-          imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : null,
         };
 
         if (i === 0 && newGroupName && !resolvedGroupId) {
@@ -591,6 +607,7 @@ async function executeSaveJob(job, opts) {
     await setBadge("!");
     throw e;
   } finally {
+    if (activeRunnerId === job.id) activeRunnerId = null;
     try {
       await chrome.alarms.clear(keepAliveAlarm);
     } catch {
@@ -599,8 +616,79 @@ async function executeSaveJob(job, opts) {
   }
 }
 
-chrome.alarms.onAlarm.addListener(() => {
-  // No-op: periodic alarms keep the service worker alive during long batch saves.
+/**
+ * If a batch save was interrupted (SW slept / hung), continue from job.done
+ * using the persisted URL snapshot.
+ */
+async function resumeSaveJobIfNeeded() {
+  const { activeSaveJob } = await storageGet(["activeSaveJob"]);
+  if (!activeSaveJob || activeSaveJob.status !== "saving") return null;
+
+  const age = Date.now() - (activeSaveJob.updatedAt || 0);
+  const items = Array.isArray(activeSaveJob.items) ? activeSaveJob.items : [];
+
+  if (!items.length) {
+    await setActiveSaveJob({
+      ...activeSaveJob,
+      status: "error",
+      error: "Save interrupted — no links to resume",
+      updatedAt: Date.now(),
+    });
+    return null;
+  }
+
+  if (age > DEAD_SAVE_MS) {
+    await setActiveSaveJob({
+      ...activeSaveJob,
+      status: "error",
+      error: "Save interrupted — try again",
+      updatedAt: Date.now(),
+    });
+    await setBadge("!");
+    return null;
+  }
+
+  // Already running and still making progress.
+  if (activeRunnerId === activeSaveJob.id && age < STALE_SAVE_MS) return null;
+
+  // Stale progress → previous runner is probably wedged; take over.
+  if (age >= STALE_SAVE_MS) {
+    activeRunnerId = null;
+  } else if (activeRunnerId != null) {
+    return null;
+  }
+
+  // Continue from the next unfinished index.
+  const startIndex = Math.max(0, activeSaveJob.done || 0);
+  if (startIndex >= items.length) {
+    await setActiveSaveJob({
+      ...activeSaveJob,
+      status: "saved",
+      linkId: activeSaveJob.linkId || "multiple",
+      updatedAt: Date.now(),
+    });
+    return null;
+  }
+
+  console.info("Resuming save job", activeSaveJob.id, "from", startIndex);
+  void executeSaveJob(activeSaveJob, {
+    items,
+    groupId: activeSaveJob.groupId || null,
+    groupName: activeSaveJob.groupName || null,
+    resolvedGroupId: activeSaveJob.groupId || null,
+    startIndex,
+    failed: activeSaveJob.failed || 0,
+    skipped: activeSaveJob.skipped || 0,
+  }).catch((e) => console.error("resumeSaveJob:", e));
+
+  return activeSaveJob;
+}
+
+chrome.alarms.onAlarm.addListener((alarm) => {
+  // Keepalive + resume interrupted batch saves after the SW wakes.
+  if (typeof alarm?.name === "string" && alarm.name.startsWith("m404-save-")) {
+    void resumeSaveJobIfNeeded();
+  }
 });
 
 chrome.runtime.onInstalled.addListener(() => {
@@ -842,6 +930,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === "GET_OVERLAY_CONTEXT") {
     void (async () => {
       try {
+        // If a previous SW died mid-batch, continue from the snapshot.
+        await resumeSaveJobIfNeeded();
+
         const tabId = message.tabId ?? sender.tab?.id ?? null;
         const ctx = await getTabContext(tabId);
         const stored = await storageGet([
@@ -966,6 +1057,50 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           ok: false,
           error: e instanceof Error ? e.message : "Failed to save",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "RESUME_SAVE_JOB") {
+    void (async () => {
+      try {
+        const job = await resumeSaveJobIfNeeded();
+        const stored = await storageGet(["activeSaveJob"]);
+        sendResponse({ ok: true, job: stored.activeSaveJob || job });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to resume",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "CANCEL_SAVE_JOB") {
+    void (async () => {
+      try {
+        const stored = await storageGet(["activeSaveJob"]);
+        const job = stored.activeSaveJob;
+        if (job && job.status === "saving") {
+          activeRunnerId = null;
+          await setActiveSaveJob({
+            ...job,
+            status: "error",
+            error: "Save cancelled",
+            updatedAt: Date.now(),
+          });
+          await setBadge("");
+        } else {
+          await storageRemove(["activeSaveJob"]);
+        }
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to cancel",
         });
       }
     })();

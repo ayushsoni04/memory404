@@ -238,6 +238,10 @@ function App({ onClose }) {
         if (restoreSaving || restoreFreshSaved || restoreError) {
           applyJobToState(job, jobSetters);
         }
+        // Kick the worker to continue a stuck batch (SW may have slept).
+        if (restoreSaving) {
+          void sendMessage({ type: "RESUME_SAVE_JOB" });
+        }
       }
 
       const groupsRes = await sendMessage({ type: "FETCH_GROUPS" });
@@ -633,6 +637,19 @@ function App({ onClose }) {
                 </p>
               </div>
             ) : null}
+            <button
+              type="button"
+              className="ghost-btn cancel-save-btn"
+              onClick={() => {
+                void sendMessage({ type: "CANCEL_SAVE_JOB" }).then(() => {
+                  setPhase("pick");
+                  setSaveProgress({ done: 0, total: 0, failed: 0, skipped: 0 });
+                  setError("");
+                });
+              }}
+            >
+              Cancel
+            </button>
           </div>
         ) : null}
 
