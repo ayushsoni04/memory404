@@ -37,6 +37,14 @@ function isLikelyUrl(input) {
   }
 }
 
+function hostnameOfUrl(input) {
+  try {
+    return new URL(input).hostname.replace(/^www\./, "");
+  } catch {
+    return null;
+  }
+}
+
 function escapeOmniboxXml(text) {
   return text
     .replaceAll("&", "&amp;")
@@ -435,6 +443,9 @@ async function runSaveJob(message) {
     error: null,
     done: 0,
     total: items.length,
+    // Persist the snapshot so the worker can finish even if tabs (or the
+    // overlay page) are closed mid-batch.
+    items,
     updatedAt: Date.now(),
   };
   await setActiveSaveJob(job);
@@ -497,27 +508,19 @@ async function executeSaveJob(job, opts) {
       }
 
       try {
-        // Prefer the title captured when the save started. Don't re-enter closed
-        // tabs for og:image — the API enriches metadata in the background.
-        let meta = {
-          title: item.title || null,
-          description: item.description ?? null,
-          imageUrl: item.imageUrl ?? null,
-        };
-
-        if (!meta.title && item.tabId != null) {
-          const pageMeta = await extractPageMeta(item.tabId);
-          meta = {
-            title: meta.title || pageMeta.title,
-            description: meta.description ?? pageMeta.description,
-            imageUrl: meta.imageUrl ?? pageMeta.imageUrl,
-          };
-        }
+        // Snapshot-only save: never touch the live tab. Users can close tabs
+        // mid-batch; URL (+ title from when Save was clicked) is enough.
+        // The API enriches og:image / description in the background.
+        const title =
+          (typeof item.title === "string" && item.title.trim()) ||
+          hostnameOfUrl(url) ||
+          url;
 
         const options = {
-          title: meta.title || item.title || url,
-          description: meta.description,
-          imageUrl: meta.imageUrl,
+          title,
+          description:
+            typeof item.description === "string" ? item.description : null,
+          imageUrl: typeof item.imageUrl === "string" ? item.imageUrl : null,
         };
 
         if (i === 0 && newGroupName && !resolvedGroupId) {
