@@ -231,14 +231,17 @@ function App({ onClose }) {
       if (ctx.activeSaveJob) {
         const job = ctx.activeSaveJob;
         const age = Date.now() - (job.updatedAt || 0);
-        const restoreSaving = job.status === "saving";
+        // Only restore a save UI if it's freshly active. Older "saving" jobs are
+        // zombies from a previous attempt and must not block a new multi-select.
+        const restoreSaving = job.status === "saving" && age < 5_000;
         const restoreFreshSaved =
-          job.status === "saved" && age < 8000 && !remember;
-        const restoreError = job.status === "error" && age < 60_000 && !remember;
+          job.status === "saved" && age < 8_000 && !remember;
+        const restoreError = job.status === "error" && age < 30_000 && !remember;
         if (restoreSaving || restoreFreshSaved || restoreError) {
           applyJobToState(job, jobSetters);
+        } else if (job.status === "saving") {
+          void sendMessage({ type: "CANCEL_SAVE_JOB" });
         }
-        // Kick the worker to continue a stuck batch (SW may have slept).
         if (restoreSaving) {
           void sendMessage({ type: "RESUME_SAVE_JOB" });
         }

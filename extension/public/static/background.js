@@ -379,18 +379,9 @@ async function ensureOverlay(tabId, payload = {}) {
     },
   });
 
-  // Opening a fresh UI should not keep a stale completed job around.
-  const existing = await storageGet(["activeSaveJob"]);
-  const job = existing.activeSaveJob;
-  if (
-    job &&
-    job.status !== "saving" &&
-    Date.now() - (job.updatedAt || 0) > 8000
-  ) {
-    await storageRemove(["activeSaveJob"]);
-  } else if (payload.rememberUrl && job && job.status !== "saving") {
-    await storageRemove(["activeSaveJob"]);
-  }
+  // Drop interrupted / zombie batch jobs so opening the overlay always shows
+  // a fresh picker instead of a stuck "Saving 21 of 31…" screen.
+  await discardInterruptedSaveJobs();
 
   try {
     await chrome.scripting.executeScript({
@@ -428,7 +419,35 @@ async function openSaveUi(tab, options = {}) {
     (await chrome.tabs.query({ active: true, currentWindow: true }))[0] ||
     null;
   if (!target?.id) return { ok: false, error: "No active tab" };
+  // User opened the extension on purpose — never keep a zombie progress UI.
+  await discardInterruptedSaveJobs({ force: true });
   return ensureOverlay(target.id, options);
+}
+
+/**
+ * Remove zombie save jobs that would otherwise resurrect as a stuck progress UI.
+ * Keeps a job only if this worker is actively running it and it updated recently.
+ */
+async function discardInterruptedSaveJobs({ force = false } = {}) {
+  const { activeSaveJob } = await storageGet(["activeSaveJob"]);
+  if (!activeSaveJob) return;
+
+  const age = Date.now() - (activeSaveJob.updatedAt || 0);
+  const isLive =
+    activeSaveJob.status === "saving" &&
+    activeRunnerId === activeSaveJob.id &&
+    age < STALE_SAVE_MS;
+
+  if (isLive && !force) return;
+
+  // Force-open (toolbar click) always clears unless updated in the last 2s.
+  if (force && activeSaveJob.status === "saving" && age < 2_000 && isLive) {
+    return;
+  }
+
+  activeRunnerId = null;
+  await storageRemove(["activeSaveJob"]);
+  await setBadge("");
 }
 
 async function runSaveJob(message) {
@@ -443,6 +462,9 @@ async function runSaveJob(message) {
   if (!items.length) {
     throw new Error("No links to save");
   }
+
+  // New batch always wins over a previous stuck runner.
+  activeRunnerId = null;
 
   const job = {
     id,
@@ -472,6 +494,9 @@ async function runSaveJob(message) {
       newGroupName,
       groupName,
       resolvedGroupId: groupId,
+      startIndex: 0,
+      failed: 0,
+      skipped: 0,
     }).catch((e) => {
       console.error("executeSaveJob:", e);
     });
@@ -484,6 +509,9 @@ async function runSaveJob(message) {
     newGroupName,
     groupName,
     resolvedGroupId: groupId,
+    startIndex: 0,
+    failed: 0,
+    skipped: 0,
   });
 }
 
