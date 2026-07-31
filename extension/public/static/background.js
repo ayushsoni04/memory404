@@ -105,7 +105,22 @@ async function setActiveSaveJob(job) {
   }
 }
 
+async function tabStillOpen(tabId) {
+  if (tabId == null) return false;
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    return Boolean(tab?.id);
+  } catch {
+    return false;
+  }
+}
+
 async function extractPageMeta(tabId) {
+  // Closed / discarded tabs cannot be scripted — bail immediately.
+  if (!(await tabStillOpen(tabId))) {
+    return { title: null, description: null, imageUrl: null };
+  }
+
   try {
     const scriptPromise = chrome.scripting.executeScript({
       target: { tabId },
@@ -130,7 +145,7 @@ async function extractPageMeta(tabId) {
     });
     const [{ result }] = await withTimeout(
       scriptPromise,
-      5000,
+      4000,
       "Page meta",
     );
     return result ?? { title: null, description: null, imageUrl: null };
@@ -482,13 +497,15 @@ async function executeSaveJob(job, opts) {
       }
 
       try {
+        // Prefer the title captured when the save started. Don't re-enter closed
+        // tabs for og:image — the API enriches metadata in the background.
         let meta = {
           title: item.title || null,
           description: item.description ?? null,
           imageUrl: item.imageUrl ?? null,
         };
 
-        if ((!meta.title || !meta.imageUrl) && item.tabId != null) {
+        if (!meta.title && item.tabId != null) {
           const pageMeta = await extractPageMeta(item.tabId);
           meta = {
             title: meta.title || pageMeta.title,
