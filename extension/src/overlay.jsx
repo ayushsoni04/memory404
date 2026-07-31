@@ -117,10 +117,12 @@ function applyJobToState(job, setters) {
 
   const total = typeof job.total === "number" ? job.total : 0;
   const done = typeof job.done === "number" ? job.done : 0;
+  const failed = typeof job.failed === "number" ? job.failed : 0;
+  const skipped = typeof job.skipped === "number" ? job.skipped : 0;
   if (total > 1) {
-    setSaveProgress?.({ done, total });
+    setSaveProgress?.({ done, total, failed, skipped });
   } else {
-    setSaveProgress?.({ done: 0, total: 0 });
+    setSaveProgress?.({ done: 0, total: 0, failed: 0, skipped: 0 });
   }
 
   if (job.status === "saving") {
@@ -160,7 +162,12 @@ function App({ onClose }) {
   const [saveMode, setSaveMode] = useState("active");
   const [pendingRememberUrl, setPendingRememberUrl] = useState(null);
   const [bootToken, setBootToken] = useState(0);
-  const [saveProgress, setSaveProgress] = useState({ done: 0, total: 0 });
+  const [saveProgress, setSaveProgress] = useState({
+    done: 0,
+    total: 0,
+    failed: 0,
+    skipped: 0,
+  });
   const inputRef = useRef(null);
   const dismissTimer = useRef(0);
   const phaseRef = useRef(phase);
@@ -466,7 +473,9 @@ function App({ onClose }) {
       if (!items.length) throw new Error("No tabs found to save");
 
       setSaveProgress(
-        items.length > 1 ? { done: 0, total: items.length } : { done: 0, total: 0 },
+        items.length > 1
+          ? { done: 0, total: items.length, failed: 0, skipped: 0 }
+          : { done: 0, total: 0, failed: 0, skipped: 0 },
       );
 
       // Fire-and-forget ack: worker owns the fetch; UI follows SAVE_JOB_UPDATE.
@@ -486,7 +495,7 @@ function App({ onClose }) {
       setPendingRememberUrl(null);
     } catch (e) {
       setPhase("error");
-      setSaveProgress({ done: 0, total: 0 });
+      setSaveProgress({ done: 0, total: 0, failed: 0, skipped: 0 });
       setError(e instanceof Error ? e.message : "Failed to save");
     }
   };
@@ -670,7 +679,11 @@ function App({ onClose }) {
               </div>
             ) : phase === "saved" ? (
               <div className="saved-row">
-                <span className="saved-text">Saved to memory404</span>
+                <span className="saved-text">
+                  {saveProgress.total > 1
+                    ? `Saved ${Math.max(0, saveProgress.total - (saveProgress.failed || 0) - (saveProgress.skipped || 0))} of ${saveProgress.total}`
+                    : "Saved to memory404"}
+                </span>
               </div>
             ) : null}
 

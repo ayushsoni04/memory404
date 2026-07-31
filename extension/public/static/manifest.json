@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "memory404",
   "description": "Save current tab to memory404 groups.",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "action": {
     "default_title": "Save Link"
   },
@@ -36,7 +36,8 @@
     "scripting",
     "storage",
     "omnibox",
-    "contextMenus"
+    "contextMenus",
+    "alarms"
   ],
   "host_permissions": [
     "http://localhost:3000/*",

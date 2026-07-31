@@ -50,6 +50,38 @@ function jobId() {
   return `job_${Date.now()}_${Math.random().toString(36).slice(2, 9)}`;
 }
 
+const FETCH_TIMEOUT_MS = 20_000;
+
+function withTimeout(promise, ms, label = "Operation") {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => {
+      timer = setTimeout(
+        () => reject(new Error(`${label} timed out after ${ms / 1000}s`)),
+        ms,
+      );
+    }),
+  ]).finally(() => {
+    if (timer) clearTimeout(timer);
+  });
+}
+
+async function fetchWithTimeout(url, options = {}, ms = FETCH_TIMEOUT_MS) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), ms);
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch (e) {
+    if (e && typeof e === "object" && e.name === "AbortError") {
+      throw new Error(`Request timed out after ${ms / 1000}s`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 async function setBadge(text) {
   try {
     await chrome.action.setBadgeBackgroundColor({ color: "#0c0c0c" });
@@ -75,7 +107,7 @@ async function setActiveSaveJob(job) {
 
 async function extractPageMeta(tabId) {
   try {
-    const [{ result }] = await chrome.scripting.executeScript({
+    const scriptPromise = chrome.scripting.executeScript({
       target: { tabId },
       func: () => {
         const text = (sel) => document.querySelector(sel)?.content?.trim() || null;
@@ -96,6 +128,11 @@ async function extractPageMeta(tabId) {
         return { title, description, imageUrl };
       },
     });
+    const [{ result }] = await withTimeout(
+      scriptPromise,
+      5000,
+      "Page meta",
+    );
     return result ?? { title: null, description: null, imageUrl: null };
   } catch {
     return { title: null, description: null, imageUrl: null };
@@ -111,12 +148,27 @@ async function saveUrlToApp(url, options = {}) {
   if (options.description != null) payload.description = options.description;
   if (options.imageUrl != null) payload.imageUrl = options.imageUrl;
 
-  const res = await fetch(`${apiBase}/api/links`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  const data = await res.json().catch(() => ({}));
+  const attempt = async () => {
+    const res = await fetchWithTimeout(`${apiBase}/api/links`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json().catch(() => ({}));
+    return { res, data };
+  };
+
+  let { res, data } = await attempt();
+
+  // Batch saves can hit the create rate limit — wait and retry once.
+  if (res.status === 429) {
+    const retryAfter = Number(res.headers.get("Retry-After") || "2");
+    await new Promise((r) =>
+      setTimeout(r, Math.min(60, Math.max(1, retryAfter)) * 1000),
+    );
+    ({ res, data } = await attempt());
+  }
+
   if (res.ok) {
     return { apiBase, link: data?.link };
   }
@@ -134,7 +186,7 @@ async function saveUrlToApp(url, options = {}) {
 
 async function fetchGroupsFromApi() {
   const apiBase = await getApiBase();
-  const res = await fetch(`${apiBase}/api/groups`);
+  const res = await fetchWithTimeout(`${apiBase}/api/groups`);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || "Failed to load groups");
   const groups = Array.isArray(data.groups) ? data.groups : [];
@@ -144,7 +196,7 @@ async function fetchGroupsFromApi() {
 
 async function createGroupFromApi(name) {
   const apiBase = await getApiBase();
-  const res = await fetch(`${apiBase}/api/groups`, {
+  const res = await fetchWithTimeout(`${apiBase}/api/groups`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
@@ -403,47 +455,75 @@ async function executeSaveJob(job, opts) {
   const groupName = opts.groupName || null;
   let resolvedGroupId = opts.resolvedGroupId || opts.groupId || null;
   let savedLink = null;
+  let failed = 0;
+  let skipped = 0;
+
+  // Keep the MV3 service worker alive across long multi-link batches.
+  const keepAliveAlarm = `m404-save-${job.id}`;
+  try {
+    await chrome.alarms.create(keepAliveAlarm, { periodInMinutes: 0.4 });
+  } catch {
+    // alarms may be unavailable in some contexts
+  }
 
   try {
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const url = typeof item.url === "string" ? item.url.trim() : "";
-      if (!isLikelyUrl(url)) continue;
 
-      let meta = {
-        title: item.title || null,
-        description: item.description ?? null,
-        imageUrl: item.imageUrl ?? null,
-      };
+      if (!isLikelyUrl(url)) {
+        skipped += 1;
+        job.done = i + 1;
+        job.failed = failed;
+        job.skipped = skipped;
+        job.updatedAt = Date.now();
+        await setActiveSaveJob({ ...job });
+        continue;
+      }
 
-      if ((!meta.title || !meta.imageUrl) && item.tabId != null) {
-        const pageMeta = await extractPageMeta(item.tabId);
-        meta = {
-          title: meta.title || pageMeta.title,
-          description: meta.description ?? pageMeta.description,
-          imageUrl: meta.imageUrl ?? pageMeta.imageUrl,
+      try {
+        let meta = {
+          title: item.title || null,
+          description: item.description ?? null,
+          imageUrl: item.imageUrl ?? null,
         };
+
+        if ((!meta.title || !meta.imageUrl) && item.tabId != null) {
+          const pageMeta = await extractPageMeta(item.tabId);
+          meta = {
+            title: meta.title || pageMeta.title,
+            description: meta.description ?? pageMeta.description,
+            imageUrl: meta.imageUrl ?? pageMeta.imageUrl,
+          };
+        }
+
+        const options = {
+          title: meta.title || item.title || url,
+          description: meta.description,
+          imageUrl: meta.imageUrl,
+        };
+
+        if (i === 0 && newGroupName && !resolvedGroupId) {
+          options.newGroupName = newGroupName;
+        } else if (resolvedGroupId) {
+          options.groupId = resolvedGroupId;
+        } else if (newGroupName) {
+          options.newGroupName = newGroupName;
+        }
+
+        const { link } = await saveUrlToApp(url, options);
+        if (link?.groupId) resolvedGroupId = link.groupId;
+        if (!savedLink || item.active) savedLink = link;
+      } catch (itemErr) {
+        failed += 1;
+        job.lastItemError =
+          itemErr instanceof Error ? itemErr.message : "Failed to save link";
+        console.warn("Save item failed:", url, job.lastItemError);
       }
-
-      const options = {
-        title: meta.title || item.title || url,
-        description: meta.description,
-        imageUrl: meta.imageUrl,
-      };
-
-      if (i === 0 && newGroupName && !resolvedGroupId) {
-        options.newGroupName = newGroupName;
-      } else if (resolvedGroupId) {
-        options.groupId = resolvedGroupId;
-      } else if (newGroupName) {
-        options.newGroupName = newGroupName;
-      }
-
-      const { link } = await saveUrlToApp(url, options);
-      if (link?.groupId) resolvedGroupId = link.groupId;
-      if (!savedLink || item.active) savedLink = link;
 
       job.done = i + 1;
+      job.failed = failed;
+      job.skipped = skipped;
       job.groupId = resolvedGroupId;
       job.updatedAt = Date.now();
       await setActiveSaveJob({ ...job });
@@ -453,12 +533,27 @@ async function executeSaveJob(job, opts) {
       await storageSet({ lastSavedGroupId: resolvedGroupId });
     }
 
+    const savedCount = job.total - failed - skipped;
+    if (savedCount <= 0 && failed > 0) {
+      const failedJob = {
+        ...job,
+        status: "error",
+        error: job.lastItemError || `Failed to save ${failed} link${failed === 1 ? "" : "s"}`,
+        updatedAt: Date.now(),
+      };
+      await setActiveSaveJob(failedJob);
+      await setBadge("!");
+      return failedJob;
+    }
+
     const doneJob = {
       ...job,
       status: "saved",
       linkId: savedLink?.id || (items.length > 1 ? "multiple" : null),
       groupId: resolvedGroupId,
       groupName,
+      failed,
+      skipped,
       updatedAt: Date.now(),
     };
     await setActiveSaveJob(doneJob);
@@ -466,17 +561,27 @@ async function executeSaveJob(job, opts) {
     setTimeout(() => void setBadge(""), 2500);
     return doneJob;
   } catch (e) {
-    const failed = {
+    const failedJob = {
       ...job,
       status: "error",
       error: e instanceof Error ? e.message : "Failed to save",
       updatedAt: Date.now(),
     };
-    await setActiveSaveJob(failed);
+    await setActiveSaveJob(failedJob);
     await setBadge("!");
     throw e;
+  } finally {
+    try {
+      await chrome.alarms.clear(keepAliveAlarm);
+    } catch {
+      // ignore
+    }
   }
 }
+
+chrome.alarms.onAlarm.addListener(() => {
+  // No-op: periodic alarms keep the service worker alive during long batch saves.
+});
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {

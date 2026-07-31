@@ -222,7 +222,7 @@ export async function POST(request: Request) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;
 
-  const limit = rateLimit(`links:create:${auth.id}`, 30, 60_000);
+  const limit = rateLimit(`links:create:${auth.id}`, 120, 60_000);
   if (!limit.ok) {
     return NextResponse.json(
       { error: "Too many links created, please slow down." },
@@ -289,9 +289,18 @@ export async function POST(request: Request) {
 
     let imageUrl = imageUrlFromPayload;
     if (imageUrl) {
-      const cloudinaryUrl = await uploadImageToCloudinary(imageUrl);
-      if (cloudinaryUrl) {
-        imageUrl = cloudinaryUrl;
+      try {
+        const cloudinaryUrl = await Promise.race([
+          uploadImageToCloudinary(imageUrl),
+          new Promise<null>((resolve) => {
+            setTimeout(() => resolve(null), 8_000);
+          }),
+        ]);
+        if (cloudinaryUrl) {
+          imageUrl = cloudinaryUrl;
+        }
+      } catch {
+        // Keep the original image URL if Cloudinary is slow/unavailable.
       }
     }
 
