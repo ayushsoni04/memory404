@@ -25,6 +25,28 @@ async function wait(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** Soft-delete then permanently purge a group so E2E runs leave no residue. */
+async function purgeGroup(id) {
+  if (!id) return;
+  await fetch(`${API}/api/groups/${id}`, { method: "DELETE" }).catch(() => {});
+  await fetch(`${API}/api/trash/groups/${id}`, { method: "DELETE" }).catch(
+    () => {},
+  );
+}
+
+/** Remove any leftover groups named e2e-* from prior test runs. */
+async function purgeLeftoverE2eGroups() {
+  const res = await fetch(`${API}/api/groups`);
+  if (!res.ok) return;
+  const { groups } = await res.json();
+  if (!Array.isArray(groups)) return;
+  for (const g of groups) {
+    if (typeof g?.name === "string" && g.name.startsWith("e2e-") && g.id) {
+      await purgeGroup(g.id);
+    }
+  }
+}
+
 async function getExtensionId(browser) {
   const nudge = await browser.newPage();
   await nudge.goto("https://example.com").catch(() => {});
@@ -206,6 +228,8 @@ async function runSaveJob(worker, payload) {
 async function main() {
   let browser;
   try {
+    await purgeLeftoverE2eGroups();
+
     const groupsRes = await fetch(`${API}/api/groups`);
     if (!groupsRes.ok) {
       fail("api-groups", `status ${groupsRes.status}`);
@@ -341,8 +365,12 @@ async function main() {
       return result;
     }, { tabId, name: uniqueName });
 
-    if (created?.ok && created.group?.id) pass("create-group", created.group.name);
-    else fail("create-group", JSON.stringify(created));
+    if (created?.ok && created.group?.id) {
+      pass("create-group", created.group.name);
+      await purgeGroup(created.group.id);
+    } else {
+      fail("create-group", JSON.stringify(created));
+    }
 
     // --- Save job ---
     const testUrl = `https://example.com/?m404test=${Date.now()}`;

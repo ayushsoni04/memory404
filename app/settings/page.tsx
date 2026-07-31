@@ -131,7 +131,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4 min-[1712px]:border-x min-[1712px]:border-border lg:flex-row">
+    <div className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-[var(--sidebar-content-gap)] lg:gap-y-0 min-[1712px]:border-x min-[1712px]:border-border">
 
       <SettingsNav
         activeTab={activeTab}
@@ -139,17 +139,17 @@ export default function SettingsPage() {
       />
 
       {/* Main Settings Panel */}
-      <main className="flex min-w-0 flex-1 flex-col lg:ml-[calc(var(--sidebar-w)+12px)]">
+      <main className="flex min-w-0 flex-1 flex-col">
         <div className="max-w-[720px] space-y-8 pt-4 pb-12">
 
           {/* Header */}
-          <header className="border-b border-border pb-5">
+          <header className="space-y-2 pb-5">
             <h1 className="text-xl font-semibold tracking-tight text-foreground uppercase font-mono">
               {activeTab === "profile" && "Profile settings"}
               {activeTab === "membership" && "Membership details"}
               {activeTab === "statistics" && "Usage statistics"}
             </h1>
-            <p className="mt-1 text-sm text-subtle">
+            <p className="text-sm text-subtle">
               {activeTab === "profile" && "Manage your visual profile, banner choices, and local workspace credentials."}
               {activeTab === "membership" && "Configure pricing layers, run seat calculators, and download receipt histories."}
               {activeTab === "statistics" && "Track total saved links, group density distributions, and relative additions timelines."}

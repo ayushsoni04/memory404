@@ -77,10 +77,10 @@ export default function VaultSidebar({
   onDeleteGroup,
 }: VaultSidebarProps) {
   return (
-    <aside className="flex flex-col lg:fixed lg:inset-y-0 lg:left-0 lg:z-[45] lg:box-border lg:h-dvh lg:w-[var(--sidebar-w)] lg:shrink-0 lg:items-stretch">
-      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden border-r border-border bg-black">
+    <aside className="vault-sidebar flex flex-col lg:sticky lg:top-0 lg:z-[45] lg:h-dvh lg:w-full lg:shrink-0 lg:self-start lg:items-stretch">
+      <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-black lg:rounded-none lg:border-0 lg:border-e lg:border-border">
         <SidebarDitherBackground />
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-6 p-4 lg:gap-8">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[var(--layout-gap-group)] p-[var(--layout-pad)] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:gap-[var(--layout-gap-section)]">
         <div className="flex flex-col items-start gap-3">
           <Link
             href="/"
@@ -104,7 +104,7 @@ export default function VaultSidebar({
           <div
             role="group"
             aria-label="Grid layout"
-            className="flex items-center gap-1"
+            className="flex items-center gap-3"
           >
             {GRID_SIZES.map((opt) => {
               const active = gridSize === opt.id;
@@ -235,7 +235,7 @@ export default function VaultSidebar({
                     Where do you want to save it?
                   </p>
                 </div>
-                <div className="flex max-h-36 flex-col gap-1 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="flex max-h-36 flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {groups.map((g) => {
                     const isGeneral =
                       g.name.trim().toLowerCase() ===
@@ -251,7 +251,7 @@ export default function VaultSidebar({
                           setNewGroupNameDraft("");
                           setPlaceGroupId(g.id);
                         }}
-                        className={`rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-colors cursor-pointer ${
+                        className={`rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
                           active
                             ? "bg-pill-active text-pill-active-fg"
                             : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
@@ -267,7 +267,7 @@ export default function VaultSidebar({
                       setCreatingNewGroup(true);
                       setPlaceGroupId(null);
                     }}
-                    className={`rounded-lg border border-dashed px-2.5 py-1.5 text-left text-[13px] transition-colors cursor-pointer ${
+                    className={`rounded-lg border border-dashed px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
                       creatingNewGroup
                         ? "border-foreground/40 bg-surface text-foreground"
                         : "border-muted/50 bg-transparent text-muted hover:border-foreground/35 hover:text-foreground"
@@ -287,7 +287,7 @@ export default function VaultSidebar({
                     autoFocus
                   />
                 ) : null}
-                <div className="flex gap-2">
+                <div className="flex gap-3">
                   <button
                     type="button"
                     onClick={() => {
@@ -336,23 +336,26 @@ export default function VaultSidebar({
             ) : null}
           </form>
 
-          <div className="hidden flex-col gap-2 lg:flex">
+          <nav
+            aria-label="Sidebar"
+            className="hidden flex-col gap-1 lg:flex"
+          >
             <Link
               href="/settings"
-              className="text-[13px] text-muted transition-colors hover:text-foreground"
+              className="rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition-colors hover:bg-pill hover:text-foreground"
             >
               Profile & billing
             </Link>
             <Link
               href="/workspace"
-              className="text-[13px] text-muted transition-colors hover:text-foreground"
+              className="rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition-colors hover:bg-pill hover:text-foreground"
             >
               Workspace
             </Link>
-            <p className="text-[13px] text-subtle">
+            <p className="px-2.5 pt-2 text-[13px] text-subtle">
               © {new Date().getFullYear()} memory404
             </p>
-          </div>
+          </nav>
           <TrashBin
             onDropLink={(linkId) => void onDeleteLink(linkId)}
             onDropGroup={(groupId) => void onDeleteGroup(groupId)}

@@ -373,8 +373,36 @@ async function runSaveJob(message) {
   await setActiveSaveJob(job);
   await setBadge("…");
 
+  // When startOnly is set, the message channel is released immediately and
+  // executeSaveJob continues in the background (avoids "message channel closed").
+  if (message.startOnly) {
+    void executeSaveJob(job, {
+      items,
+      groupId,
+      newGroupName,
+      groupName,
+      resolvedGroupId: groupId,
+    }).catch((e) => {
+      console.error("executeSaveJob:", e);
+    });
+    return job;
+  }
+
+  return executeSaveJob(job, {
+    items,
+    groupId,
+    newGroupName,
+    groupName,
+    resolvedGroupId: groupId,
+  });
+}
+
+async function executeSaveJob(job, opts) {
+  const items = opts.items;
+  const newGroupName = opts.newGroupName || null;
+  const groupName = opts.groupName || null;
+  let resolvedGroupId = opts.resolvedGroupId || opts.groupId || null;
   let savedLink = null;
-  let resolvedGroupId = groupId;
 
   try {
     for (let i = 0; i < items.length; i++) {
@@ -805,7 +833,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     void (async () => {
       try {
         const tabId = message.tabId ?? sender.tab?.id ?? null;
-        const job = await runSaveJob({ ...message, tabId });
+        // Ack as soon as the job is queued — don't hold the channel open for the
+        // full network save (that triggers "message channel closed").
+        const job = await runSaveJob({ ...message, tabId, startOnly: true });
         sendResponse({ ok: true, job });
       } catch (e) {
         sendResponse({

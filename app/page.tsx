@@ -20,9 +20,10 @@ export const metadata: Metadata = {
 
 function VaultFallback() {
   return (
-    <div className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4">
-      <div className="flex min-w-0 flex-1 flex-col lg:ml-[calc(var(--sidebar-w)+12px)]">
-        <div className="pt-[17px]">
+    <div className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-[var(--sidebar-content-gap)] lg:gap-y-0">
+      <div className="hidden lg:block" aria-hidden />
+      <div className="flex min-w-0 flex-1 flex-col">
+        <div className="pt-4">
           <div className="h-5 w-40 animate-pulse rounded bg-neutral-800/40" />
           <div className="mt-2 h-4 w-72 max-w-full animate-pulse rounded bg-neutral-800/25" />
         </div>

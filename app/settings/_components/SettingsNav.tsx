@@ -22,7 +22,7 @@ export function SettingsNav({ activeTab, onTabChange }: SettingsNavProps) {
   };
 
   return (
-    <aside className="flex w-full shrink-0 flex-col gap-8 py-4 lg:fixed lg:left-[max(1rem,calc((100vw-var(--content-max))/2+1rem))] lg:top-0 lg:box-border lg:h-dvh lg:w-[var(--sidebar-w)] lg:justify-between">
+    <aside className="vault-sidebar flex w-full shrink-0 flex-col gap-8 py-4 lg:sticky lg:top-0 lg:h-dvh lg:w-full lg:justify-between lg:self-start">
       <div className="flex flex-col gap-6">
         {/* Logo link back to vault */}
         <Link href="/" aria-label="memory404" className="inline-flex items-center gap-2 text-foreground transition hover:opacity-85">

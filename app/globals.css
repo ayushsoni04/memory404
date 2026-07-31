@@ -21,7 +21,16 @@
   --mind-card-radius: 4px;
   --mind-overlay-panel: 292px;
   --sidebar-w: 264px;
+  --sidebar-content-gap: 12px;
   --content-max: 1680px;
+  /* Shell stretches with the viewport until content-max, then centers as one unit */
+  --vault-shell-bp: 64rem; /* ~1024px — two-column stretch kicks in */
+  /* better-layout: one spacing step for hierarchy; inter-group ≥ 2× intra-group */
+  --layout-pad: 16px;
+  --layout-gap-item: 8px;
+  --layout-gap-control: 12px;
+  --layout-gap-group: 24px;
+  --layout-gap-section: 32px;
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
   --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
@@ -527,6 +536,17 @@ pre,
 
 .vault-enter {
   animation: vault-fade-up 250ms var(--ease-out) both;
+}
+
+/* Stretch sidebar + feed as one shell; break only when the feed column gets too narrow */
+@media (min-width: 64rem) {
+  .vault-shell {
+    align-items: stretch;
+  }
+
+  .vault-sidebar {
+    min-height: 100dvh;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

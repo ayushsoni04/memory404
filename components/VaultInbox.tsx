@@ -182,12 +182,12 @@ export default function VaultInbox({
   );
 
   return (
-    <div
-      ref={pageRef}
-      className="mx-auto flex min-h-screen w-full max-w-[var(--content-max)] flex-col gap-8 p-4 min-[1712px]:border-x min-[1712px]:border-border"
-    >
+    <>
       <ExtensionErrorBanner />
-
+      <div
+        ref={pageRef}
+        className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-[var(--sidebar-content-gap)] lg:gap-y-0 min-[1712px]:border-x min-[1712px]:border-border"
+      >
       <VaultSidebar
         gridSize={gridSize}
         setGridSizeAndPersist={setGridSizeAndPersist}
@@ -221,7 +221,7 @@ export default function VaultInbox({
         onDeleteGroup={handleDeleteGroup}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col lg:ml-[calc(var(--sidebar-w)+12px)]">
+      <div className="flex min-w-0 flex-1 flex-col">
         <VaultFeed
           groupToolbar={
             <VaultGroupToolbar
@@ -272,9 +272,10 @@ export default function VaultInbox({
           sentinelRef={sentinelRef}
         />
 
-        <p className="mt-8 shrink-0 text-[13px] text-subtle lg:hidden">
+        <p className="mt-[var(--layout-gap-section)] shrink-0 text-[13px] text-subtle lg:hidden">
           © {new Date().getFullYear()} memory404
         </p>
+      </div>
       </div>
 
       {openedLink ? (
@@ -301,6 +302,6 @@ export default function VaultInbox({
         groups={paletteGroups}
         onSelectGroup={selectGroup}
       />
-    </div>
+    </>
   );
 }

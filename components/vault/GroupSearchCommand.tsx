@@ -52,7 +52,7 @@ export default function GroupSearchCommand({
             if (e.key === "Escape") setOpen(false);
           }}
           placeholder={placeholder}
-          className="h-7 w-full rounded-full border border-border bg-surface pl-3 pr-6 text-[13px] text-foreground outline-none focus:border-border-strong placeholder:text-subtle"
+          className="h-7 w-full rounded-full border border-border bg-surface ps-3 pe-6 text-[13px] text-foreground outline-none focus:border-border-strong placeholder:text-subtle"
         />
         {value ? (
           <button

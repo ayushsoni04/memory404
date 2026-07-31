@@ -290,10 +290,13 @@ function App({ onClose }) {
       setBootToken((n) => n + 1);
     };
 
-    const onMessage = (message) => {
+    const onMessage = (message, _sender, sendResponse) => {
       if (message?.type === "SAVE_JOB_UPDATE" && message.job) {
         applyJobToState(message.job, jobSetters);
+        sendResponse?.({ ok: true });
+        return false;
       }
+      return undefined;
     };
 
     const onStorage = (changes, area) => {

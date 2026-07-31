@@ -63,8 +63,8 @@ export default function VaultGroupToolbar({
   onOpenPalette,
 }: VaultGroupToolbarProps) {
   return (
-    <div className="sticky top-0 z-20 -mr-4 flex items-center justify-between gap-4 bg-background pt-3 pb-4 pr-4">
-      <div className="relative flex min-w-0 flex-1 items-center overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5">
+    <div className="sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-4 bg-background pt-3 pb-4 pe-[var(--layout-pad)]">
+      <div className="relative flex min-w-0 flex-1 items-center gap-3 overflow-x-auto overflow-y-visible pe-6 [scrollbar-width:none] [scroll-padding-inline-end:1.5rem] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5">
         {draggingGroupId !== null && (
           <div className="absolute inset-0 flex items-center pointer-events-none z-0">
             {generalGroup ? (
@@ -75,10 +75,10 @@ export default function VaultGroupToolbar({
             {generalGroup ? (
               <span
                 aria-hidden
-                className="mx-2 h-5 w-px shrink-0 bg-transparent"
+                className="ms-1 me-2 h-5 w-px shrink-0 bg-transparent"
               />
             ) : null}
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {filteredFolders.map((g) => (
                 <div
                   key={`bg-${g.id}`}
@@ -101,16 +101,12 @@ export default function VaultGroupToolbar({
         >
           All
         </button>
-        <span
-          aria-hidden
-          className="mx-2 h-5 w-px shrink-0 bg-border z-10 relative"
-        />
 
         <Reorder.Group
           axis="x"
           values={filteredFolders}
           onReorder={persistFolderOrder}
-          className="group-pills-row flex min-w-0 items-center gap-2 overflow-visible z-10 relative bg-transparent"
+          className="group-pills-row flex min-w-0 items-center gap-3 overflow-visible z-10 relative bg-transparent"
           as="div"
         >
           {filteredFolders.map((g) => (
@@ -159,7 +155,7 @@ export default function VaultGroupToolbar({
                           void handleDeleteGroup(g.id);
                         }
                       }}
-                      className="group-pill-delete ml-0.5 inline-flex size-4 items-center justify-center rounded-full opacity-0 hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 cursor-pointer"
+                      className="group-pill-delete ms-0.5 inline-flex size-4 items-center justify-center rounded-full opacity-0 hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 cursor-pointer"
                     >
                       <X className="size-2.5" />
                     </span>
@@ -172,7 +168,7 @@ export default function VaultGroupToolbar({
 
         {addingAt !== null ? (
           <form
-            className="relative mx-1 flex shrink-0 items-center"
+            className="relative ms-1 flex shrink-0 items-center"
             onSubmit={(e) => {
               e.preventDefault();
               void createGroup();
@@ -213,13 +209,13 @@ export default function VaultGroupToolbar({
             onClick={() => openAddGroup(filteredFolders.length)}
             aria-label="Add group"
             title="Add group"
-            className="ml-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+            className="ms-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
           >
             <Plus className="size-3.5" strokeWidth={2} aria-hidden />
           </button>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="flex shrink-0 items-center gap-3">
         <select
           value={sortBy}
           onChange={(e) => setSortByAndPersist(e.target.value as SortBy)}
