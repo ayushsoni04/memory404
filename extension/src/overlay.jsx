@@ -112,7 +112,16 @@ function applyJobToState(job, setters) {
     setGroupQuery,
     setSelectedGroupId,
     setSaveMode,
+    setSaveProgress,
   } = setters;
+
+  const total = typeof job.total === "number" ? job.total : 0;
+  const done = typeof job.done === "number" ? job.done : 0;
+  if (total > 1) {
+    setSaveProgress?.({ done, total });
+  } else {
+    setSaveProgress?.({ done: 0, total: 0 });
+  }
 
   if (job.status === "saving") {
     setPhase("saving");
@@ -151,6 +160,7 @@ function App({ onClose }) {
   const [saveMode, setSaveMode] = useState("active");
   const [pendingRememberUrl, setPendingRememberUrl] = useState(null);
   const [bootToken, setBootToken] = useState(0);
+  const [saveProgress, setSaveProgress] = useState({ done: 0, total: 0 });
   const inputRef = useRef(null);
   const dismissTimer = useRef(0);
   const phaseRef = useRef(phase);
@@ -166,6 +176,7 @@ function App({ onClose }) {
       setGroupQuery,
       setSelectedGroupId,
       setSaveMode,
+      setSaveProgress,
     }),
     [],
   );
@@ -454,6 +465,10 @@ function App({ onClose }) {
       items = items.filter((i) => i.url);
       if (!items.length) throw new Error("No tabs found to save");
 
+      setSaveProgress(
+        items.length > 1 ? { done: 0, total: items.length } : { done: 0, total: 0 },
+      );
+
       // Fire-and-forget ack: worker owns the fetch; UI follows SAVE_JOB_UPDATE.
       const res = await sendMessage({
         type: "START_SAVE_JOB",
@@ -471,6 +486,7 @@ function App({ onClose }) {
       setPendingRememberUrl(null);
     } catch (e) {
       setPhase("error");
+      setSaveProgress({ done: 0, total: 0 });
       setError(e instanceof Error ? e.message : "Failed to save");
     }
   };
@@ -564,7 +580,51 @@ function App({ onClose }) {
         </button>
 
         {phase === "saving" ? (
-          <OrbStatus active label="Saving…" state="searching" />
+          <div className="saving-panel">
+            {saveProgress.total > 1 ? (
+              <div
+                className="orb-status"
+                role="status"
+                aria-live="polite"
+                aria-label={`Saving ${Math.min(saveProgress.done + 1, saveProgress.total)} of ${saveProgress.total}`}
+              >
+                <ThinkingOrb state="searching" size={64} speed={0.95} theme="dark" />
+                <span className="orb-status-text">
+                  Saving {Math.min(saveProgress.done + 1, saveProgress.total)} of{" "}
+                  {saveProgress.total}…
+                </span>
+              </div>
+            ) : (
+              <OrbStatus active label="Saving…" state="searching" />
+            )}
+            {saveProgress.total > 1 ? (
+              <div
+                className="save-progress"
+                role="progressbar"
+                aria-valuemin={0}
+                aria-valuemax={saveProgress.total}
+                aria-valuenow={saveProgress.done}
+                aria-label={`Saved ${saveProgress.done} of ${saveProgress.total} links`}
+              >
+                <div className="save-progress-track">
+                  <div
+                    className="save-progress-fill"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round(
+                          (saveProgress.done / saveProgress.total) * 100,
+                        ),
+                      )}%`,
+                    }}
+                  />
+                </div>
+                <p className="save-progress-meta">
+                  {saveProgress.done} / {saveProgress.total}
+                </p>
+              </div>
+            ) : null}
+          </div>
         ) : null}
 
         {phase === "error" ? (
