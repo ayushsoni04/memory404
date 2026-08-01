@@ -68,6 +68,7 @@ export function useVaultLinks(
     initialMatches ? initialData.firstPage.hasMore : true,
   );
   const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const loadMoreLockRef = useRef(false);
   const [linksCache, setLinksCache] = useState<Record<string, LinkApiRow[]>>(
     () => ({
@@ -381,7 +382,10 @@ export function useVaultLinks(
           loadMoreLinks();
         }
       },
-      { rootMargin: "200px" },
+      {
+        root: scrollRootRef.current,
+        rootMargin: "200px",
+      },
     );
 
     observer.observe(currentSentinel);
@@ -450,6 +454,7 @@ export function useVaultLinks(
     loadingMore,
     hasMoreLinks,
     sentinelRef,
+    scrollRootRef,
     linksCache,
     setLinksCache,
     sortedLinks,

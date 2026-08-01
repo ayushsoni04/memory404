@@ -334,7 +334,7 @@ async function main() {
         return { ok: res.ok, groups: data.groups };
       });
     });
-    // Content scripts can sendMessage — remember-hover is injected on example.com
+    // Injected page context can still talk to the service worker via sendMessage
     const fetchViaContent = await worker.evaluate(async (tabId) => {
       const [{ result }] = await chrome.scripting.executeScript({
         target: { tabId },

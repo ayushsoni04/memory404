@@ -535,7 +535,7 @@ pre,
 }
 
 .vault-enter {
-  animation: vault-fade-up 250ms var(--ease-out) both;
+  /* ParticleScroll owns feed reveal; keep class as a no-op hook for reduced-motion layouts */
 }
 
 /* Stretch sidebar + feed as one shell; break only when the feed column gets too narrow */
@@ -546,12 +546,6 @@ pre,
 
   .vault-sidebar {
     min-height: 100dvh;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .vault-enter {
-    animation: none;
   }
 }
 

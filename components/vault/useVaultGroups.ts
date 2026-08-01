@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useQueryState } from "nuqs";
-import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
@@ -20,7 +19,6 @@ function persistOpenedGroup(id: string) {
 }
 
 export function useVaultGroups(
-  router: AppRouterInstance,
   groupSearch: string,
   canReorderPillsBase: boolean,
   initialGroups: GroupRow[],
@@ -240,10 +238,6 @@ export function useVaultGroups(
       });
       if (!res.ok) {
         void loadGroups();
-      } else {
-        setTimeout(() => {
-          router.push("/trash");
-        }, 400);
       }
     } catch {
       void loadGroups();

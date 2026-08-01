@@ -2,7 +2,6 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import CommandPalette from "@/components/CommandPalette";
 import { ExtensionErrorBanner } from "@/components/ExtensionErrorBanner";
@@ -26,7 +25,6 @@ export default function VaultInbox({
 }: {
   initialData: InitialVaultData;
 }) {
-  const router = useRouter();
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [newCardId, setNewCardId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
@@ -43,7 +41,6 @@ export default function VaultInbox({
   } = useVaultPreferences();
 
   const groupsState = useVaultGroups(
-    router,
     groupSearch,
     canReorderPillsBase,
     initialData.groups,
@@ -84,6 +81,7 @@ export default function VaultInbox({
     fetchError,
     hasMoreLinks,
     sentinelRef,
+    scrollRootRef,
     setLinksCache,
     sortedLinks,
     loadLinks,
@@ -106,7 +104,6 @@ export default function VaultInbox({
 
   const {
     urlInput,
-    setUrlInput,
     saving,
     saveSuccess,
     saveError,
@@ -142,7 +139,6 @@ export default function VaultInbox({
     handleDelete,
     moveLinkToGroup,
   } = useLinkActions({
-    router,
     links,
     setLinks,
     openedGroupId,
@@ -203,7 +199,6 @@ export default function VaultInbox({
         savePhase={savePhase}
         setSavePhase={setSavePhase}
         urlInput={urlInput}
-        setUrlInput={setUrlInput}
         handleSubmit={(e) => void handleSubmit(e)}
         groups={groups}
         creatingNewGroup={creatingNewGroup}
@@ -221,7 +216,7 @@ export default function VaultInbox({
         onDeleteGroup={handleDeleteGroup}
       />
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:h-dvh lg:overflow-hidden">
         <VaultFeed
           groupToolbar={
             <VaultGroupToolbar
@@ -270,6 +265,7 @@ export default function VaultInbox({
           feedImageSizes={feedImageSizes}
           hasMoreLinks={hasMoreLinks}
           sentinelRef={sentinelRef}
+          scrollRootRef={scrollRootRef}
         />
 
         <p className="mt-[var(--layout-gap-section)] shrink-0 text-[13px] text-subtle lg:hidden">

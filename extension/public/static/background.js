@@ -477,9 +477,20 @@ async function runSaveJob(message) {
     error: null,
     done: 0,
     total: items.length,
+    failed: 0,
+    skipped: 0,
     // Persist the snapshot so the worker can finish even if tabs (or the
     // overlay page) are closed mid-batch.
     items,
+    itemResults: items.map((item) => ({
+      url: typeof item?.url === "string" ? item.url.trim() : "",
+      title:
+        (typeof item?.title === "string" && item.title.trim()) ||
+        hostnameOfUrl(typeof item?.url === "string" ? item.url : "") ||
+        "Link",
+      status: "pending",
+      error: null,
+    })),
     updatedAt: Date.now(),
   };
   await setActiveSaveJob(job);
@@ -543,15 +554,41 @@ async function executeSaveJob(job, opts) {
     for (let i = startIndex; i < items.length; i++) {
       const item = items[i];
       const url = typeof item.url === "string" ? item.url.trim() : "";
+      const results = Array.isArray(job.itemResults)
+        ? [...job.itemResults]
+        : items.map((it) => ({
+            url: typeof it?.url === "string" ? it.url.trim() : "",
+            title:
+              (typeof it?.title === "string" && it.title.trim()) ||
+              hostnameOfUrl(typeof it?.url === "string" ? it.url : "") ||
+              "Link",
+            status: "pending",
+            error: null,
+          }));
 
       if (!isLikelyUrl(url)) {
         skipped += 1;
+        if (results[i]) {
+          results[i] = {
+            ...results[i],
+            status: "skipped",
+            error: "Invalid URL",
+          };
+        }
+        job.itemResults = results;
         job.done = i + 1;
         job.failed = failed;
         job.skipped = skipped;
         job.updatedAt = Date.now();
         await setActiveSaveJob({ ...job });
         continue;
+      }
+
+      if (results[i]) {
+        results[i] = { ...results[i], status: "saving", error: null };
+        job.itemResults = results;
+        job.updatedAt = Date.now();
+        await setActiveSaveJob({ ...job });
       }
 
       try {
@@ -578,13 +615,29 @@ async function executeSaveJob(job, opts) {
         const { link } = await saveUrlToApp(url, options);
         if (link?.groupId) resolvedGroupId = link.groupId;
         if (!savedLink || item.active) savedLink = link;
+        if (results[i]) {
+          results[i] = {
+            ...results[i],
+            title: title || results[i].title,
+            status: "saved",
+            error: null,
+          };
+        }
       } catch (itemErr) {
         failed += 1;
         job.lastItemError =
           itemErr instanceof Error ? itemErr.message : "Failed to save link";
         console.warn("Save item failed:", url, job.lastItemError);
+        if (results[i]) {
+          results[i] = {
+            ...results[i],
+            status: "failed",
+            error: job.lastItemError,
+          };
+        }
       }
 
+      job.itemResults = results;
       job.done = i + 1;
       job.failed = failed;
       job.skipped = skipped;
@@ -905,42 +958,6 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo) => {
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || typeof message.type !== "string") return;
-
-  if (message.type === "REMEMBER_LINK") {
-    void (async () => {
-      const url = typeof message.url === "string" ? message.url.trim() : "";
-      if (!isLikelyUrl(url)) {
-        sendResponse({ ok: false, error: "Invalid link" });
-        return;
-      }
-
-      await storageSet({
-        pendingRememberUrl: url,
-        pendingRememberAt: Date.now(),
-      });
-
-      const tabId = sender.tab?.id;
-      if (tabId != null) {
-        const opened = await ensureOverlay(tabId, { rememberUrl: url });
-        if (opened.ok) {
-          sendResponse({ ok: true, mode: "overlay" });
-          return;
-        }
-      }
-
-      const lastSavedGroupId = await getLastSavedGroupId();
-      const link = await handleSave(url, false, {
-        groupId: lastSavedGroupId || undefined,
-      });
-      await storageRemove(["pendingRememberUrl", "pendingRememberAt"]);
-      sendResponse(
-        link
-          ? { ok: true, mode: "saved" }
-          : { ok: false, error: "Save failed" },
-      );
-    })();
-    return true;
-  }
 
   if (message.type === "OPEN_SAVE_UI") {
     void (async () => {

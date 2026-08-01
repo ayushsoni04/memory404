@@ -64,111 +64,113 @@ export default function VaultGroupToolbar({
 }: VaultGroupToolbarProps) {
   return (
     <div className="sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-4 bg-background pt-3 pb-4 pe-[var(--layout-pad)]">
-      <div className="relative flex min-w-0 flex-1 items-center gap-3 overflow-x-auto overflow-y-visible pe-6 [scrollbar-width:none] [scroll-padding-inline-end:1.5rem] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5">
-        {draggingGroupId !== null && (
-          <div className="absolute inset-0 flex items-center pointer-events-none z-0">
-            {generalGroup ? (
-              <div className="invisible shrink-0 px-4 text-[13px] h-7">
-                {generalGroup.name}
-              </div>
-            ) : null}
-            {generalGroup ? (
-              <span
-                aria-hidden
-                className="ms-1 me-2 h-5 w-px shrink-0 bg-transparent"
-              />
-            ) : null}
-            <div className="flex items-center gap-3">
-              {filteredFolders.map((g) => (
-                <div
-                  key={`bg-${g.id}`}
-                  className="inline-flex h-7 shrink-0 items-center rounded-full border border-dashed border-border-strong/50 px-4 text-[13px] leading-none text-transparent select-none bg-transparent"
-                >
-                  {g.name}
+      <div className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="relative flex min-w-0 flex-1 items-center gap-3 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5">
+          {draggingGroupId !== null && (
+            <div className="absolute inset-0 flex items-center pointer-events-none z-0">
+              {generalGroup ? (
+                <div className="invisible shrink-0 px-4 text-[13px] h-7">
+                  {generalGroup.name}
                 </div>
-              ))}
+              ) : null}
+              {generalGroup ? (
+                <span
+                  aria-hidden
+                  className="ms-1 me-2 h-5 w-px shrink-0 bg-transparent"
+                />
+              ) : null}
+              <div className="flex items-center gap-3">
+                {filteredFolders.map((g) => (
+                  <div
+                    key={`bg-${g.id}`}
+                    className="inline-flex h-7 shrink-0 items-center rounded-full border border-dashed border-border-strong/50 px-4 text-[13px] leading-none text-transparent select-none bg-transparent"
+                  >
+                    {g.name}
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        <button
-          type="button"
-          aria-pressed={openedGroupId === "all"}
-          onClick={() => selectGroup("all")}
-          className={`z-10 relative ${
-            openedGroupId === "all" ? pillActive : pillIdle
-          }`}
-        >
-          All
-        </button>
+          <button
+            type="button"
+            aria-pressed={openedGroupId === "all"}
+            onClick={() => selectGroup("all")}
+            className={`z-10 relative ${
+              openedGroupId === "all" ? pillActive : pillIdle
+            }`}
+          >
+            All
+          </button>
 
-        <Reorder.Group
-          axis="x"
-          values={filteredFolders}
-          onReorder={persistFolderOrder}
-          className="group-pills-row flex min-w-0 items-center gap-3 overflow-visible z-10 relative bg-transparent"
-          as="div"
-        >
-          {filteredFolders.map((g) => (
-            <Reorder.Item
-              key={g.id}
-              value={g}
-              as="div"
-              drag={canReorderPills ? "x" : false}
-              className="shrink-0 group/pill"
-              onDragStart={() => setDraggingGroupId(g.id)}
-              onDragEnd={() => setDraggingGroupId(null)}
-              whileDrag={{
-                transform: "scale(1.03)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
-              }}
-              transition={{
-                type: "spring",
-                duration: 0.35,
-                bounce: 0.12,
-              }}
-            >
-              <>
-                <button
-                  type="button"
-                  onClick={() => selectGroup(g.id)}
-                  className={`${g.id === openedGroupId ? pillActive : pillIdle} transition-[background-color,border-color,color,opacity] duration-150 ${
-                    draggingGroupId === g.id
-                      ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
-                      : ""
-                  } pr-1`}
-                >
-                  <span className="pr-1">{g.name}</span>
-                  {g.name !== GENERAL_GROUP_NAME && (
-                    <span
-                      role="button"
-                      tabIndex={0}
-                      aria-label={`Move ${g.name} to Trash`}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        void handleDeleteGroup(g.id);
-                      }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
+          <Reorder.Group
+            axis="x"
+            values={filteredFolders}
+            onReorder={persistFolderOrder}
+            className="group-pills-row flex min-w-0 items-center gap-3 overflow-visible z-10 relative bg-transparent"
+            as="div"
+          >
+            {filteredFolders.map((g) => (
+              <Reorder.Item
+                key={g.id}
+                value={g}
+                as="div"
+                drag={canReorderPills ? "x" : false}
+                className="shrink-0 group/pill"
+                onDragStart={() => setDraggingGroupId(g.id)}
+                onDragEnd={() => setDraggingGroupId(null)}
+                whileDrag={{
+                  transform: "scale(1.03)",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+                }}
+                transition={{
+                  type: "spring",
+                  duration: 0.35,
+                  bounce: 0.12,
+                }}
+              >
+                <>
+                  <button
+                    type="button"
+                    onClick={() => selectGroup(g.id)}
+                    className={`${g.id === openedGroupId ? pillActive : pillIdle} transition-[background-color,border-color,color,opacity] duration-150 ${
+                      draggingGroupId === g.id
+                        ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
+                        : ""
+                    } pr-1`}
+                  >
+                    <span className="pr-1">{g.name}</span>
+                    {g.name !== GENERAL_GROUP_NAME && (
+                      <span
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Move ${g.name} to Trash`}
+                        onClick={(e) => {
                           e.stopPropagation();
                           void handleDeleteGroup(g.id);
-                        }
-                      }}
-                      className="group-pill-delete ms-0.5 inline-flex size-4 items-center justify-center rounded-full opacity-0 hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 cursor-pointer"
-                    >
-                      <X className="size-2.5" />
-                    </span>
-                  )}
-                </button>
-              </>
-            </Reorder.Item>
-          ))}
-        </Reorder.Group>
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            void handleDeleteGroup(g.id);
+                          }
+                        }}
+                        className="group-pill-delete ms-0.5 inline-flex size-4 items-center justify-center rounded-full opacity-0 hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 cursor-pointer"
+                      >
+                        <X className="size-2.5" />
+                      </span>
+                    )}
+                  </button>
+                </>
+              </Reorder.Item>
+            ))}
+          </Reorder.Group>
+        </div>
 
         {addingAt !== null ? (
           <form
-            className="relative ms-1 flex shrink-0 items-center"
+            className="relative flex shrink-0 items-center"
             onSubmit={(e) => {
               e.preventDefault();
               void createGroup();
@@ -209,7 +211,7 @@ export default function VaultGroupToolbar({
             onClick={() => openAddGroup(filteredFolders.length)}
             aria-label="Add group"
             title="Add group"
-            className="ms-1 inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
           >
             <Plus className="size-3.5" strokeWidth={2} aria-hidden />
           </button>

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
+import LoadingState from "./LoadingState";
+import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
 const ROOT_ID = "m404-save-root";
@@ -113,6 +115,7 @@ function applyJobToState(job, setters) {
     setSelectedGroupId,
     setSaveMode,
     setSaveProgress,
+    setSaveItems,
   } = setters;
 
   const total = typeof job.total === "number" ? job.total : 0;
@@ -123,6 +126,31 @@ function applyJobToState(job, setters) {
     setSaveProgress?.({ done, total, failed, skipped });
   } else {
     setSaveProgress?.({ done: 0, total: 0, failed: 0, skipped: 0 });
+  }
+
+  if (Array.isArray(job.itemResults) && job.itemResults.length) {
+    setSaveItems?.(job.itemResults);
+  } else if (Array.isArray(job.items) && job.items.length > 1) {
+    setSaveItems?.(
+      job.items.map((item, i) => {
+        let status = "pending";
+        if (i < done) status = "saved";
+        else if (i === done && job.status === "saving") status = "saving";
+        return {
+          url: typeof item?.url === "string" ? item.url : "",
+          title:
+            (typeof item?.title === "string" && item.title.trim()) ||
+            hostnameOf(item?.url) ||
+            "Link",
+          status,
+          error: null,
+        };
+      }),
+    );
+  } else if (job.status === "saved" || job.status === "error") {
+    // keep last multi-item list for the saved summary if present
+  } else {
+    setSaveItems?.([]);
   }
 
   if (job.status === "saving") {
@@ -168,6 +196,7 @@ function App({ onClose }) {
     failed: 0,
     skipped: 0,
   });
+  const [saveItems, setSaveItems] = useState([]);
   const inputRef = useRef(null);
   const dismissTimer = useRef(0);
   const phaseRef = useRef(phase);
@@ -184,6 +213,7 @@ function App({ onClose }) {
       setSelectedGroupId,
       setSaveMode,
       setSaveProgress,
+      setSaveItems,
     }),
     [],
   );
@@ -484,6 +514,16 @@ function App({ onClose }) {
           ? { done: 0, total: items.length, failed: 0, skipped: 0 }
           : { done: 0, total: 0, failed: 0, skipped: 0 },
       );
+      setSaveItems(
+        items.length > 1
+          ? items.map((item, i) => ({
+              url: item.url,
+              title: item.title || hostnameOf(item.url),
+              status: i === 0 ? "saving" : "pending",
+              error: null,
+            }))
+          : [],
+      );
 
       // Fire-and-forget ack: worker owns the fetch; UI follows SAVE_JOB_UPDATE.
       const res = await sendMessage({
@@ -503,6 +543,7 @@ function App({ onClose }) {
     } catch (e) {
       setPhase("error");
       setSaveProgress({ done: 0, total: 0, failed: 0, skipped: 0 });
+      setSaveItems([]);
       setError(e instanceof Error ? e.message : "Failed to save");
     }
   };
@@ -597,49 +638,22 @@ function App({ onClose }) {
 
         {phase === "saving" ? (
           <div className="saving-panel">
-            {saveProgress.total > 1 ? (
-              <div
-                className="orb-status"
-                role="status"
-                aria-live="polite"
-                aria-label={`Saving ${Math.min(saveProgress.done + 1, saveProgress.total)} of ${saveProgress.total}`}
-              >
-                <ThinkingOrb state="searching" size={64} speed={0.95} theme="dark" />
-                <span className="orb-status-text">
-                  Saving {Math.min(saveProgress.done + 1, saveProgress.total)} of{" "}
-                  {saveProgress.total}…
-                </span>
-              </div>
-            ) : (
-              <OrbStatus active label="Saving…" state="searching" />
-            )}
-            {saveProgress.total > 1 ? (
-              <div
-                className="save-progress"
-                role="progressbar"
-                aria-valuemin={0}
-                aria-valuemax={saveProgress.total}
-                aria-valuenow={saveProgress.done}
-                aria-label={`Saved ${saveProgress.done} of ${saveProgress.total} links`}
-              >
-                <div className="save-progress-track">
-                  <div
-                    className="save-progress-fill"
-                    style={{
-                      width: `${Math.min(
-                        100,
-                        Math.round(
-                          (saveProgress.done / saveProgress.total) * 100,
-                        ),
-                      )}%`,
-                    }}
+            {saveProgress.total > 1 || saveItems.length > 1 ? (
+              <>
+                <div className="saving-header">
+                  <LoadingState
+                    active
+                    variant="Drive"
+                    label={`Saving ${Math.min(saveProgress.done + 1, saveProgress.total || saveItems.length)} of ${saveProgress.total || saveItems.length}`}
                   />
                 </div>
-                <p className="save-progress-meta">
-                  {saveProgress.done} / {saveProgress.total}
-                </p>
+                <SaveTaskRows items={saveItems} />
+              </>
+            ) : (
+              <div className="saving-header saving-header--single">
+                <LoadingState active variant="Drive" label="Saving" />
               </div>
-            ) : null}
+            )}
             <button
               type="button"
               className="ghost-btn cancel-save-btn"
@@ -647,6 +661,7 @@ function App({ onClose }) {
                 void sendMessage({ type: "CANCEL_SAVE_JOB" }).then(() => {
                   setPhase("pick");
                   setSaveProgress({ done: 0, total: 0, failed: 0, skipped: 0 });
+                  setSaveItems([]);
                   setError("");
                 });
               }}
@@ -750,7 +765,9 @@ function App({ onClose }) {
 
             <div className="group-section">
               {groupsLoading ? (
-                <OrbStatus active label="Loading groups…" state="searching" />
+                <div className="saving-header saving-header--single">
+                  <LoadingState active variant="Dots" label="Loading groups" />
+                </div>
               ) : (
                 <>
                   <div className={`group-field ${dropdownOpen ? "open" : ""}`}>

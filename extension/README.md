@@ -8,7 +8,7 @@ React + webpack Chrome extension (Manifest V3) that opens an in-page save overla
 - Overlay stays on the page while you browse; save runs in the service worker
 - Saves to `POST /api/links` with page metadata when available
 - Choose an existing group or create one inline
-- Hover “Remember this link” opens the same overlay
+- Right-click a link → **Add to LK** to save that URL
 - Configurable app URL (⚙ in overlay; defaults to `http://localhost:3000`)
 
 ## Setup

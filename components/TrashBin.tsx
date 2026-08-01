@@ -39,16 +39,16 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
   };
 
   return (
-    <div ref={ref} className="mt-auto pt-4 border-t border-border/40">
+    <div ref={ref}>
       <Link
         href="/trash"
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`group/bin flex items-center gap-2.5 rounded-xl border border-transparent px-3 py-2.5 text-sm transition-[transform,background-color,border-color,color] duration-[160ms] ease-[var(--ease-out)]
+        className={`group/bin flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-1.5 text-[13px] transition-[transform,background-color,border-color,color] duration-[160ms] ease-[var(--ease-out)]
           ${isDragOver
             ? "border-red-500/40 bg-red-500/15 text-red-400 scale-[1.02]"
-            : "text-muted hover:text-foreground hover:bg-surface"
+            : "text-muted hover:text-foreground hover:bg-pill"
           }
           ${justReceived ? "animate-bin-receive" : ""}
         `}

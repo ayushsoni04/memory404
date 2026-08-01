@@ -36,6 +36,7 @@ type VaultFeedProps = {
   feedImageSizes: string;
   hasMoreLinks: boolean;
   sentinelRef: React.RefObject<HTMLDivElement | null>;
+  scrollRootRef: React.RefObject<HTMLDivElement | null>;
 };
 
 export default function VaultFeed({
@@ -58,13 +59,98 @@ export default function VaultFeed({
   feedImageSizes,
   hasMoreLinks,
   sentinelRef,
+  scrollRootRef,
 }: VaultFeedProps) {
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
 
+  const feedBody = !openedGroupId && groupsError ? (
+    <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted">
+      <p>Groups could not be loaded.</p>
+      <button
+        type="button"
+        onClick={() => void loadGroups()}
+        className="mt-2 text-foreground underline"
+      >
+        Retry
+      </button>
+    </div>
+  ) : !openedGroupId || loadingLinks ? (
+    <div className="mind-grid" data-grid-size={gridSize}>
+      {Array.from({ length: 12 }).map((_, i) => {
+        return (
+          <div key={i} className="mb-3 break-inside-avoid animate-pulse">
+            <div className="rounded-[4px] bg-surface-elevated p-[1px] border border-border/30">
+              <div className="w-full aspect-[16/10] rounded-[4px] bg-neutral-800/30" />
+            </div>
+            <div className="mt-2 px-0.5 space-y-1">
+              <div className="h-3.5 w-4/5 rounded bg-neutral-800/40" />
+              <div className="h-3 w-2/5 rounded bg-neutral-800/25" />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  ) : fetchError ? (
+    <div className="rounded-xl border border-border bg-surface p-6 text-sm text-danger">
+      <p>{fetchError}</p>
+      <button
+        type="button"
+        onClick={() => void loadLinks()}
+        className="mt-2 text-foreground underline"
+      >
+        Retry
+      </button>
+    </div>
+  ) : sortedLinks.length === 0 ? (
+    <PastePrompt
+      variant="empty"
+      groupId={addLinkGroupId}
+      saveLink={saveLink}
+      onSaved={onLinkSaved}
+    />
+  ) : (
+    <>
+      <FeedGrid gridSize={gridSize}>
+        <AddLinkCard
+          groupId={addLinkGroupId}
+          saveLink={saveLink}
+          onSaved={onLinkSaved}
+        />
+        {sortedLinks.map((link, index) => (
+          <LinkCard
+            key={link.id}
+            link={link}
+            entering={link.id === enteringLinkId}
+            onOpen={openLinkDetail}
+            priority={index < 2}
+            imageSizes={feedImageSizes}
+          />
+        ))}
+      </FeedGrid>
+      {hasMoreLinks && (
+        <div
+          ref={sentinelRef}
+          className="mt-8 flex w-full justify-center pb-12"
+          aria-hidden
+        >
+          <div className="h-8 w-8 animate-pulse rounded-full bg-neutral-800/40" />
+        </div>
+      )}
+      {!hasMoreLinks ? (
+        <PastePrompt
+          variant="end"
+          groupId={addLinkGroupId}
+          saveLink={saveLink}
+          onSaved={onLinkSaved}
+        />
+      ) : null}
+    </>
+  );
+
   return (
-    <main className="vault-enter relative z-30 flex min-w-0 flex-1 flex-col bg-background">
-      <header className="-me-[var(--layout-pad)] flex flex-col gap-y-2 pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4 lg:gap-y-2">
+    <main className="relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:h-dvh">
+      <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-2 pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4 lg:gap-y-2">
         <div className="flex flex-col gap-y-1 lg:min-w-0 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
           <h1 className="font-departure shrink-0 text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
             <MorphText>
@@ -88,92 +174,14 @@ export default function VaultFeed({
         </span>
       </header>
 
-      <div className="mt-3 flex flex-col gap-[var(--layout-gap-group)]">
-      {groupToolbar}
-
-      {!openedGroupId && groupsError ? (
-        <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted">
-          <p>Groups could not be loaded.</p>
-          <button
-            type="button"
-            onClick={() => void loadGroups()}
-            className="mt-2 text-foreground underline"
-          >
-            Retry
-          </button>
+      <div
+        ref={scrollRootRef}
+        className="mt-3 min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+      >
+        <div className="flex flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
+          {groupToolbar}
+          {feedBody}
         </div>
-      ) : !openedGroupId || loadingLinks ? (
-        <div className="mind-grid" data-grid-size={gridSize}>
-          {Array.from({ length: 12 }).map((_, i) => {
-            return (
-              <div key={i} className="mb-3 break-inside-avoid animate-pulse">
-                <div className="rounded-[4px] bg-surface-elevated p-[1px] border border-border/30">
-                  <div className="w-full aspect-[16/10] rounded-[4px] bg-neutral-800/30" />
-                </div>
-                <div className="mt-2 px-0.5 space-y-1">
-                  <div className="h-3.5 w-4/5 rounded bg-neutral-800/40" />
-                  <div className="h-3 w-2/5 rounded bg-neutral-800/25" />
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      ) : fetchError ? (
-        <div className="rounded-xl border border-border bg-surface p-6 text-sm text-danger">
-          <p>{fetchError}</p>
-          <button
-            type="button"
-            onClick={() => void loadLinks()}
-            className="mt-2 text-foreground underline"
-          >
-            Retry
-          </button>
-        </div>
-      ) : sortedLinks.length === 0 ? (
-        <PastePrompt
-          variant="empty"
-          groupId={addLinkGroupId}
-          saveLink={saveLink}
-          onSaved={onLinkSaved}
-        />
-      ) : (
-        <>
-          <FeedGrid gridSize={gridSize}>
-            <AddLinkCard
-              groupId={addLinkGroupId}
-              saveLink={saveLink}
-              onSaved={onLinkSaved}
-            />
-            {sortedLinks.map((link, index) => (
-              <LinkCard
-                key={link.id}
-                link={link}
-                entering={link.id === enteringLinkId}
-                onOpen={openLinkDetail}
-                priority={index < 2}
-                imageSizes={feedImageSizes}
-              />
-            ))}
-          </FeedGrid>
-          {hasMoreLinks && (
-            <div
-              ref={sentinelRef}
-              className="mt-8 flex w-full justify-center pb-12"
-              aria-hidden
-            >
-              <div className="h-8 w-8 animate-pulse rounded-full bg-neutral-800/40" />
-            </div>
-          )}
-          {!hasMoreLinks ? (
-            <PastePrompt
-              variant="end"
-              groupId={addLinkGroupId}
-              saveLink={saveLink}
-              onSaved={onLinkSaved}
-            />
-          ) : null}
-        </>
-      )}
       </div>
     </main>
   );

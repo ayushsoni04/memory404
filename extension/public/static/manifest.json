@@ -2,21 +2,13 @@
   "manifest_version": 3,
   "name": "memory404",
   "description": "Save current tab to memory404 groups.",
-  "version": "0.1.4",
+  "version": "0.1.6",
   "action": {
     "default_title": "Save Link"
   },
   "background": {
     "service_worker": "background.js"
   },
-  "content_scripts": [
-    {
-      "matches": ["http://*/*", "https://*/*"],
-      "js": ["remember-hover.js"],
-      "run_at": "document_idle",
-      "all_frames": false
-    }
-  ],
   "omnibox": {
     "keyword": "lk"
   },

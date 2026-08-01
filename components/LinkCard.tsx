@@ -2,6 +2,7 @@
 
 import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
+import DitheredPreview from "@/components/vault/DitheredPreview";
 import MindCardActions from "@/components/vault/MindCardActions";
 import {
   googleFaviconUrl,
@@ -104,28 +105,31 @@ function LinkCard({
           <span
             ref={previewRef}
             className="mind-card-preview relative block w-full overflow-hidden bg-surface"
-          >            {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
-            <img
-              key={`${link.id}-${resolvedImageUrl}`}
-              src={feedSrc}
-              srcSet={feedSrcSet}
-              sizes={feedSrcSet ? imageSizes : undefined}
-              alt={link.displayTitle}
-              loading={priority ? "eager" : "lazy"}
-              fetchPriority={priority ? "high" : "auto"}
-              referrerPolicy="no-referrer"
-              decoding="async"
-              draggable={false}
-              onLoad={() => setLoaded(true)}
-              className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
-                loaded ? "opacity-100" : "opacity-0"
-              } ${invert} ${showLoader ? "opacity-60" : ""}`}
-              onError={() => {
-                if (loginGated || fallbackUrl) return;
-                setFallbackUrl(googleFaviconUrl(link.url) ?? "");
-                setLoaded(false);
-              }}
-            />
+          >
+            <DitheredPreview>
+              {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
+              <img
+                key={`${link.id}-${resolvedImageUrl}`}
+                src={feedSrc}
+                srcSet={feedSrcSet}
+                sizes={feedSrcSet ? imageSizes : undefined}
+                alt={link.displayTitle}
+                loading={priority ? "eager" : "lazy"}
+                fetchPriority={priority ? "high" : "auto"}
+                referrerPolicy="no-referrer"
+                decoding="async"
+                draggable={false}
+                onLoad={() => setLoaded(true)}
+                className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
+                  loaded ? "opacity-100" : "opacity-0"
+                } ${invert} ${showLoader ? "opacity-60" : ""}`}
+                onError={() => {
+                  if (loginGated || fallbackUrl) return;
+                  setFallbackUrl(googleFaviconUrl(link.url) ?? "");
+                  setLoaded(false);
+                }}
+              />
+            </DitheredPreview>
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
             {faviconSrc ? (
               // eslint-disable-next-line @next/next/no-img-element -- small badge; native lazy

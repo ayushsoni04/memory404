@@ -1,14 +1,12 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
-import type { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import { copyTextToClipboard } from "./link-utils";
 import { writeLinksCacheToStorage } from "./storage";
 
 type UseLinkActionsDeps = {
-  router: AppRouterInstance;
   links: LinkApiRow[];
   setLinks: React.Dispatch<React.SetStateAction<LinkApiRow[]>>;
   openedGroupId: string | null;
@@ -20,7 +18,6 @@ type UseLinkActionsDeps = {
 };
 
 export function useLinkActions({
-  router,
   links,
   setLinks,
   openedGroupId,
@@ -123,9 +120,6 @@ export function useLinkActions({
         });
       }
       removeLinkFromPages(id);
-      setTimeout(() => {
-        router.push("/trash");
-      }, 400);
     } catch {
       setLinks(originalLinks);
       setDeleteErrors((prev) => ({
