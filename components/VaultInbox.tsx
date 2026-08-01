@@ -244,7 +244,6 @@ export default function VaultInbox({
               groupSearch={groupSearch}
               setGroupSearch={setGroupSearch}
               loadGroups={loadGroups}
-              onOpenPalette={() => setPaletteOpen(true)}
             />
           }
           openedGroupId={openedGroupId}

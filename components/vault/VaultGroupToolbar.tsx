@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, RotateCw, Search, X } from "lucide-react";
+import { Plus, RotateCw, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import GroupSearchCommand from "./GroupSearchCommand";
@@ -32,7 +32,6 @@ type VaultGroupToolbarProps = {
   groupSearch: string;
   setGroupSearch: (value: string) => void;
   loadGroups: () => Promise<unknown>;
-  onOpenPalette: () => void;
 };
 
 export default function VaultGroupToolbar({
@@ -60,7 +59,6 @@ export default function VaultGroupToolbar({
   groupSearch,
   setGroupSearch,
   loadGroups,
-  onOpenPalette,
 }: VaultGroupToolbarProps) {
   return (
     <div className="sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-4 bg-background pt-3 pb-4 pe-[var(--layout-pad)]">
@@ -238,15 +236,6 @@ export default function VaultGroupToolbar({
           placeholder="Search"
           className="hidden w-28 sm:block"
         />
-        <button
-          type="button"
-          onClick={onOpenPalette}
-          aria-label="Search everything"
-          title="Search everything (⌘K)"
-          className={`${pillIdle} justify-center px-2`}
-        >
-          <Search className="size-3.5" strokeWidth={2} aria-hidden />
-        </button>
         <button
           type="button"
           onClick={() => void loadGroups()}
