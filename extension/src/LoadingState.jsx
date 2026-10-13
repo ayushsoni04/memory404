@@ -22,8 +22,8 @@ function useElapsed(active) {
   const [ds, setDs] = useState(0);
   useEffect(() => {
     if (!active) {
-      setDs(0);
-      return;
+      const reset = window.setTimeout(() => setDs(0), 0);
+      return () => window.clearTimeout(reset);
     }
     const t = setInterval(() => setDs((d) => d + 1), 100);
     return () => clearInterval(t);

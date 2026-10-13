@@ -6,6 +6,7 @@ import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
+import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import { applyShellStroke, clearShellStroke } from "@/lib/card-vicinity-stroke";
 import { FIELD_CLASS } from "./types";
@@ -46,7 +47,7 @@ export default function PastePrompt({
     let finalLink = savedLink;
     if (notes.trim()) {
       try {
-        const res = await fetch(`/api/links/${savedLink.id}`, {
+        const res = await fetch(apiUrl(`/api/links/${savedLink.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ notes: notes.trim() }),
@@ -198,6 +199,7 @@ export default function PastePrompt({
                 ) : null}
               </div>
               <textarea
+                aria-label="Notes"
                 value={notes}
                 onChange={(e) => {
                   setNotes(e.target.value);

@@ -316,7 +316,7 @@ async function main() {
     else fail("overlay-survives-reinject");
 
     // --- Groups via tab page messaging to SW ---
-    const fetchGroups = await page.evaluate(
+    await page.evaluate(
       () =>
         new Promise((resolve) => {
           chrome.runtime.sendMessage({ type: "FETCH_GROUPS" }, resolve);

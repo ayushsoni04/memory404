@@ -124,7 +124,7 @@ function LinkCard({
                   loaded ? "opacity-100" : "opacity-0"
                 } ${invert} ${showLoader ? "opacity-60" : ""}`}
                 onError={() => {
-                  if (loginGated || fallbackUrl) return;
+                  if (loginGated || fallbackUrl !== null) return;
                   setFallbackUrl(googleFaviconUrl(link.url) ?? "");
                   setLoaded(false);
                 }}

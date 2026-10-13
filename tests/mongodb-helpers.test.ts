@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import test from "node:test";
+import { test } from "vitest";
 import { escapeMongoRegex } from "@/lib/db/mongodb";
 import { linkTextSearchWhere } from "@/lib/link-search";
 import {

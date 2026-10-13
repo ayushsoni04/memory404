@@ -17,7 +17,9 @@ export async function resolveBearerUserId(
     const payload = await decryptSession(token);
     if (!payload?.userId) return null;
     const user = await findUserById(payload.userId);
-    return user?.id ?? null;
+    if (!user) return null;
+    if ((user.sessionVersion ?? 0) !== payload.sessionVersion) return null;
+    return user.id;
   } catch (e) {
     console.error("resolveBearerUserId:", e);
     return null;

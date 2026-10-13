@@ -6,14 +6,8 @@ import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
+import { safeRedirectPath } from "@/lib/safe-redirect";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
-
-function safeRedirectPath(raw: string | null): string {
-  if (!raw || !raw.startsWith("/") || raw.startsWith("//") || raw.startsWith("/\\")) {
-    return "/";
-  }
-  return raw;
-}
 
 export function SignupForm() {
   const searchParams = useSearchParams();
@@ -106,28 +100,35 @@ export function SignupForm() {
           />
         </label>
 
-        <label className="block space-y-1.5">
-          <span className="text-[11px] font-medium text-muted">Password</span>
+        <div className="space-y-1.5">
+          <label htmlFor="signup-password" className="block text-[11px] font-medium text-muted">
+            Password
+          </label>
           <div className="relative">
             <input
+              id="signup-password"
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="new-password"
+              aria-describedby="signup-password-hint"
               className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 pr-10 text-sm text-foreground outline-none focus:border-foreground/30 transition"
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
               className="absolute right-3 top-2.5 text-subtle hover:text-foreground cursor-pointer"
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
           </div>
-          <span className="block text-[10px] text-subtle">{PASSWORD_HINT}</span>
-        </label>
+          <p id="signup-password-hint" className="text-[10px] text-subtle">
+            {PASSWORD_HINT}
+          </p>
+        </div>
 
         <label className="block space-y-1.5">
           <span className="text-[11px] font-medium text-muted">How did you hear about us? <span className="text-subtle">(optional)</span></span>

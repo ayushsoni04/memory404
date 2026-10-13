@@ -27,6 +27,7 @@ type Props = {
   onMove: (link: LinkApiRow, groupId: string) => void;
   hasPrev: boolean;
   hasNext: boolean;
+  actionError?: string | null;
 };
 
 type Rect = {
@@ -89,6 +90,7 @@ export default function LinkDetailOverlay({
   onMove,
   hasPrev,
   hasNext,
+  actionError = null,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -143,7 +145,7 @@ export default function LinkDetailOverlay({
         clearProps: "left,top,width,height",
       });
     }
-    setFlyVisible(false);
+    queueMicrotask(() => setFlyVisible(false));
   }, []);
 
   const animateClose = useCallback(
@@ -254,11 +256,34 @@ export default function LinkDetailOverlay({
     window.addEventListener("keydown", onKey);
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
+    const root = rootRef.current;
+    const closeButton = root?.querySelector<HTMLElement>("[data-overlay-close]");
+    closeButton?.focus();
+    const trapTab = (event: KeyboardEvent) => {
+      if (event.key !== "Tab" || !root) return;
+      const focusable = Array.from(
+        root.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null || el === document.activeElement);
+      if (focusable.length === 0) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    root?.addEventListener("keydown", trapTab);
     return () => {
       window.removeEventListener("keydown", onKey);
+      root?.removeEventListener("keydown", trapTab);
       document.body.style.overflow = prevOverflow;
     };
-  }, [animateClose, hasPrev, hasNext, onPrev, onNext]);
+  }, [animateClose, hasPrev, hasNext, onPrev, onNext, link.id]);
 
   useLayoutEffect(() => {
     const backdrop = backdropRef.current;
@@ -314,7 +339,7 @@ export default function LinkDetailOverlay({
 
     if (reduceMotion || !origin) {
       gsap.set(stage, { opacity: 0 });
-      setFlyVisible(false);
+      queueMicrotask(() => setFlyVisible(false));
       tl.to(backdrop, { opacity: 1, duration: morphDuration(0.2) }, 0)
         .to(stage, { opacity: 1, duration: morphDuration(0.2) }, morphDuration(0.02))
         .to(chrome, { opacity: 1, duration: morphDuration(0.18) }, morphDuration(0.04))
@@ -335,7 +360,7 @@ export default function LinkDetailOverlay({
     }
 
     // Shared-element open: single FLIP scale morph (GPU), ease-in-out @ 1.25×.
-    setFlyVisible(true);
+    queueMicrotask(() => setFlyVisible(true));
     gsap.set(stage, { opacity: 0 });
 
     const runOpen = () => {
@@ -416,7 +441,7 @@ export default function LinkDetailOverlay({
       className="mind-overlay fixed inset-0 z-[200] flex"
       role="dialog"
       aria-modal="true"
-      aria-label={link.displayTitle}
+      aria-labelledby="link-detail-title"
     >
       <div
         ref={backdropRef}
@@ -454,6 +479,7 @@ export default function LinkDetailOverlay({
             type="button"
             onClick={() => animateClose()}
             className="flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 hover:text-foreground"
+            data-overlay-close=""
             aria-label="Close"
           >
             ×
@@ -507,9 +533,17 @@ export default function LinkDetailOverlay({
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
               <div className="min-w-0 flex-1">
-                <h2 className="font-departure text-[22px] leading-tight font-semibold tracking-wide text-foreground uppercase">
+                <h2
+                  id="link-detail-title"
+                  className="font-departure text-[22px] leading-tight font-semibold tracking-wide text-foreground uppercase"
+                >
                   {link.displayTitle}
                 </h2>
+                {actionError ? (
+                  <p className="mt-2 text-[13px] text-danger" role="alert">
+                    {actionError}
+                  </p>
+                ) : null}
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <div className="flex items-center gap-2">

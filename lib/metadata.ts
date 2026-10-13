@@ -1,5 +1,8 @@
 import { load, type CheerioAPI } from "cheerio";
 import { applyProviderMetadata } from "@/lib/link-providers";
+import { fetchPublicUrl, isPublicHttpUrlForFetch } from "@/lib/safe-url";
+
+export { isPublicHttpUrlForFetch };
 
 const FETCH_TIMEOUT_MS = 5_000;
 const MAX_HTML_BYTES = 900_000;
@@ -248,31 +251,16 @@ function pickTitle(
   return fallbackTitle;
 }
 
-/** Block obvious SSRF targets (localhost). */
-export function isPublicHttpUrlForFetch(urlString: string): boolean {
-  try {
-    const u = new URL(urlString.trim());
-    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
-    const host = u.hostname.toLowerCase();
-    if (host === "localhost" || host === "127.0.0.1" || host === "::1")
-      return false;
-    return true;
-  } catch {
-    return false;
-  }
-}
-
 /**
  * Fetches page HTML with timeout and a real browser User-Agent.
+ * Redirects are followed only while each hop stays on a public http(s) host.
  */
 export async function fetchPageHtml(url: string): Promise<string | null> {
-  const controller = new AbortController();
-  const t = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+  if (!isPublicHttpUrlForFetch(url)) return null;
   try {
-    const res = await fetch(url, {
+    const res = await fetchPublicUrl(url, {
       method: "GET",
-      redirect: "follow",
-      signal: controller.signal,
+      timeoutMs: FETCH_TIMEOUT_MS,
       headers: {
         Accept:
           "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
@@ -291,8 +279,6 @@ export async function fetchPageHtml(url: string): Promise<string | null> {
     return new TextDecoder("utf-8", { fatal: false }).decode(slice);
   } catch {
     return null;
-  } finally {
-    clearTimeout(t);
   }
 }
 

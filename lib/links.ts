@@ -174,6 +174,12 @@ export function linkToApiRow(link: {
   };
 }
 
+export function duplicateLinkMessage(inTrash: boolean): string {
+  return inTrash
+    ? "This URL is in Trash. Restore it to save it again."
+    : "A link with this URL already exists.";
+}
+
 export function isValidHttpUrl(urlString: string): boolean {
   try {
     const u = new URL(urlString.trim());

@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
+import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
 import { getMongoEnvError } from "@/lib/db/mongodb";
 import { findUserById, updateUserPassword } from "@/lib/db/repositories";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { getPasswordRequirementIssues } from "@/lib/password-policy";
+import { rateLimit } from "@/lib/rate-limit";
+import { attachSessionCookie } from "@/lib/session";
 
 export const runtime = "nodejs";
 
@@ -13,6 +16,9 @@ type Body = {
 };
 
 export async function POST(request: Request) {
+  const limited = enforceAuthRateLimit(request, "change-password", 5);
+  if (limited) return limited;
+
   const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
@@ -20,6 +26,14 @@ export async function POST(request: Request) {
 
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;
+
+  const byUser = rateLimit(`auth:change-password:${auth.id}`, 5, 60_000);
+  if (!byUser.ok) {
+    return NextResponse.json(
+      { error: "Too many requests. Try again shortly." },
+      { status: 429, headers: { "Retry-After": "60" } },
+    );
+  }
 
   let body: Body;
   try {
@@ -62,8 +76,9 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hashPassword(newPassword);
-    await updateUserPassword(auth.id, passwordHash);
-    return NextResponse.json({ ok: true });
+    const sessionVersion = await updateUserPassword(auth.id, passwordHash);
+    const response = NextResponse.json({ ok: true });
+    return attachSessionCookie(response, auth.id, sessionVersion);
   } catch (e) {
     console.error("POST /api/me/password:", e);
     return NextResponse.json({ error: "Failed to change password" }, { status: 500 });

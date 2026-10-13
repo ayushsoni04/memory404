@@ -8,6 +8,7 @@ import {
   getMongoEnvError,
   pingMongo,
 } from "@/lib/db/mongodb";
+import { isAllowedCorsOrigin } from "@/lib/cors-origin";
 import { groupsRouter } from "./routes/groups.js";
 import { linksRouter } from "./routes/links.js";
 
@@ -40,11 +41,11 @@ const allowedOrigins = [
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin) return callback(null, true);
-      if (allowedOrigins.includes(origin)) return callback(null, true);
-      if (origin.startsWith("chrome-extension://")) return callback(null, true);
-      if (origin.endsWith(".vercel.app")) return callback(null, true);
-      callback(null, true);
+      if (isAllowedCorsOrigin(origin, allowedOrigins)) {
+        callback(null, true);
+        return;
+      }
+      callback(null, false);
     },
     credentials: true,
   }),

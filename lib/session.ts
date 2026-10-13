@@ -5,7 +5,7 @@ import type { NextResponse } from "next/server";
 export const SESSION_COOKIE_NAME = "m404_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 24 * 14; // 14 days
 
-export type SessionPayload = { userId: string };
+export type SessionPayload = { userId: string; sessionVersion: number };
 
 function getSecretKey(): Uint8Array {
   const secret = process.env.SESSION_SECRET;
@@ -23,8 +23,11 @@ function sessionCookieOptions() {
   };
 }
 
-export async function encryptSession(payload: SessionPayload): Promise<string> {
-  return new SignJWT(payload)
+export async function encryptSession(
+  userId: string,
+  sessionVersion = 0,
+): Promise<string> {
+  return new SignJWT({ userId, sv: sessionVersion })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(`${SESSION_DURATION_SECONDS}s`)
@@ -38,15 +41,24 @@ export async function decryptSession(token: string): Promise<SessionPayload | nu
       algorithms: ["HS256"],
     });
     if (typeof payload.userId !== "string") return null;
-    return { userId: payload.userId };
+    const sessionVersion =
+      typeof payload.sv === "number" &&
+      Number.isInteger(payload.sv) &&
+      payload.sv >= 0
+        ? payload.sv
+        : 0;
+    return { userId: payload.userId, sessionVersion };
   } catch {
     return null;
   }
 }
 
 /** Route Handlers / Server Components only — sets the session cookie. */
-export async function createSession(userId: string): Promise<void> {
-  const token = await encryptSession({ userId });
+export async function createSession(
+  userId: string,
+  sessionVersion = 0,
+): Promise<void> {
+  const token = await encryptSession(userId, sessionVersion);
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());
 }
@@ -55,8 +67,9 @@ export async function createSession(userId: string): Promise<void> {
 export async function attachSessionCookie(
   response: NextResponse,
   userId: string,
+  sessionVersion = 0,
 ): Promise<NextResponse> {
-  const token = await encryptSession({ userId });
+  const token = await encryptSession(userId, sessionVersion);
   response.cookies.set(SESSION_COOKIE_NAME, token, sessionCookieOptions());
   return response;
 }
@@ -65,8 +78,11 @@ export async function attachSessionCookie(
  * Issues a session JWT for non-cookie clients (Chrome extension / Express).
  * Same payload and lifetime as the httpOnly cookie.
  */
-export async function issueSessionToken(userId: string): Promise<string> {
-  return encryptSession({ userId });
+export async function issueSessionToken(
+  userId: string,
+  sessionVersion = 0,
+): Promise<string> {
+  return encryptSession(userId, sessionVersion);
 }
 
 /** Route Handlers / Server Components only — resolves the current session, if any. */

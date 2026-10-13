@@ -112,10 +112,16 @@ export function useVaultGroups(
   const filteredFolders = useMemo(() => {
     const q = groupSearch.trim().toLowerCase();
     if (!q) return folderGroups;
-    return folderGroups.filter((group) =>
+    const matched = folderGroups.filter((group) =>
       group.name.toLowerCase().includes(q),
     );
-  }, [folderGroups, groupSearch]);
+    if (!openedGroupId || openedGroupId === "all") return matched;
+    const open = folderGroups.find((group) => group.id === openedGroupId);
+    if (open && !matched.some((group) => group.id === open.id)) {
+      return [open, ...matched];
+    }
+    return matched;
+  }, [folderGroups, groupSearch, openedGroupId]);
 
   const createGroup = async () => {
     const name = createGroupName.trim();

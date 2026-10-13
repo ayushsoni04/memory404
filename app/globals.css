@@ -1037,6 +1037,10 @@ pre,
   transition: opacity 150ms ease;
 }
 
+.group-pill-delete {
+  opacity: 0;
+}
+
 .trash-row {
   opacity: 1;
   transform: translateY(0);
@@ -1057,7 +1061,8 @@ pre,
 }
 
 @media (hover: none), (pointer: coarse) {
-  .trash-card-actions {
+  .trash-card-actions,
+  .group-pill-delete {
     opacity: 1;
   }
 }

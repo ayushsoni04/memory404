@@ -84,14 +84,15 @@ export function SwapPreview({
 
   useEffect(() => {
     if (!running) {
-      setShowingTo(false);
+      const id = window.setTimeout(() => setShowingTo(false), 0);
+      return () => window.clearTimeout(id);
     }
   }, [running]);
 
   useEffect(() => {
     if (!debug || !boxRef.current) {
-      setJumpPx(0);
-      return;
+      const id = window.setTimeout(() => setJumpPx(0), 0);
+      return () => window.clearTimeout(id);
     }
     const el = boxRef.current;
     const before = el.getBoundingClientRect();

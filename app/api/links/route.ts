@@ -19,7 +19,8 @@ import {
   isGeneralName,
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
-import { isValidHttpUrl, linkToApiRow } from "@/lib/links";
+import { duplicateLinkMessage, isValidHttpUrl, linkToApiRow } from "@/lib/links";
+import { isPublicHttpUrlForFetch } from "@/lib/safe-url";
 import {
   decodeLinkCursor,
   LINKS_PAGE_MAX,
@@ -132,14 +133,13 @@ export async function GET(request: Request) {
     });
   } catch (e) {
     console.error("GET /api/links:", e);
-    const hint = e instanceof Error ? e.message : undefined;
-    return NextResponse.json(
-      {
-        error: "Could not load links from the database.",
-        hint,
-      },
-      { status: 500 },
-    );
+    const body: { error: string; hint?: string } = {
+      error: "Could not load links from the database.",
+    };
+    if (process.env.NODE_ENV !== "production" && e instanceof Error) {
+      body.hint = e.message;
+    }
+    return NextResponse.json(body, { status: 500 });
   }
 }
 
@@ -258,7 +258,7 @@ export async function POST(request: Request) {
     if (existing) {
       return NextResponse.json(
         {
-          error: "A link with this URL already exists.",
+          error: duplicateLinkMessage(existing.deletedAt != null),
           existingId: existing.id,
           link: linkToApiRow(existing),
         },
@@ -282,10 +282,12 @@ export async function POST(request: Request) {
       typeof body.description === "string" && body.description.trim()
         ? body.description.trim()
         : null;
-    const imageUrlFromPayload =
+    const rawImageUrl =
       typeof body.imageUrl === "string" && body.imageUrl.trim()
         ? body.imageUrl.trim()
         : null;
+    const imageUrlFromPayload =
+      rawImageUrl && isPublicHttpUrlForFetch(rawImageUrl) ? rawImageUrl : null;
 
     let imageUrl = imageUrlFromPayload;
     if (imageUrl) {

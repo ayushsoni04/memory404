@@ -17,10 +17,11 @@ export function ToolbarSandbox({ config, onChange, width, label }: Props) {
   const orderRef = useRef(order);
   const [osReducedMotion, setOsReducedMotion] = useState(false);
 
-  useEffect(() => {
+  const [groupsSnapshot, setGroupsSnapshot] = useState(config.groups);
+  if (groupsSnapshot !== config.groups) {
+    setGroupsSnapshot(config.groups);
     setOrder(config.groups);
-    orderRef.current = config.groups;
-  }, [config.groups]);
+  }
 
   useEffect(() => {
     orderRef.current = order;

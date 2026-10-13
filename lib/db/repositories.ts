@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hashResetToken } from "@/lib/reset-token";
 import type {
   ClientSession,
   Filter,
@@ -50,6 +51,7 @@ export async function createUserWithPassword(input: {
     passwordHash: input.passwordHash,
     resetToken: null,
     resetTokenExpiresAt: null,
+    sessionVersion: 0,
     leadSource: input.leadSource ?? null,
     utm: input.utm ?? null,
     createdAt: new Date(),
@@ -87,6 +89,7 @@ export async function ensureDemoUser(id: string, email: string): Promise<UserRow
     passwordHash: null,
     resetToken: null,
     resetTokenExpiresAt: null,
+    sessionVersion: 0,
     leadSource: null,
     utm: null,
     createdAt: new Date(),
@@ -114,14 +117,20 @@ export async function setPasswordResetToken(
   const { users } = await getCollections();
   await users.updateOne(
     { _id: userId },
-    { $set: { resetToken: token, resetTokenExpiresAt: expiresAt } },
+    {
+      $set: {
+        resetToken: hashResetToken(token),
+        resetTokenExpiresAt: expiresAt,
+      },
+    },
   );
 }
 
 export async function findUserByValidResetToken(token: string): Promise<UserRow | null> {
   const { users } = await getCollections();
+  const hashed = hashResetToken(token);
   const document = await users.findOne({
-    resetToken: token,
+    resetToken: { $in: [hashed, token] },
     resetTokenExpiresAt: { $gt: new Date() },
   });
   return document ? userDocumentToRow(document) : null;
@@ -130,15 +139,18 @@ export async function findUserByValidResetToken(token: string): Promise<UserRow 
 export async function updateUserPassword(
   userId: string,
   passwordHash: string,
-): Promise<void> {
+): Promise<number> {
   const { users } = await getCollections();
-  await users.updateOne(
+  const updated = await users.findOneAndUpdate(
     { _id: userId },
     {
       $set: { passwordHash },
+      $inc: { sessionVersion: 1 },
       $unset: { resetToken: "", resetTokenExpiresAt: "" },
     },
+    { returnDocument: "after", projection: { sessionVersion: 1 } },
   );
+  return updated?.sessionVersion ?? 1;
 }
 
 export type UserProfileUpdate = {
