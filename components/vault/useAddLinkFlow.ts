@@ -52,8 +52,6 @@ export function useAddLinkFlow({
 
   const [sidebarShowNotesForm, setSidebarShowNotesForm] = useState(false);
   const [sidebarNotesText, setSidebarNotesText] = useState("");
-  const [sidebarCountdown, setSidebarCountdown] = useState(5);
-  const [sidebarTimerActive, setSidebarTimerActive] = useState(false);
   const [sidebarSavedLinkId, setSidebarSavedLinkId] = useState<string | null>(
     null,
   );
@@ -69,7 +67,6 @@ export function useAddLinkFlow({
   }, []);
 
   const finishSidebarNotesFlow = useCallback(async () => {
-    setSidebarTimerActive(false);
     const linkId = sidebarSavedLinkId;
     const txt = sidebarNotesText.trim();
     if (linkId && txt) {
@@ -115,20 +112,6 @@ export function useAddLinkFlow({
     setLinksCache,
     resetSaveForm,
   ]);
-
-  useEffect(() => {
-    if (!sidebarTimerActive || sidebarCountdown <= 0) {
-      if (sidebarTimerActive && sidebarCountdown === 0) {
-        void finishSidebarNotesFlow();
-      }
-      return;
-    }
-    const timer = setTimeout(() => {
-      setSidebarCountdown((prev) => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sidebarCountdown, sidebarTimerActive]);
 
   const handlePasteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,8 +196,6 @@ export function useAddLinkFlow({
 
         await new Promise((resolve) => setTimeout(resolve, 400));
 
-        setSidebarCountdown(5);
-        setSidebarTimerActive(true);
         setSidebarShowNotesForm(true);
       } catch {
         setLinks(originalLinks);
@@ -342,8 +323,6 @@ export function useAddLinkFlow({
 
       await new Promise((resolve) => setTimeout(resolve, 400));
 
-      setSidebarCountdown(5);
-      setSidebarTimerActive(true);
       setSidebarShowNotesForm(true);
     } catch {
       if (groupId === openedGroupId && !trimmedNew) {
@@ -354,19 +333,21 @@ export function useAddLinkFlow({
   };
 
   const pasteActionRef = useRef<(url: string) => void>(() => {});
-  pasteActionRef.current = (url: string) => {
-    urlRef.current = url;
-    setUrlInput(url);
-    setSaveError(null);
-    if (!openedGroupId || openedGroupId === "all") {
-      setPlaceGroupId(null);
-      setCreatingNewGroup(false);
-      setNewGroupNameDraft("");
-      setSavePhase("place");
-      return;
-    }
-    void handlePasteSubmit({ preventDefault() {} } as React.FormEvent);
-  };
+  useEffect(() => {
+    pasteActionRef.current = (url: string) => {
+      urlRef.current = url;
+      setUrlInput(url);
+      setSaveError(null);
+      if (!openedGroupId || openedGroupId === "all") {
+        setPlaceGroupId(null);
+        setCreatingNewGroup(false);
+        setNewGroupNameDraft("");
+        setSavePhase("place");
+        return;
+      }
+      void handlePasteSubmit({ preventDefault() {} } as React.FormEvent);
+    };
+  });
 
   useEffect(() => {
     const onPaste = (event: ClipboardEvent) => {
@@ -414,9 +395,6 @@ export function useAddLinkFlow({
     sidebarShowNotesForm,
     sidebarNotesText,
     setSidebarNotesText,
-    sidebarCountdown,
-    sidebarTimerActive,
-    setSidebarTimerActive,
     sidebarSavedLinkId,
     handleSubmit,
     finishSidebarNotesFlow,

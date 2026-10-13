@@ -156,6 +156,11 @@ function LinkCard({
       <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
         {link.displayTitle}
       </p>
+      {link.notes ? (
+        <p className="mt-0.5 line-clamp-2 px-0.5 text-[12px] leading-snug text-subtle">
+          {link.notes}
+        </p>
+      ) : null}
       {showLoader ? (
         <p className="mt-0.5 px-0.5 text-[11px] text-subtle">
           Capturing screenshot…

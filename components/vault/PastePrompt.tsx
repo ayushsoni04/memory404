@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -40,15 +40,12 @@ export default function PastePrompt({
   const [phase, setPhase] = useState<Phase>("idle");
   const [error, setError] = useState<string | null>(null);
   const [notes, setNotes] = useState("");
-  const [countdown, setCountdown] = useState(5);
-  const [timerActive, setTimerActive] = useState(false);
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
 
   const finishFlow = useCallback(async () => {
     if (!savedLink) return;
-    setTimerActive(false);
     let finalLink = savedLink;
     if (notes.trim()) {
       try {
@@ -72,20 +69,6 @@ export default function PastePrompt({
     setPhase("idle");
     setError(null);
   }, [notes, onSaved, savedLink]);
-
-  useEffect(() => {
-    if (!timerActive || countdown <= 0) {
-      if (timerActive && countdown === 0) {
-        const timer = window.setTimeout(() => void finishFlow(), 0);
-        return () => window.clearTimeout(timer);
-      }
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, finishFlow, timerActive]);
 
   const submit = async () => {
     const trimmed = url.trim();
@@ -117,8 +100,6 @@ export default function PastePrompt({
 
       if (gen === saveGen.current) {
         setUrl("");
-        setCountdown(5);
-        setTimerActive(true);
         setPhase("notes");
       }
     } catch {
@@ -186,32 +167,13 @@ export default function PastePrompt({
           ) : phase === "notes" ? (
             <div className="relative z-[2] flex w-full flex-col gap-2">
               <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted">
-                  <MorphText duration={220}>
-                    {timerActive
-                      ? `Add notes (auto-done in ${countdown}s)`
-                      : "Add notes"}
-                  </MorphText>
-                </span>
-                {timerActive ? (
-                  <button
-                    type="button"
-                    onClick={() => setTimerActive(false)}
-                    className="text-[11px] text-muted hover:underline"
-                  >
-                    Pause
-                  </button>
-                ) : null}
+                <span className="text-[11px] text-muted">Add a note</span>
               </div>
               <textarea
                 aria-label="Notes"
                 value={notes}
-                onChange={(e) => {
-                  setNotes(e.target.value);
-                  setTimerActive(false);
-                }}
-                onFocus={() => setTimerActive(false)}
-                placeholder="Add optional notes here..."
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder="What should you remember?"
                 rows={2}
                 className={`${FIELD_CLASS} resize-none`}
               />

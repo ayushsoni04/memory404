@@ -122,9 +122,6 @@ export default function VaultInbox({
     sidebarShowNotesForm,
     sidebarNotesText,
     setSidebarNotesText,
-    sidebarCountdown,
-    sidebarTimerActive,
-    setSidebarTimerActive,
     sidebarSavedLinkId,
     handleSubmit,
     finishSidebarNotesFlow,
@@ -135,6 +132,7 @@ export default function VaultInbox({
     openedLinkIndex,
     overlayOrigin,
     openLinkDetail,
+    updateSavedLink,
     closeLinkDetail,
     goPrevLink,
     goNextLink,
@@ -194,9 +192,6 @@ export default function VaultInbox({
         sidebarShowNotesForm={sidebarShowNotesForm}
         sidebarNotesText={sidebarNotesText}
         setSidebarNotesText={setSidebarNotesText}
-        sidebarCountdown={sidebarCountdown}
-        sidebarTimerActive={sidebarTimerActive}
-        setSidebarTimerActive={setSidebarTimerActive}
         finishSidebarNotesFlow={() => void finishSidebarNotesFlow()}
         saving={saving}
         saveSuccess={saveSuccess}
@@ -311,6 +306,7 @@ export default function VaultInbox({
               ? (deleteErrors[openedLink.id] ?? patchErrors[openedLink.id] ?? null)
               : null
           }
+          onNotesSaved={updateSavedLink}
         />
       ) : null}
 
