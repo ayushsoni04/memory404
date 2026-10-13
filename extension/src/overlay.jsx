@@ -156,8 +156,11 @@ function App({ onClose }) {
   });
   const [saveItems, setSaveItems] = useState([]);
   const inputRef = useRef(null);
-  const dismissTimer = useRef(0);
   const phaseRef = useRef(phase);
+  const [noteDraft, setNoteDraft] = useState("");
+  const [noteSaving, setNoteSaving] = useState(false);
+  const [noteSaved, setNoteSaved] = useState(false);
+  const [noteError, setNoteError] = useState("");
 
   phaseRef.current = phase;
 
@@ -329,17 +332,11 @@ function App({ onClose }) {
   }, [jobSetters]);
 
   useEffect(() => {
-    if (phase !== "saved") {
-      if (dismissTimer.current) window.clearTimeout(dismissTimer.current);
-      return;
-    }
-    dismissTimer.current = window.setTimeout(() => {
-      onClose?.();
-    }, 4500);
-    return () => {
-      if (dismissTimer.current) window.clearTimeout(dismissTimer.current);
-    };
-  }, [phase, onClose]);
+    setNoteDraft("");
+    setNoteSaving(false);
+    setNoteSaved(false);
+    setNoteError("");
+  }, [linkId]);
 
   const filteredGroups = useMemo(() => {
     const q = groupQuery.trim().toLowerCase();
@@ -498,12 +495,35 @@ function App({ onClose }) {
       }
       if (res.job) applyJobToState(res.job, jobSetters);
       setPendingRememberUrl(null);
+      setNoteDraft("");
+      setNoteSaved(false);
+      setNoteError("");
     } catch (e) {
       setPhase("error");
       setSaveProgress({ done: 0, total: 0, failed: 0, skipped: 0 });
       setSaveItems([]);
       setError(e instanceof Error ? e.message : "Failed to save");
     }
+  };
+
+  const canAddNote = phase === "saved" && linkId && linkId !== "multiple";
+
+  const saveNote = async () => {
+    const notes = noteDraft.trim();
+    if (!canAddNote || !notes) return;
+    setNoteSaving(true);
+    setNoteError("");
+    const res = await sendMessage({
+      type: "SAVE_LINK_NOTE",
+      linkId,
+      notes,
+    });
+    setNoteSaving(false);
+    if (!res?.ok) {
+      setNoteError(res?.error || "Could not save the note");
+      return;
+    }
+    setNoteSaved(true);
   };
 
   const pickGroup = (g) => {
@@ -907,6 +927,40 @@ function App({ onClose }) {
                             ? `${highlightedTabs.length} links saved`
                             : "Tab group saved"}
                     </p>
+                  ) : null}
+
+                  {canAddNote ? (
+                    noteSaved ? (
+                      <p className="assign-note">Note saved</p>
+                    ) : (
+                      <div className="note-field">
+                        <label className="field-label" htmlFor="m404-save-note">
+                          Add a note
+                        </label>
+                        <textarea
+                          id="m404-save-note"
+                          className="note-input"
+                          rows={2}
+                          value={noteDraft}
+                          placeholder="What should you remember?"
+                          onChange={(e) => {
+                            setNoteDraft(e.target.value);
+                            setNoteError("");
+                          }}
+                        />
+                        {noteDraft.trim() ? (
+                          <button
+                            type="button"
+                            className="save-btn"
+                            disabled={noteSaving}
+                            onClick={() => void saveNote()}
+                          >
+                            {noteSaving ? "Saving…" : "Save note"}
+                          </button>
+                        ) : null}
+                        {noteError ? <p className="field-error">{noteError}</p> : null}
+                      </div>
+                    )
                   ) : null}
 
                   {error ? <p className="field-error">{error}</p> : null}

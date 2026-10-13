@@ -1198,6 +1198,63 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 
+  if (message.type === "SAVE_LINK_NOTE") {
+    void (async () => {
+      try {
+        const linkId =
+          typeof message.linkId === "string" ? message.linkId.trim() : "";
+        const notes =
+          typeof message.notes === "string" ? message.notes.trim() : "";
+        if (!linkId || linkId === "multiple") {
+          sendResponse({ ok: false, error: "Save one link before adding a note" });
+          return;
+        }
+        if (!notes) {
+          sendResponse({ ok: true });
+          return;
+        }
+        const apiBase = await getApiBase();
+        const token = await getAuthToken();
+        if (!token) {
+          sendResponse({ ok: false, error: "Sign in to memory404 to save links" });
+          return;
+        }
+        const res = await fetchWithTimeout(
+          `${apiBase}/api/links/${encodeURIComponent(linkId)}`,
+          {
+            method: "PATCH",
+            headers: await authHeaders({ "Content-Type": "application/json" }),
+            body: JSON.stringify({ notes }),
+          },
+        );
+        const data = await withTimeout(
+          res.json().catch(() => ({})),
+          5_000,
+          "Note response",
+        );
+        if (res.status === 401) {
+          await handleAuthFailure(401);
+          sendResponse({ ok: false, error: "Session expired — sign in again" });
+          return;
+        }
+        if (!res.ok) {
+          sendResponse({
+            ok: false,
+            error: data?.error || "Could not save the note",
+          });
+          return;
+        }
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Could not save the note",
+        });
+      }
+    })();
+    return true;
+  }
+
   if (message.type === "CLOSE_OVERLAY") {
     void (async () => {
       const tabId = message.tabId ?? sender.tab?.id ?? null;

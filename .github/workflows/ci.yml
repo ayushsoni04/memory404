@@ -28,6 +28,7 @@ jobs:
       - run: node --check extension/dist/overlay.js
       - run: npx playwright install --with-deps chromium
       - run: xvfb-run -a node scripts/smoke-extension.mjs
+      - run: xvfb-run -a node scripts/smoke-extension-note.mjs
       - run: npm run test:e2e
         env:
           CI: true
