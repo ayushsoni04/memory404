@@ -3,9 +3,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
+import { playUiSound } from "@/lib/ui-sound";
 import { copyTextToClipboard } from "./link-utils";
 import { cacheAfterMove, linkStaysInOpenGroup } from "./move-link";
 import { writeLinksCacheToStorage } from "./storage";
+import {
+  cacheWithLink,
+  deleteUndoMessage,
+  moveUndoMessage,
+  UNDO_MS,
+  type UndoNoticeModel,
+} from "./undo-offer";
 
 type UseLinkActionsDeps = {
   links: LinkApiRow[];
@@ -16,8 +24,10 @@ type UseLinkActionsDeps = {
   >;
   removeLinkFromPages: (id: string) => void;
   replaceLinkInPages: (link: LinkApiRow) => void;
+  prependLinkToPages: (link: LinkApiRow) => void;
   loadGroups?: () => Promise<unknown>;
   sortedLinks: LinkApiRow[];
+  groupLabel?: (groupId: string) => string;
 };
 
 export function useLinkActions({
@@ -27,8 +37,10 @@ export function useLinkActions({
   setLinksCache,
   removeLinkFromPages,
   replaceLinkInPages,
+  prependLinkToPages,
   loadGroups,
   sortedLinks,
+  groupLabel = () => "that group",
 }: UseLinkActionsDeps) {
   const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
   const [patchErrors, setPatchErrors] = useState<Record<string, string>>({});
@@ -37,7 +49,74 @@ export function useLinkActions({
 
   const [openedLink, setOpenedLink] = useState<LinkApiRow | null>(null);
   const [overlayOrigin, setOverlayOrigin] = useState<DOMRect | null>(null);
+  const [undoNotice, setUndoNotice] = useState<UndoNoticeModel | null>(null);
+  const undoToken = useRef(0);
+  const undoTimer = useRef<number | null>(null);
+  const openedGroupIdRef = useRef(openedGroupId);
+  const linksRef = useRef(links);
   const returnFocusId = useRef<string | null>(null);
+
+  useEffect(() => {
+    openedGroupIdRef.current = openedGroupId;
+    linksRef.current = links;
+  }, [openedGroupId, links]);
+
+  const clearUndoTimer = () => {
+    if (undoTimer.current !== null) {
+      window.clearTimeout(undoTimer.current);
+      undoTimer.current = null;
+    }
+  };
+
+  useEffect(() => () => clearUndoTimer(), []);
+
+  const dismissUndo = useCallback(() => {
+    clearUndoTimer();
+    undoToken.current += 1;
+    setUndoNotice(null);
+  }, []);
+
+  const showUndo = (
+    message: string,
+    perform: (() => Promise<boolean>) | null,
+    error: string | null = null,
+  ) => {
+    const token = ++undoToken.current;
+    clearUndoTimer();
+    setUndoNotice({ token, message, error, busy: false, perform });
+    if (error || !perform) return;
+    undoTimer.current = window.setTimeout(() => {
+      setUndoNotice((current) => (current?.token === token ? null : current));
+    }, UNDO_MS);
+  };
+
+  const placeRestoredLink = (restored: LinkApiRow) => {
+    const visible = linkStaysInOpenGroup(
+      openedGroupIdRef.current,
+      restored.groupId,
+    );
+    if (!visible) {
+      setLinks((prev) => prev.filter((item) => item.id !== restored.id));
+      removeLinkFromPages(restored.id);
+    } else if (linksRef.current.some((item) => item.id === restored.id)) {
+      setLinks((prev) =>
+        prev.map((item) => (item.id === restored.id ? restored : item)),
+      );
+      replaceLinkInPages(restored);
+    } else {
+      setLinks((prev) => [restored, ...prev.filter((item) => item.id !== restored.id)]);
+      prependLinkToPages(restored);
+    }
+    setLinksCache((prev) => {
+      const next = visible
+        ? cacheWithLink(cacheAfterMove(prev, restored.id, restored), restored)
+        : cacheAfterMove(prev, restored.id, restored);
+      if (next !== prev) writeLinksCacheToStorage(next);
+      return next;
+    });
+    setOpenedLink((current) => (current?.id === restored.id ? restored : current));
+    void loadGroups?.();
+  };
 
   const openedLinkIndex = useMemo(
     () =>
@@ -123,24 +202,27 @@ export function useLinkActions({
     });
 
     const originalLinks = links;
+    const removed = originalLinks.find((link) => link.id === id);
 
     setLinks((prev) => prev.filter((l) => l.id !== id));
+
+    const reportDeleteFailure = (message: string) => {
+      setLinks(originalLinks);
+      setDeleteErrors((prev) => ({ ...prev, [id]: message }));
+      showUndo(message, null, message);
+    };
 
     try {
       const res = await fetch(apiUrl(`/api/links/${id}`), { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setLinks(originalLinks);
         const msg =
           typeof data.error === "string" ? data.error : "Failed to delete";
         const hint =
           typeof data.hint === "string" && data.hint.trim()
             ? ` — ${data.hint.trim()}`
             : "";
-        setDeleteErrors((prev) => ({
-          ...prev,
-          [id]: `${msg}${hint}`,
-        }));
+        reportDeleteFailure(`${msg}${hint}`);
         return;
       }
 
@@ -162,12 +244,44 @@ export function useLinkActions({
         });
       }
       removeLinkFromPages(id);
+      if (removed) {
+        showUndo(deleteUndoMessage(), () => restoreDeleted(removed));
+      }
     } catch {
-      setLinks(originalLinks);
-      setDeleteErrors((prev) => ({
-        ...prev,
-        [id]: "Network error — failed to delete",
-      }));
+      reportDeleteFailure("Network error — failed to delete");
+    }
+  };
+
+  const restoreDeleted = async (link: LinkApiRow) => {
+    try {
+      const res = await fetch(apiUrl(`/api/trash/links/${link.id}`), {
+        method: "PATCH",
+      });
+      if (!res.ok) return false;
+      placeRestoredLink({ ...link, deletedAt: null });
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const undoMove = async (original: LinkApiRow) => {
+    try {
+      const res = await fetch(apiUrl(`/api/links/${original.id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ groupId: original.groupId }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) return false;
+      const restored =
+        data.link && typeof data.link === "object"
+          ? (data.link as LinkApiRow)
+          : original;
+      placeRestoredLink(restored);
+      return true;
+    } catch {
+      return false;
     }
   };
 
@@ -244,6 +358,7 @@ export function useLinkActions({
         removeLinkFromPages(link.id);
       }
       void loadGroups?.();
+      showUndo(moveUndoMessage(groupLabel(nextGroupId)), () => undoMove(link));
     } catch {
       setLinks(originalLinks);
       setPatchErrors((p) => ({
@@ -251,6 +366,25 @@ export function useLinkActions({
         [link.id]: "Network error — try again",
       }));
     }
+  };
+
+  const runUndo = async () => {
+    const current = undoNotice;
+    if (!current || current.busy || current.error || !current.perform) return;
+    clearUndoTimer();
+    setUndoNotice({ ...current, busy: true });
+    const ok = await current.perform();
+    if (ok) {
+      setUndoNotice(null);
+      playUiSound("success");
+      return;
+    }
+    setUndoNotice({
+      ...current,
+      busy: false,
+      perform: null,
+      error: "Couldn't undo that. Try again from Trash.",
+    });
   };
 
   return {
@@ -269,5 +403,8 @@ export function useLinkActions({
     handleDelete,
     copyLinkUrl,
     moveLinkToGroup,
+    undoNotice,
+    runUndo,
+    dismissUndo,
   };
 }
