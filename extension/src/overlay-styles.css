@@ -664,6 +664,36 @@
   color: var(--success);
 }
 
+#m404-save-root .note-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+#m404-save-root .note-input {
+  width: 100%;
+  box-sizing: border-box;
+  resize: none;
+  border-radius: 8px;
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--foreground);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.4;
+  outline: none;
+}
+
+#m404-save-root .note-input::placeholder {
+  color: var(--subtle);
+}
+
+#m404-save-root .note-input:focus {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
 #m404-save-root .field-error {
   color: var(--danger);
 }
