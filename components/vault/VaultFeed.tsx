@@ -149,9 +149,9 @@ export default function VaultFeed({
   );
 
   return (
-    <main className="relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:h-dvh">
-      <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-2 pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:-mt-4 lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4 lg:gap-y-2">
-        <div className="flex flex-col gap-y-1 lg:min-w-0 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
+    <main className="relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:h-full">
+      <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-2 pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4 lg:gap-y-2">
+        <div className="flex min-w-0 flex-col gap-y-1 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
           <h1 className="font-departure shrink-0 text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
             <MorphText>
               {openedGroupId === "all"
@@ -159,9 +159,6 @@ export default function VaultFeed({
                 : (openedGroup?.name ?? "memory404")}
             </MorphText>
           </h1>
-          <p className="min-w-0 text-balance text-[15px] text-subtle">
-            Links you save, browsed like a dark inspiration feed.
-          </p>
         </div>
         <span className="shrink-0 text-[13px] text-subtle tabular-nums">
           <MorphText>

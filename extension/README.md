@@ -19,6 +19,8 @@ npm install
 npm run build
 ```
 
+Produces `extension/dist/` and copies a downloadable zip to `public/downloads/memory404-extension.zip` for the web app.
+
 For watch mode during development:
 
 ```bash
@@ -26,16 +28,21 @@ cd extension
 npm run dev
 ```
 
+## Download from the app
+
+New users can download the packaged zip from **Settings → Chrome extension** (or the empty vault CTA), unzip it, Load unpacked in Chrome, and set **App URL** to this site or their own memory404 server.
+
 ## Load in Chrome
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select `extension/dist`
+4. Select the unzipped download folder (or `extension/dist` after a local build)
 5. Reload the extension after rebuilding
 
 ## Notes
 
-- **Local:** run the app on `http://localhost:3000`, keep App URL as that in overlay settings
-- **Production:** set App URL to `https://memory404.vercel.app`
+- **This / hosted site:** paste the memory404 origin (copyable in Settings)
+- **Local:** `http://localhost:3000`
+- **Your own server:** the origin of your self-hosted memory404 deployment
 - Restricted pages (`chrome://`, Chrome Web Store, etc.) cannot host the overlay; use a normal http(s) tab

@@ -2,6 +2,7 @@ import { useState } from "react";
 import Image from "next/image";
 import MorphText from "@/components/MorphText";
 import { AppLoader } from "@/components/AppLoader";
+import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
 import {
   AlertTriangle,
   Camera,
@@ -208,6 +209,8 @@ export function ProfileTab({
           </span>
         )}
       </div>
+
+      <ExtensionInstallCard variant="settings" />
 
       {/* Functional JSON Exporter Section */}
       <section className="border-t border-border pt-6 space-y-3">

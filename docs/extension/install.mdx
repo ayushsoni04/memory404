@@ -6,6 +6,15 @@ keywords: ["chrome extension", "install", "browser extension"]
 
 The memory404 Chrome extension lets you save tabs from any page with one click.
 
+## Download (recommended for new users)
+
+1. Download [`memory404-extension.zip`](/downloads/memory404-extension.zip) from the app (Settings → Chrome extension, or the empty vault CTA).
+2. Unzip it — you should see `manifest.json` at the top level.
+3. Follow **Load in Chrome** below and select that unzipped folder.
+4. Set **App URL** to the memory404 origin you use (this hosted app, `http://localhost:3000`, or **your own self-hosted deployment**).
+
+You can also open **Settings → Chrome extension** in the web app for a copyable App URL for the current site.
+
 ## Build from source
 
 ```bash
@@ -14,7 +23,7 @@ npm install
 npm run build
 ```
 
-The built extension is in `extension/dist/`.
+The built extension is in `extension/dist/`. The same build also writes `public/downloads/memory404-extension.zip` for the in-app download.
 
 ## Load in Chrome
 
@@ -26,12 +35,13 @@ The built extension is in `extension/dist/`.
     Toggle **Developer mode** in the top-right corner.
   </Step>
   <Step title="Load unpacked">
-    Click **Load unpacked** and select the `extension/dist` folder.
+    Click **Load unpacked** and select the unzipped download folder (or `extension/dist` if you built from source).
   </Step>
   <Step title="Configure App URL">
-    Open the extension popup, go to Settings, and set the App URL:
+    Open the extension popup, go to Settings, and set the App URL to your server:
+    - This site / production: your memory404 origin (e.g. `https://memory404.vercel.app`)
     - Local: `http://localhost:3000`
-    - Production: `https://memory404.vercel.app`
+    - Self-hosted: the origin where you deployed memory404
   </Step>
 </Steps>
 

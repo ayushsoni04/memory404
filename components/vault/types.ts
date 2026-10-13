@@ -39,10 +39,13 @@ export type InitialVaultData = {
 };
 
 export const FIELD_CLASS =
-  "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition placeholder:text-subtle focus:border-border-strong focus:ring-1 focus:ring-foreground/20";
+  "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow,background-color] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
 
-const pillBase =
-  "inline-flex h-7 shrink-0 items-center rounded-full border border-transparent px-4 text-[13px] leading-none transition-colors select-none";
+/** Shared press + focus language for vault chrome controls. */
+export const controlPress =
+  "transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+
+const pillBase = `inline-flex h-7 shrink-0 items-center rounded-full border border-transparent px-4 text-[13px] leading-none select-none cursor-pointer ${controlPress}`;
 
 export const pillActive = `${pillBase} bg-pill-active text-pill-active-fg`;
-export const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover`;
+export const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover hover:text-foreground`;

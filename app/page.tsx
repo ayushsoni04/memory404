@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import VaultInbox from "@/components/VaultInbox";
 import { OPENED_GROUP_COOKIE } from "@/components/vault/types";
+import { getIsOwner } from "@/lib/owner";
 import { getInitialVaultData } from "@/lib/vault-initial-data";
 
 export const runtime = "nodejs";
@@ -20,12 +21,11 @@ export const metadata: Metadata = {
 
 function VaultFallback() {
   return (
-    <div className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-[var(--sidebar-content-gap)] lg:gap-y-0">
+    <div className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-0 lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0">
       <div className="hidden lg:block" aria-hidden />
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="pt-4">
           <div className="h-5 w-40 animate-pulse rounded bg-neutral-800/40" />
-          <div className="mt-2 h-4 w-72 max-w-full animate-pulse rounded bg-neutral-800/25" />
         </div>
         <div className="mind-grid mt-8" data-grid-size="large">
           {Array.from({ length: 12 }).map((_, i) => (
@@ -47,14 +47,15 @@ function VaultFallback() {
 
 export default async function Home() {
   const cookieStore = await cookies();
-  const initialData = await getInitialVaultData(
-    cookieStore.get(OPENED_GROUP_COOKIE)?.value ?? "all",
-  );
+  const [initialData, isOwner] = await Promise.all([
+    getInitialVaultData(cookieStore.get(OPENED_GROUP_COOKIE)?.value ?? "all"),
+    getIsOwner(),
+  ]);
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <Suspense fallback={<VaultFallback />}>
-        <VaultInbox initialData={initialData} />
+        <VaultInbox initialData={initialData} isOwner={isOwner} />
       </Suspense>
     </div>
   );

@@ -13,6 +13,7 @@ type Props = {
   onSelectGroup: (id: string) => void;
   placeholder?: string;
   className?: string;
+  dropdownAlign?: "start" | "end";
 };
 
 export default function GroupSearchCommand({
@@ -22,6 +23,7 @@ export default function GroupSearchCommand({
   onSelectGroup,
   placeholder = "Search",
   className,
+  dropdownAlign = "end",
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -69,7 +71,11 @@ export default function GroupSearchCommand({
         ) : null}
       </div>
       {showDropdown ? (
-        <CommandList className="absolute right-0 top-[calc(100%+6px)] z-30 max-h-56 w-48 overflow-y-auto rounded-lg border border-border bg-surface-elevated p-1 shadow-lg">
+        <CommandList
+          className={`absolute top-[calc(100%+6px)] z-30 max-h-56 w-full min-w-48 overflow-y-auto rounded-lg border border-border bg-surface-elevated p-1 shadow-lg ${
+            dropdownAlign === "start" ? "left-0" : "right-0"
+          }`}
+        >
           <CommandGroup
             heading="Jump to group"
             className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:text-subtle"

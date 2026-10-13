@@ -21,6 +21,7 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   groups: PaletteGroup[];
   onSelectGroup: (id: string) => void;
+  isOwner?: boolean;
 };
 
 export default function CommandPalette({
@@ -28,6 +29,7 @@ export default function CommandPalette({
   onOpenChange,
   groups,
   onSelectGroup,
+  isOwner = false,
 }: Props) {
   const router = useRouter();
   const [search, setSearch] = useState("");
@@ -181,17 +183,19 @@ export default function CommandPalette({
           heading="Go to"
           className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
         >
-          <CommandItem
-            value="page-workspace"
-            onSelect={() => {
-              router.push("/workspace");
-              closePalette();
-            }}
-            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
-          >
-            <LayoutGrid className="size-3.5 text-muted" strokeWidth={2} />
-            Workspace
-          </CommandItem>
+          {isOwner ? (
+            <CommandItem
+              value="page-workspace"
+              onSelect={() => {
+                router.push("/workspace");
+                closePalette();
+              }}
+              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+            >
+              <LayoutGrid className="size-3.5 text-muted" strokeWidth={2} />
+              Workspace
+            </CommandItem>
+          ) : null}
           <CommandItem
             value="page-settings"
             onSelect={() => {

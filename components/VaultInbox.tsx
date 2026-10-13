@@ -22,8 +22,10 @@ const VaultGroupToolbar = dynamic(() => import("./vault/VaultGroupToolbar"), {
 
 export default function VaultInbox({
   initialData,
+  isOwner = false,
 }: {
   initialData: InitialVaultData;
+  isOwner?: boolean;
 }) {
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [newCardId, setNewCardId] = useState<string | null>(null);
@@ -182,7 +184,7 @@ export default function VaultInbox({
       <ExtensionErrorBanner />
       <div
         ref={pageRef}
-        className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-[var(--sidebar-content-gap)] lg:gap-y-0 min-[1712px]:border-x min-[1712px]:border-border"
+        className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-0 lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0 min-[1712px]:border-x min-[1712px]:border-border"
       >
       <VaultSidebar
         gridSize={gridSize}
@@ -214,9 +216,14 @@ export default function VaultInbox({
         loadGroups={loadGroups}
         onDeleteLink={handleDelete}
         onDeleteGroup={handleDeleteGroup}
+        isOwner={isOwner}
+        groupSearch={groupSearch}
+        setGroupSearch={setGroupSearch}
+        filteredFolders={filteredFolders}
+        selectGroup={selectGroup}
       />
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:h-dvh lg:overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:h-full lg:overflow-hidden">
         <VaultFeed
           groupToolbar={
             <VaultGroupToolbar
@@ -241,8 +248,6 @@ export default function VaultInbox({
               groupInputWidth={groupInputWidth}
               sortBy={sortBy}
               setSortByAndPersist={setSortByAndPersist}
-              groupSearch={groupSearch}
-              setGroupSearch={setGroupSearch}
               loadGroups={loadGroups}
             />
           }
@@ -296,6 +301,7 @@ export default function VaultInbox({
         onOpenChange={setPaletteOpen}
         groups={paletteGroups}
         onSelectGroup={selectGroup}
+        isOwner={isOwner}
       />
     </>
   );

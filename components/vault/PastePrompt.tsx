@@ -5,6 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
+import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
 import type { LinkApiRow } from "@/lib/links";
 import { applyShellStroke, clearShellStroke } from "@/lib/card-vicinity-stroke";
 import { FIELD_CLASS } from "./types";
@@ -257,6 +258,10 @@ export default function PastePrompt({
             </form>
           )}
         </div>
+
+        {variant === "empty" && phase === "idle" ? (
+          <ExtensionInstallCard variant="empty" />
+        ) : null}
       </div>
     </div>
   );

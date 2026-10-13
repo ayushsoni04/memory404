@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { play } from "cuelume";
+import { playUiSound } from "@/lib/ui-sound";
 import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { apiUrl } from "@/lib/api-base";
@@ -410,6 +410,8 @@ export function useVaultLinks(
         payload.groupId = groupId;
       }
 
+      // Fire during the initiating gesture so AudioContext unlocks before await.
+      playUiSound("loading");
       try {
         const res = await fetch(apiUrl("/api/links"), {
           method: "POST",
@@ -423,9 +425,10 @@ export function useVaultLinks(
             data.link &&
             typeof data.link === "object"
           ) {
-            play("sparkle");
+            playUiSound("success");
             return { ok: true, link: data.link as LinkApiRow };
           }
+          playUiSound("error");
           const msg =
             typeof data.error === "string" ? data.error : "Failed to save";
           const hint =
@@ -435,11 +438,13 @@ export function useVaultLinks(
           return { ok: false, error: `${msg}${hint}` };
         }
         if (data.link && typeof data.link === "object") {
-          play("sparkle");
+          playUiSound("success");
           return { ok: true, link: data.link as LinkApiRow };
         }
+        playUiSound("error");
         return { ok: false, error: "Failed to save" };
       } catch {
+        playUiSound("error");
         return { ok: false, error: "Network error — try again" };
       }
     },

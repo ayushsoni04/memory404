@@ -10,9 +10,14 @@ import type { Tab } from "./constants";
 type SettingsNavProps = {
   activeTab: Tab;
   onTabChange: (tab: Tab) => void;
+  isOwner?: boolean;
 };
 
-export function SettingsNav({ activeTab, onTabChange }: SettingsNavProps) {
+export function SettingsNav({
+  activeTab,
+  onTabChange,
+  isOwner = false,
+}: SettingsNavProps) {
   const router = useRouter();
 
   const handleSignOut = async () => {
@@ -88,9 +93,11 @@ export function SettingsNav({ activeTab, onTabChange }: SettingsNavProps) {
             <ArrowLeft className="size-3.5" />
             Back to feed
           </Link>
-          <Link href="/workspace" className="text-[13px] text-muted transition-colors hover:text-foreground">
-            Workspace
-          </Link>
+          {isOwner ? (
+            <Link href="/workspace" className="text-[13px] text-muted transition-colors hover:text-foreground">
+              Workspace
+            </Link>
+          ) : null}
           <p className="text-[13px] text-subtle">
             © {new Date().getFullYear()} memory404
           </p>

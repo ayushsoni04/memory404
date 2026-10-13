@@ -7,6 +7,7 @@ import GlitchText from "@/components/GlitchText";
 import MorphText from "@/components/MorphText";
 import TrashBin from "@/components/TrashBin";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import GroupSearchCommand from "./GroupSearchCommand";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
 import { FIELD_CLASS, GRID_SIZES, type GridSize, type GroupRow } from "./types";
@@ -41,6 +42,11 @@ type VaultSidebarProps = {
   loadGroups: () => Promise<unknown>;
   onDeleteLink: (linkId: string) => void;
   onDeleteGroup: (groupId: string) => void;
+  isOwner?: boolean;
+  groupSearch: string;
+  setGroupSearch: (value: string) => void;
+  filteredFolders: GroupRow[];
+  selectGroup: (id: string) => void;
 };
 
 export default function VaultSidebar({
@@ -73,15 +79,20 @@ export default function VaultSidebar({
   loadGroups,
   onDeleteLink,
   onDeleteGroup,
+  isOwner = false,
+  groupSearch,
+  setGroupSearch,
+  filteredFolders,
+  selectGroup,
 }: VaultSidebarProps) {
   const showSaveFlow =
     sidebarShowNotesForm || saving || savePhase === "place";
 
   return (
-    <aside className="vault-sidebar flex flex-col lg:sticky lg:top-0 lg:z-[45] lg:h-dvh lg:w-full lg:shrink-0 lg:self-start lg:items-stretch">
+    <aside className="vault-sidebar flex flex-col lg:sticky lg:top-0 lg:z-[45] lg:h-full lg:max-h-dvh lg:w-full lg:shrink-0 lg:self-stretch lg:items-stretch lg:overflow-hidden">
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-black lg:rounded-none lg:border-0 lg:border-e lg:border-border">
         <SidebarDitherBackground />
-        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[var(--layout-gap-group)] p-[var(--layout-pad)] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:gap-[var(--layout-gap-section)]">
+        <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[var(--layout-gap-group)] p-[var(--layout-pad)] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:gap-[var(--layout-gap-section)] lg:overflow-hidden">
           <div className="flex flex-col items-start gap-3">
             <Link
               href="/"
@@ -327,14 +338,25 @@ export default function VaultSidebar({
 
             <nav
               aria-label="Sidebar"
-              className="flex flex-col gap-1"
+              className="flex flex-col gap-3"
             >
-              <Link
-                href="/workspace"
-                className="hidden rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition-colors hover:bg-pill hover:text-foreground lg:block"
-              >
-                Workspace
-              </Link>
+              <GroupSearchCommand
+                value={groupSearch}
+                onChange={setGroupSearch}
+                groups={filteredFolders}
+                onSelectGroup={selectGroup}
+                placeholder="Search groups"
+                className="w-full"
+                dropdownAlign="start"
+              />
+              {isOwner ? (
+                <Link
+                  href="/workspace"
+                  className="hidden rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition-colors hover:bg-pill hover:text-foreground lg:block"
+                >
+                  Workspace
+                </Link>
+              ) : null}
               <TrashBin
                 onDropLink={(linkId) => void onDeleteLink(linkId)}
                 onDropGroup={(groupId) => void onDeleteGroup(groupId)}

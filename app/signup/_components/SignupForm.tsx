@@ -164,6 +164,18 @@ export function SignupForm() {
         </Link>
       </p>
 
+      <p className="text-center text-[11px] text-subtle">
+        Self-hosting?{" "}
+        <a
+          href="/downloads/memory404-extension.zip"
+          download="memory404-extension.zip"
+          className="text-foreground hover:underline"
+        >
+          Download the Chrome extension
+        </a>{" "}
+        and point App URL at your own server.
+      </p>
+
       <button
         type="button"
         onClick={handleSkip}

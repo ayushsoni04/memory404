@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import localFont from "next/font/local";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { DeferredVitals } from "@/components/DeferredVitals";
+import { UiSoundBoot } from "@/components/UiSoundBoot";
 import "./globals.css";
 
 /** Same combo as blog.maximeheckel.com: Inter + Departure Mono + Fira Code */
@@ -111,6 +112,7 @@ export default function RootLayout({
       </head>
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <NuqsAdapter>{children}</NuqsAdapter>
+        <UiSoundBoot />
         <DeferredVitals />
       </body>
     </html>

@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { play } from "cuelume";
 import { copyTextToClipboard } from "@/components/vault/link-utils";
+import { playUiSound } from "@/lib/ui-sound";
 
 const ACTION_BTN =
   "mind-card-action box-border flex shrink-0 items-center justify-center rounded-full text-white leading-none";
@@ -37,10 +37,14 @@ export default function MindCardActions({ url, host }: Props) {
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
+          // Unlock + confirm in the same gesture before any await.
+          playUiSound("success");
           void (async () => {
             const ok = await copyTextToClipboard(url);
-            if (!ok) return;
-            play("ready");
+            if (!ok) {
+              playUiSound("error");
+              return;
+            }
             setCopied(true);
             if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
             copiedTimer.current = window.setTimeout(() => {
@@ -95,7 +99,7 @@ export default function MindCardActions({ url, host }: Props) {
         aria-label={`Open original link: ${host}`}
         onClick={(e) => {
           e.stopPropagation();
-          play("page");
+          playUiSound("page");
         }}
         className={`mind-card-open relative z-[1] ${ACTION_BTN}`}
       >
