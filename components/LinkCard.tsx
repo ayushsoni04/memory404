@@ -89,6 +89,9 @@ function LinkCard({
         <div
           role="button"
           tabIndex={0}
+          id={`feed-card-${link.id}`}
+          data-feed-card=""
+          aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End"
           aria-label={`Open details for ${link.displayTitle}`}
           className="relative z-[1] block w-full cursor-pointer overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={(e) => {
