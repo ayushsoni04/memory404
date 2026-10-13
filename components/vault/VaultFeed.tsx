@@ -116,6 +116,10 @@ export default function VaultFeed({
   ) : sortedLinks.length === 0 ? (
     <PastePrompt
       variant="empty"
+      emptyMode={allLinksCount === 0 ? "library" : "group"}
+      groupName={
+        openedGroupId === "all" ? "All" : (openedGroup?.name ?? "this group")
+      }
       groupId={addLinkGroupId}
       saveLink={saveLink}
       onSaved={onLinkSaved}

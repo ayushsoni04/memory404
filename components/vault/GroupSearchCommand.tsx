@@ -98,9 +98,19 @@ export default function GroupSearchCommand({
               ))}
             </CommandGroup>
           ) : (
-            <p className="px-2.5 py-2 text-[12px] text-subtle">
-              No groups match “{query}”
-            </p>
+            <div className="space-y-1 px-2.5 py-2">
+              <p className="text-[12px] text-subtle">No groups match “{query}”</p>
+              <button
+                type="button"
+                onClick={() => {
+                  onChange("");
+                  setOpen(false);
+                }}
+                className="text-[12px] text-foreground underline-offset-2 hover:underline"
+              >
+                Clear search
+              </button>
+            </div>
           )}
         </CommandList>
       ) : null}

@@ -265,7 +265,18 @@ export default function TrashPage() {
             <svg viewBox="0 0 48 48" fill="none" className="size-12 text-border">
               <path d="M20 10h8a4 4 0 0 0-8 0ZM16 10a8 8 0 0 1 16 0h10a2 2 0 0 1 0 4h-1.3l-2.2 26.1A7 7 0 0 1 31.7 46H16.3a7 7 0 0 1-6.8-5.9L7.3 14H6a2 2 0 0 1 0-4h10Z" fill="currentColor" />
             </svg>
-            <p className="text-muted text-sm">Trash is empty</p>
+            <div className="space-y-2 text-center">
+              <p className="text-sm text-foreground">Trash is empty</p>
+              <p className="max-w-sm text-[13px] text-muted">
+                Delete a link or a group from the vault and it will show up here for 30 days.
+              </p>
+            </div>
+            <Link
+              href="/"
+              className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90"
+            >
+              Return to your links
+            </Link>
           </div>
         )}
 

@@ -252,6 +252,7 @@ export default function VaultInbox({
               setSortByAndPersist={setSortByAndPersist}
               loadGroups={loadGroups}
               loadLinks={loadLinks}
+              onOpenSearch={() => setPaletteOpen(true)}
             />
           }
           openedGroupId={openedGroupId}
@@ -318,6 +319,21 @@ export default function VaultInbox({
         onOpenChange={setPaletteOpen}
         groups={paletteGroups}
         onSelectGroup={selectGroup}
+        onOpenLink={openLinkDetail}
+        onSaveUrl={async (url) => {
+          const groupId =
+            !openedGroupId || openedGroupId === "all"
+              ? (generalGroup?.id ?? null)
+              : openedGroupId;
+          if (!groupId) {
+            return { ok: false, error: "Create a group before saving this link." };
+          }
+          const result = await saveLink(url, groupId);
+          if (result.ok) handleFeedLinkSaved(result.link);
+          return result.ok
+            ? { ok: true }
+            : { ok: false, error: result.error };
+        }}
         isOwner={isOwner}
       />
     </>

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ChevronDown, Plus, RotateCw, X } from "lucide-react";
+import { ChevronDown, Plus, RotateCw, Search, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
@@ -46,6 +46,7 @@ type VaultGroupToolbarProps = {
   setSortByAndPersist: (val: SortBy) => void;
   loadGroups: () => Promise<unknown>;
   loadLinks?: () => Promise<unknown>;
+  onOpenSearch?: () => void;
 };
 
 function SortPill({
@@ -153,9 +154,15 @@ export default function VaultGroupToolbar({
   setSortByAndPersist,
   loadGroups,
   loadLinks,
+  onOpenSearch,
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
+  const searchShortcut =
+    typeof navigator !== "undefined" &&
+    /Mac|iPhone|iPad/.test(navigator.platform)
+      ? "⌘K"
+      : "Ctrl K";
 
   return (
     <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-[var(--layout-gap-control)] bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
@@ -321,6 +328,23 @@ export default function VaultGroupToolbar({
         )}
       </div>
       <div className="relative z-10 flex shrink-0 items-center gap-2">
+        {onOpenSearch ? (
+          <button
+            type="button"
+            onClick={() => {
+              onOpenSearch();
+              playUiSound("tick");
+            }}
+            aria-keyshortcuts="Control+K Meta+K"
+            className={`${pillIdle} gap-1.5 px-3`}
+          >
+            <Search className="size-3.5" strokeWidth={2} aria-hidden />
+            <span>Search</span>
+            <kbd className="hidden font-mono text-[10px] font-normal text-subtle md:inline">
+              {searchShortcut}
+            </kbd>
+          </button>
+        ) : null}
         <SortPill sortBy={sortBy} setSortByAndPersist={setSortByAndPersist} />
         <button
           type="button"
