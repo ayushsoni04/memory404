@@ -11,6 +11,7 @@ import {
 } from "@/lib/links";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
+import { apiUrl } from "@/lib/api-base";
 import MindCardActions from "@/components/vault/MindCardActions";
 
 type GroupOption = { id: string; name: string };
@@ -28,6 +29,7 @@ type Props = {
   hasPrev: boolean;
   hasNext: boolean;
   actionError?: string | null;
+  onNotesSaved?: (link: LinkApiRow) => void;
 };
 
 type Rect = {
@@ -45,6 +47,80 @@ const morphDuration = (seconds: number) => seconds / MORPH_SPEED;
 function isJunkFavicon(url: string | null | undefined): boolean {
   if (!url) return true;
   return /dummyimage\.com|placehold\.|via\.placeholder/i.test(url);
+}
+
+function NoteEditor({
+  linkId,
+  notes,
+  onSaved,
+}: {
+  linkId: string;
+  notes: string | null;
+  onSaved: (notes: string | null) => void;
+}) {
+  const [draft, setDraft] = useState(notes ?? "");
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const saved = (notes ?? "").trim();
+  const dirty = draft.trim() !== saved;
+
+  const save = async () => {
+    setSaving(true);
+    setError(null);
+    const next = draft.trim() ? draft.trim() : null;
+    try {
+      const res = await fetch(apiUrl(`/api/links/${linkId}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notes: next }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Could not save the note");
+        setSaving(false);
+        return;
+      }
+      onSaved(next);
+      setSaving(false);
+    } catch {
+      setError("Could not save the note. Try again.");
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="mt-4">
+      <label htmlFor={`link-note-${linkId}`} className="text-[12px] text-subtle">
+        Note
+      </label>
+      <textarea
+        id={`link-note-${linkId}`}
+        value={draft}
+        onChange={(event) => {
+          setDraft(event.target.value);
+          setError(null);
+        }}
+        rows={3}
+        placeholder="What should you remember?"
+        className="mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-subtle focus:border-white/30"
+      />
+      {dirty ? (
+        <button
+          type="button"
+          onClick={() => void save()}
+          disabled={saving}
+          className="mt-2 inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50"
+        >
+          {saving ? "Saving…" : "Save note"}
+        </button>
+      ) : null}
+      {error ? (
+        <p className="mt-2 text-[12px] text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
 }
 
 function prefersReducedMotion() {
@@ -91,6 +167,7 @@ export default function LinkDetailOverlay({
   hasPrev,
   hasNext,
   actionError = null,
+  onNotesSaved,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -575,6 +652,13 @@ export default function LinkDetailOverlay({
                     {link.description}
                   </p>
                 ) : null}
+
+                <NoteEditor
+                  key={link.id}
+                  linkId={link.id}
+                  notes={link.notes}
+                  onSaved={(notes) => onNotesSaved?.({ ...link, notes })}
+                />
 
                 {link.tags.length ? (
                   <dl className="mt-5 space-y-0 border-t border-white/10">

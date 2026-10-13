@@ -25,9 +25,6 @@ type VaultSidebarProps = {
   sidebarShowNotesForm: boolean;
   sidebarNotesText: string;
   setSidebarNotesText: (value: string) => void;
-  sidebarCountdown: number;
-  sidebarTimerActive: boolean;
-  setSidebarTimerActive: (active: boolean) => void;
   finishSidebarNotesFlow: () => void;
   saving: boolean;
   saveSuccess: boolean;
@@ -62,9 +59,6 @@ export default function VaultSidebar({
   sidebarShowNotesForm,
   sidebarNotesText,
   setSidebarNotesText,
-  sidebarCountdown,
-  sidebarTimerActive,
-  setSidebarTimerActive,
   finishSidebarNotesFlow,
   saving,
   saveSuccess,
@@ -156,33 +150,12 @@ export default function VaultSidebar({
               <form onSubmit={handleSubmit} className="flex flex-col gap-2">
                 {sidebarShowNotesForm ? (
                   <div className="flex flex-col gap-2 p-1">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] text-muted">
-                        <MorphText duration={220}>
-                          {sidebarTimerActive
-                            ? `Add notes (closes in ${sidebarCountdown}s)`
-                            : "Add notes"}
-                        </MorphText>
-                      </span>
-                      {sidebarTimerActive && (
-                        <button
-                          type="button"
-                          onClick={() => setSidebarTimerActive(false)}
-                          className="text-[11px] text-muted hover:underline"
-                        >
-                          Pause
-                        </button>
-                      )}
-                    </div>
+                    <span className="text-[11px] text-muted">Add a note</span>
                     <textarea
                       aria-label="Notes"
                       value={sidebarNotesText}
-                      onChange={(e) => {
-                        setSidebarNotesText(e.target.value);
-                        setSidebarTimerActive(false);
-                      }}
-                      onFocus={() => setSidebarTimerActive(false)}
-                      placeholder="Optional notes..."
+                      onChange={(e) => setSidebarNotesText(e.target.value)}
+                      placeholder="What should you remember?"
                       rows={2}
                       className={`${FIELD_CLASS} resize-none`}
                     />

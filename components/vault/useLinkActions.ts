@@ -53,6 +53,27 @@ export function useLinkActions({
     [],
   );
 
+  const updateSavedLink = useCallback(
+    (updated: LinkApiRow) => {
+      setLinks((prev) => prev.map((link) => (link.id === updated.id ? updated : link)));
+      setLinksCache((prev) => {
+        let changed = false;
+        const next: typeof prev = {};
+        for (const key of Object.keys(prev)) {
+          next[key] = prev[key].map((link) => {
+            if (link.id !== updated.id) return link;
+            changed = true;
+            return updated;
+          });
+        }
+        if (changed) writeLinksCacheToStorage(next);
+        return changed ? next : prev;
+      });
+      setOpenedLink((current) => (current?.id === updated.id ? updated : current));
+    },
+    [setLinks, setLinksCache],
+  );
+
   const closeLinkDetail = useCallback(() => {
     setOpenedLink(null);
     setOverlayOrigin(null);
@@ -224,6 +245,7 @@ export function useLinkActions({
     openedLinkIndex,
     overlayOrigin,
     openLinkDetail,
+    updateSavedLink,
     closeLinkDetail,
     goPrevLink,
     goNextLink,

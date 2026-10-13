@@ -34,8 +34,6 @@ export default function AddLinkCard({
 
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [notes, setNotes] = useState("");
-  const [countdown, setCountdown] = useState(5);
-  const [timerActive, setTimerActive] = useState(false);
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
 
   useEffect(() => {
@@ -46,7 +44,6 @@ export default function AddLinkCard({
 
   const finishFlow = useCallback(async () => {
     if (!savedLink) return;
-    setTimerActive(false);
     let finalLink = savedLink;
     if (notes.trim()) {
       try {
@@ -72,20 +69,6 @@ export default function AddLinkCard({
     setNotes("");
     setSavedLink(null);
   }, [notes, onSaved, savedLink]);
-
-  useEffect(() => {
-    if (!timerActive || countdown <= 0) {
-      if (timerActive && countdown === 0) {
-        const timer = window.setTimeout(() => void finishFlow(), 0);
-        return () => window.clearTimeout(timer);
-      }
-      return;
-    }
-    const timer = setTimeout(() => {
-      setCountdown((prev) => prev - 1);
-    }, 1000);
-    return () => clearTimeout(timer);
-  }, [countdown, finishFlow, timerActive]);
 
   const cancel = (keyboardInitiated = false) => {
     if (saving) return;
@@ -131,8 +114,6 @@ export default function AddLinkCard({
 
       if (gen === saveGen.current) {
         setUrl("");
-        setCountdown(5);
-        setTimerActive(true);
         setShowNotesForm(true);
       }
     } catch {
@@ -250,32 +231,13 @@ export default function AddLinkCard({
             aria-hidden={phase !== "notes"}
           >
             <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted">
-                  <MorphText duration={220}>
-                    {timerActive ? `Add notes (auto-done in ${countdown}s)` : "Add notes"}
-                  </MorphText>
-                </span>
-                {timerActive && (
-                  <button
-                    type="button"
-                    onClick={() => setTimerActive(false)}
-                    tabIndex={phase === "notes" ? 0 : -1}
-                    className="text-[11px] text-muted hover:underline"
-                  >
-                    Pause
-                  </button>
-                )}
-              </div>
+              <span className="text-[11px] text-muted">Add a note</span>
               <textarea
+                aria-label="Notes"
                 value={notes}
-                onChange={(e) => {
-                  setNotes(e.target.value);
-                  setTimerActive(false);
-                }}
-                onFocus={() => setTimerActive(false)}
+                onChange={(e) => setNotes(e.target.value)}
                 tabIndex={phase === "notes" ? 0 : -1}
-                placeholder="Add optional notes here..."
+                placeholder="What should you remember?"
                 rows={2}
                 className="w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus:border-foreground/40 resize-none"
               />
