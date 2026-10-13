@@ -10,7 +10,11 @@ export type UserDocument = {
   _id: string;
   email: string;
   name: string | null;
+  /** Private display handle (sidebar/@username). Not a public profile route. */
+  username: string | null;
   avatarUrl: string | null;
+  /** Settings banner gradient id (e.g. "midnight"). */
+  bannerStyle: string | null;
   plan: string;
   /** scrypt salt+hash, e.g. "<salt>:<hash>". Null reserved for future OAuth-only accounts. */
   passwordHash: string | null;
@@ -55,7 +59,13 @@ export type LinkRow = Omit<LinkDocument, "_id"> & { id: string };
 
 export function userDocumentToRow(document: UserDocument): UserRow {
   const { _id: id, ...fields } = document;
-  return { id, ...fields };
+  return {
+    id,
+    ...fields,
+    // Legacy rows created before profile fields existed.
+    username: fields.username ?? null,
+    bannerStyle: fields.bannerStyle ?? "midnight",
+  };
 }
 
 export function groupDocumentToRow(document: GroupDocument): GroupRow {

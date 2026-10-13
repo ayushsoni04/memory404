@@ -19,7 +19,9 @@ erDiagram
         string _id PK
         string email UK
         string name
+        string username
         string avatarUrl
+        string bannerStyle
         string plan
         date createdAt
     }
@@ -56,16 +58,20 @@ erDiagram
 
 | Field | Type | Notes |
 |-------|------|-------|
-| `_id` | String | Supabase Auth user ID |
+| `_id` | String | Application-generated UUID |
 | `email` | String | Required and globally unique |
 | `name` | String or null | Display name |
-| `avatarUrl` | String or null | Profile image |
+| `username` | String or null | Private display handle; unique when set |
+| `avatarUrl` | String or null | Profile image (URL or size-capped data URL) |
+| `bannerStyle` | String or null | Settings banner id (e.g. `midnight`) |
 | `plan` | String | Defaults to `free` |
+| `passwordHash` | String or null | scrypt hash; null for demo/OAuth-only |
 | `createdAt` | Date | Set when the user is first persisted |
 
 ### Indexes
 
 - `{ email: 1 }`, unique
+- `{ username: 1 }`, unique sparse (case-insensitive collation)
 
 ## groups collection
 

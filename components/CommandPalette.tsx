@@ -124,13 +124,22 @@ export default function CommandPalette({
         value={search}
         onValueChange={handleSearchChange}
         placeholder="Search links, jump to a group, or go to a page…"
-        className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-subtle"
+        className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
       />
       <CommandList className="max-h-80 overflow-y-auto p-2">
         {loadingLinks ? (
           <CommandLoading className="px-2 py-1.5 text-[12px] text-subtle">
             Searching links…
           </CommandLoading>
+        ) : null}
+
+        {search.trim() &&
+        !loadingLinks &&
+        !filteredGroups.length &&
+        !linkResults.length ? (
+          <p className="px-2 py-3 text-[13px] text-subtle">
+            No matches for “{search.trim()}”
+          </p>
         ) : null}
 
         {filteredGroups.length ? (

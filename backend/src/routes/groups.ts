@@ -1,5 +1,5 @@
 import { Router, type RequestHandler } from "express";
-import { DEV_USER_ID } from "@/lib/dev-user";
+import { getRequestUserId, requireBearerAuth } from "../auth.js";
 import {
   getMongoEnvError,
   isDuplicateKeyError,
@@ -13,9 +13,6 @@ import {
 
 export const groupsRouter = Router();
 
-// See backend/src/routes/links.ts for why this is a fixed dev user.
-const userId = DEV_USER_ID;
-
 const guardMutationsDuringMaintenance: RequestHandler = (req, res, next) => {
   if (
     ["POST", "PUT", "PATCH", "DELETE"].includes(req.method) &&
@@ -28,6 +25,7 @@ const guardMutationsDuringMaintenance: RequestHandler = (req, res, next) => {
 };
 
 groupsRouter.use(guardMutationsDuringMaintenance);
+groupsRouter.use(requireBearerAuth);
 
 type PostBody = {
   name?: unknown;
@@ -39,12 +37,14 @@ type PatchBody = {
   orderedIds?: unknown;
 };
 
-groupsRouter.get("/", async (_req, res) => {
+groupsRouter.get("/", async (req, res) => {
   const envErr = getMongoEnvError();
   if (envErr) {
     res.status(503).json({ error: envErr });
     return;
   }
+
+  const userId = getRequestUserId(req);
 
   try {
     await getOrCreateGeneralGroup(userId);
@@ -72,6 +72,8 @@ groupsRouter.post("/", async (req, res) => {
     res.status(503).json({ error: envErr });
     return;
   }
+
+  const userId = getRequestUserId(req);
 
   try {
     const body = req.body as PostBody;
@@ -141,6 +143,8 @@ groupsRouter.patch("/", async (req, res) => {
     res.status(503).json({ error: envErr });
     return;
   }
+
+  const userId = getRequestUserId(req);
 
   try {
     const body = req.body as PatchBody;

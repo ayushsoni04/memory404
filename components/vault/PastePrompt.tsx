@@ -134,7 +134,7 @@ export default function PastePrompt({
         <PasteArrow reduceMotion={!!reduceMotion} />
 
         <div
-          className="mind-card-shell paste-prompt-dropzone group relative flex min-h-[10.5rem] flex-col items-center justify-center gap-3 overflow-hidden rounded-lg border border-dashed border-muted/50 bg-transparent px-5 py-8 text-muted transition-colors duration-[100ms] ease-out hover:border-foreground/35 hover:text-foreground"
+          className="mind-card-shell paste-prompt-dropzone group relative flex min-h-[10.5rem] flex-col items-center justify-center gap-3 overflow-hidden rounded-xl border border-dashed border-border-strong bg-transparent px-5 py-8 text-muted transition-[border-color,color,transform] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:border-foreground/40 hover:text-foreground"
           data-status={phase === "idle" ? "idle" : "busy"}
           onPointerMove={(e) => {
             applyShellStroke(e.currentTarget, e.clientX, e.clientY);
@@ -211,7 +211,7 @@ export default function PastePrompt({
               <button
                 type="button"
                 onClick={() => void finishFlow()}
-                className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg"
+                className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
               >
                 <MorphText duration={220}>
                   {notes.trim() ? "Save Notes" : "Done"}

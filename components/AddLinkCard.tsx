@@ -168,7 +168,7 @@ export default function AddLinkCard({
               onClick={() => setOpen(true)}
               disabled={!groupId}
               tabIndex={phase === "idle" ? 0 : -1}
-              className="flex min-h-[140px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border border-dashed border-muted/50 bg-transparent px-3 py-6 text-center outline-none transition-colors hover:border-foreground/35 hover:text-foreground focus-visible:ring-2 focus-visible:ring-foreground/40 disabled:opacity-40"
+              className="flex min-h-[140px] w-full flex-col items-center justify-center gap-2 rounded-[4px] border border-dashed border-border-strong bg-transparent px-3 py-6 text-center outline-none transition-[border-color,color,transform] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:border-foreground/40 hover:text-foreground focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] active:scale-[0.99] disabled:opacity-40"
             >
               <Plus className="size-5 text-muted" strokeWidth={1.75} aria-hidden />
               <span className="text-[13px] font-medium text-muted">Add link</span>
@@ -207,7 +207,7 @@ export default function AddLinkCard({
                   type="submit"
                   disabled={!url.trim() || !groupId}
                   tabIndex={phase === "form" ? 0 : -1}
-                  className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-45"
+                  className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-45"
                 >
                   Save
                 </button>
@@ -215,7 +215,7 @@ export default function AddLinkCard({
                   type="button"
                   onClick={() => cancel()}
                   tabIndex={phase === "form" ? 0 : -1}
-                  className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted hover:bg-pill-hover"
+                  className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted transition-[transform,background-color,color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover hover:text-foreground active:scale-[0.97]"
                 >
                   Cancel
                 </button>

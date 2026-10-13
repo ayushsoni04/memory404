@@ -1,51 +1,79 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Camera } from "lucide-react";
 
-const AVATAR_KEY = "m404-profile-avatar";
-const NAME_KEY = "m404-profile-name";
-const USERNAME_KEY = "m404-profile-username";
+type MeUser = {
+  name: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+};
 
 export default function SidebarProfile() {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
+  const [savingAvatar, setSavingAvatar] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  useEffect(() => {
+  const applyUser = useCallback((user: MeUser) => {
+    setAvatar(user.avatarUrl);
+    setName(user.name ?? "");
+    setUsername(user.username ?? "");
+  }, []);
+
+  const loadProfile = useCallback(async () => {
     try {
-      setAvatar(localStorage.getItem(AVATAR_KEY));
-      setName(localStorage.getItem(NAME_KEY) ?? "");
-      setUsername(localStorage.getItem(USERNAME_KEY) ?? "");
+      const res = await fetch("/api/me");
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.user) applyUser(data.user as MeUser);
     } catch {
       /* ignore */
     }
+  }, [applyUser]);
 
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === AVATAR_KEY) setAvatar(e.newValue);
-      if (e.key === NAME_KEY) setName(e.newValue ?? "");
-      if (e.key === USERNAME_KEY) setUsername(e.newValue ?? "");
+  useEffect(() => {
+    void loadProfile();
+    const onUpdated = () => {
+      void loadProfile();
     };
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+    window.addEventListener("m404:profile-updated", onUpdated);
+    return () => window.removeEventListener("m404:profile-updated", onUpdated);
+  }, [loadProfile]);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith("image/")) return;
 
     const reader = new FileReader();
-    reader.onloadend = () => {
+    reader.onloadend = async () => {
       const base64 = typeof reader.result === "string" ? reader.result : null;
       if (!base64) return;
       setAvatar(base64);
+      setSavingAvatar(true);
       try {
-        localStorage.setItem(AVATAR_KEY, base64);
-      } catch {
-        /* ignore quota */
+        const res = await fetch("/api/me", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ avatarUrl: base64 }),
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          console.error("Avatar save failed:", data.error);
+          await loadProfile();
+          return;
+        }
+        const data = await res.json();
+        if (data.user) applyUser(data.user as MeUser);
+        window.dispatchEvent(new CustomEvent("m404:profile-updated"));
+      } catch (err) {
+        console.error("Avatar save failed:", err);
+        await loadProfile();
+      } finally {
+        setSavingAvatar(false);
       }
     };
     reader.readAsDataURL(file);
@@ -71,9 +99,10 @@ export default function SidebarProfile() {
       <button
         type="button"
         onClick={() => inputRef.current?.click()}
+        disabled={savingAvatar}
         aria-label={avatar ? "Change profile photo" : "Add profile photo"}
         title={avatar ? "Change photo" : "Add photo"}
-        className="group/avatar relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+        className="group/avatar relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-60"
       >
         <input
           ref={inputRef}

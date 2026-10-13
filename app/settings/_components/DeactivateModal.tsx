@@ -8,6 +8,7 @@ type DeactivateModalProps = {
   setDeactivateInput: (value: string) => void;
   isDeactivating: boolean;
   deactivatedSuccess: boolean;
+  error?: string | null;
   onSubmit: (e: React.FormEvent) => void;
 };
 
@@ -18,6 +19,7 @@ export function DeactivateModal({
   setDeactivateInput,
   isDeactivating,
   deactivatedSuccess,
+  error = null,
   onSubmit,
 }: DeactivateModalProps) {
   if (!open) return null;
@@ -31,15 +33,19 @@ export function DeactivateModal({
         </div>
 
         <p className="text-xs text-muted leading-relaxed">
-          This action is <strong className="text-foreground">permanent</strong>. Your database links will be wiped and your configuration cleared from this browser session.
+          This action is <strong className="text-foreground">permanent</strong>. Your
+          account, links, and groups will be deleted and you will be signed out.
         </p>
 
         {deactivatedSuccess ? (
           <div className="p-3 rounded-lg bg-success/10 border border-success/30 text-success text-xs font-semibold text-center animate-pulse">
-            Workspace wiped. Redirecting...
+            Account deleted. Redirecting to sign in…
           </div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
+            {error && (
+              <p className="text-xs text-danger">{error}</p>
+            )}
             <label className="block space-y-1.5">
               <span className="text-[10px] font-medium text-subtle font-mono uppercase">
                 Type <code className="text-danger select-none">deactivate</code> to confirm

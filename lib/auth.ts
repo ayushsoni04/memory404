@@ -1,6 +1,6 @@
+import { headers } from "next/headers";
 import { findUserById } from "@/lib/db/repositories";
-import { DEV_USER_EMAIL, DEV_USER_ID } from "@/lib/dev-user";
-import { getSession } from "@/lib/session";
+import { decryptSession, getSession } from "@/lib/session";
 
 export type AuthUser = {
   id: string;
@@ -8,26 +8,50 @@ export type AuthUser = {
   plan: "free" | "pro" | "team";
 };
 
-const DEV_USER: AuthUser = {
-  id: DEV_USER_ID,
-  email: DEV_USER_EMAIL,
-  plan: "free",
-};
+function unauthorizedResponse(): Response {
+  return new Response(JSON.stringify({ error: "Unauthorized" }), {
+    status: 401,
+    headers: { "Content-Type": "application/json" },
+  });
+}
+
+async function userFromId(userId: string): Promise<AuthUser | null> {
+  const row = await findUserById(userId);
+  if (!row) return null;
+  return { id: row.id, email: row.email, plan: row.plan as AuthUser["plan"] };
+}
+
+/** Reads `Authorization: Bearer <jwt>` if present. */
+export async function getBearerToken(): Promise<string | null> {
+  const headerStore = await headers();
+  const authorization = headerStore.get("authorization");
+  if (!authorization) return null;
+  const match = /^Bearer\s+(.+)$/i.exec(authorization.trim());
+  return match?.[1]?.trim() || null;
+}
 
 /**
- * Resolves the signed-in user from the session cookie, if any. Returns null
- * when there is no session — callers decide whether that's an error (see
- * requireAuth).
+ * Resolves the signed-in user from the session cookie or Bearer token.
+ * Returns null when there is no valid credentials.
  */
 export async function getAuthUser(): Promise<AuthUser | null> {
   try {
     const session = await getSession();
-    if (!session) return null;
+    if (session) {
+      const fromCookie = await userFromId(session.userId);
+      if (fromCookie) return fromCookie;
+    }
 
-    const row = await findUserById(session.userId);
-    if (!row) return null;
+    const bearer = await getBearerToken();
+    if (bearer) {
+      const payload = await decryptSession(bearer);
+      if (payload) {
+        const fromBearer = await userFromId(payload.userId);
+        if (fromBearer) return fromBearer;
+      }
+    }
 
-    return { id: row.id, email: row.email, plan: row.plan as AuthUser["plan"] };
+    return null;
   } catch (e) {
     console.error("getAuthUser:", e);
     return null;
@@ -35,20 +59,16 @@ export async function getAuthUser(): Promise<AuthUser | null> {
 }
 
 /**
- * Guard for API routes: returns the signed-in user, or — for the Chrome
- * extension and standalone Express backend, which have no cross-origin
- * session mechanism yet — the seeded dev user, so those callers keep working.
- *
- * TODO(auth): once the extension/backend have real per-request auth, delete
- * the DEV_USER fallback below and uncomment the 401 response instead.
+ * Guard for API routes: returns the signed-in user, or a 401 Response.
+ * Accepts the `m404_session` cookie or `Authorization: Bearer <JWT>`.
  */
 export async function requireAuth(): Promise<AuthUser | Response> {
   const user = await getAuthUser();
   if (user) return user;
+  return unauthorizedResponse();
+}
 
-  return DEV_USER;
-  // return new Response(JSON.stringify({ error: "Unauthorized" }), {
-  //   status: 401,
-  //   headers: { "Content-Type": "application/json" },
-  // });
+/** True when the value is an AuthUser (not a 401 Response). */
+export function isAuthUser(value: AuthUser | Response): value is AuthUser {
+  return !(value instanceof Response);
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { attachSessionCookie } from "@/lib/session";
+import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
+import { attachSessionCookie, issueSessionToken } from "@/lib/session";
 import { verifyPassword } from "@/lib/password";
 import { getMongoEnvError } from "@/lib/db/mongodb";
 import { findUserByEmail } from "@/lib/db/repositories";
@@ -14,6 +15,9 @@ type LoginBody = {
 const INVALID_CREDENTIALS = "Invalid email or password";
 
 export async function POST(request: Request) {
+  const limited = enforceAuthRateLimit(request, "login");
+  if (limited) return limited;
+
   const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
@@ -44,8 +48,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 });
     }
 
+    const token = await issueSessionToken(user.id);
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, plan: user.plan },
+      token,
     });
     return attachSessionCookie(response, user.id);
   } catch (e) {

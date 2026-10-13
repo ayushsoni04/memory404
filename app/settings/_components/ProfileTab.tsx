@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import MorphText from "@/components/MorphText";
 import { AppLoader } from "@/components/AppLoader";
@@ -9,7 +9,14 @@ import {
   CheckCircle2,
   Download,
   Sparkles,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
+import {
+  getSoundsEnabled,
+  playUiSound,
+  setSoundsEnabled,
+} from "@/lib/ui-sound";
 import { BANNER_GRADIENTS, type Plan } from "./constants";
 
 type ProfileTabProps = {
@@ -18,12 +25,14 @@ type ProfileTabProps = {
   username: string;
   setUsername: (value: string) => void;
   email: string;
-  setEmail: (value: string) => void;
   bannerStyle: string;
   setBannerStyle: (value: string) => void;
   avatarPreview: string | null;
   onAvatarChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
   isSaved: boolean;
+  isSaving?: boolean;
+  isLoading?: boolean;
+  error?: string | null;
   onSaveProfile: (e: React.FormEvent) => void;
   currentPlan: Plan;
   onOpenDeactivateModal: () => void;
@@ -35,17 +44,24 @@ export function ProfileTab({
   username,
   setUsername,
   email,
-  setEmail,
   bannerStyle,
   setBannerStyle,
   avatarPreview,
   onAvatarChange,
   isSaved,
+  isSaving = false,
+  isLoading = false,
+  error = null,
   onSaveProfile,
   currentPlan,
   onOpenDeactivateModal,
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [soundsOn, setSoundsOn] = useState(true);
+
+  useEffect(() => {
+    setSoundsOn(getSoundsEnabled());
+  }, []);
 
   // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
@@ -82,8 +98,21 @@ export function ProfileTab({
 
   const currentGradient = BANNER_GRADIENTS.find((b) => b.id === bannerStyle) || BANNER_GRADIENTS[0];
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center py-16">
+        <AppLoader compact progressive label="loading profile" />
+      </div>
+    );
+  }
+
   return (
     <form onSubmit={onSaveProfile} className="space-y-8">
+      {error && (
+        <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+          {error}
+        </p>
+      )}
 
       {/* Premium Mobbin/Figma Style Visual Banner Card */}
       <div className="overflow-hidden rounded-xl border border-border bg-surface shadow-lg relative group/card">
@@ -120,9 +149,11 @@ export function ProfileTab({
 
           <div className="pt-2 sm:pt-0">
             <h3 className="text-base font-semibold text-foreground flex items-center gap-1.5">
-              {name || "Ayush Soni"}
+              {name || "Your name"}
             </h3>
-            <p className="text-xs text-subtle font-mono mt-0.5">@{username || "ayushsoni04"}</p>
+            <p className="text-xs text-subtle font-mono mt-0.5">
+              {username ? `@${username}` : "Set a username"}
+            </p>
           </div>
           <div className="text-[11px] text-muted font-mono border border-border rounded px-2.5 py-1 bg-surface-elevated self-start sm:self-auto uppercase tracking-wide flex items-center gap-1.5">
             <Sparkles className="size-3 text-yellow-500 animate-pulse" />
@@ -165,8 +196,7 @@ export function ProfileTab({
             value={name}
             onChange={(e) => setName(e.target.value)}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-            placeholder="E.g. Ayush Soni"
-            required
+            placeholder="Your name"
           />
         </label>
         <label className="block space-y-1.5 group">
@@ -176,8 +206,8 @@ export function ProfileTab({
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5 font-mono"
-            placeholder="ayushsoni04"
-            required
+            placeholder="your_handle"
+            autoComplete="username"
           />
         </label>
         <label className="block space-y-1.5 sm:col-span-2 group">
@@ -185,21 +215,22 @@ export function ProfileTab({
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
-            placeholder="ayush@memory404.design"
-            required
+            readOnly
+            className="w-full rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-sm text-muted outline-none cursor-default"
+            autoComplete="email"
           />
+          <span className="text-[10px] text-subtle">Email is set at signup and cannot be changed here.</span>
         </label>
       </div>
 
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-md"
+          disabled={isSaving}
+          className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-md disabled:opacity-50"
         >
           <MorphText>
-            {isSaved ? "Saved!" : "Save profile changes"}
+            {isSaving ? "Saving…" : isSaved ? "Saved!" : "Save profile changes"}
           </MorphText>
         </button>
         {isSaved && (
@@ -211,6 +242,51 @@ export function ProfileTab({
       </div>
 
       <ExtensionInstallCard variant="settings" />
+
+      <section className="border-t border-border pt-6 space-y-3">
+        <div>
+          <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">
+            Sound feedback
+          </h3>
+          <p className="mt-0.5 text-xs text-subtle">
+            Soft cues on save, copy, trash, and sorting. Your preference is saved on this device.
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={soundsOn}
+          onClick={() => {
+            const next = !soundsOn;
+            setSoundsOn(next);
+            setSoundsEnabled(next);
+            if (next) playUiSound("toggle");
+          }}
+          className={`flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 text-left transition-[transform,background-color,border-color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:border-border-strong hover:bg-surface-elevated active:scale-[0.99]`}
+        >
+          <span className="flex items-center gap-3">
+            {soundsOn ? (
+              <Volume2 className="size-4 text-foreground" strokeWidth={2} />
+            ) : (
+              <VolumeX className="size-4 text-muted" strokeWidth={2} />
+            )}
+            <span className="text-sm text-foreground">
+              {soundsOn ? "Interface sounds on" : "Interface sounds off"}
+            </span>
+          </span>
+          <span
+            className={`relative h-6 w-10 shrink-0 rounded-full transition-colors duration-[var(--duration-ui)] ${
+              soundsOn ? "bg-pill-active" : "bg-pill"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 size-5 rounded-full bg-background shadow transition-transform duration-[var(--duration-ui)] ease-[var(--ease-out)] ${
+                soundsOn ? "translate-x-[18px]" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+        </button>
+      </section>
 
       {/* Functional JSON Exporter Section */}
       <section className="border-t border-border pt-6 space-y-3">

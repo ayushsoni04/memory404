@@ -43,6 +43,51 @@ async function extractPageMeta(tabId) {
   return result ?? { title: null, description: null, imageUrl: null };
 }
 
+async function getStoredAuthToken() {
+  const res = await chrome.storage.local.get(["authToken"]);
+  return typeof res.authToken === "string" && res.authToken.trim()
+    ? res.authToken.trim()
+    : null;
+}
+
+async function authHeaders(extra = {}) {
+  const token = await getStoredAuthToken();
+  const headers = { ...extra };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+async function clearStoredAuth() {
+  await chrome.storage.local.remove(["authToken", "authEmail"]);
+}
+
+async function handleUnauthorized(res) {
+  if (res.status === 401) {
+    await clearStoredAuth();
+    throw new Error("Session expired — sign in again");
+  }
+}
+
+async function loginToApp(apiBase, email, password) {
+  const res = await fetch(`${apiBase}/api/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || "Failed to sign in");
+  }
+  if (typeof data.token !== "string" || !data.token) {
+    throw new Error("Server did not return an auth token");
+  }
+  await chrome.storage.local.set({
+    authToken: data.token,
+    authEmail: data.user?.email || email,
+  });
+  return data;
+}
+
 async function saveTab(apiBase, tab, groupId, isFirstGroupLink = false, groupName = null) {
   if (!tab?.url) return null;
 
@@ -69,9 +114,10 @@ async function saveTab(apiBase, tab, groupId, isFirstGroupLink = false, groupNam
 
   const res = await fetch(`${apiBase}/api/links`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   });
+  await handleUnauthorized(res);
   const data = await res.json().catch(() => ({}));
   if (res.ok) {
     return data.link;
@@ -88,9 +134,10 @@ async function saveUrl(apiBase, url, groupId) {
 
   const res = await fetch(`${apiBase}/api/links`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify(payload),
   });
+  await handleUnauthorized(res);
   const data = await res.json().catch(() => ({}));
   if (res.ok) {
     return data.link;
@@ -110,7 +157,10 @@ function hostnameOf(url) {
 }
 
 async function fetchGroups(apiBase) {
-  const res = await fetch(`${apiBase}/api/groups`);
+  const res = await fetch(`${apiBase}/api/groups`, {
+    headers: await authHeaders(),
+  });
+  await handleUnauthorized(res);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || "Failed to load groups");
   return Array.isArray(data.groups) ? data.groups : [];
@@ -119,9 +169,10 @@ async function fetchGroups(apiBase) {
 async function createGroup(apiBase, name) {
   const res = await fetch(`${apiBase}/api/groups`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name }),
   });
+  await handleUnauthorized(res);
   const data = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(data?.error || "Failed to create group");
   return data.group;
@@ -182,7 +233,14 @@ function App() {
   const [activeTabGroup, setActiveTabGroup] = useState(null);
   const [saveMode, setSaveMode] = useState("active");
   const [pendingRememberUrl, setPendingRememberUrl] = useState(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authToken, setAuthToken] = useState(null);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginError, setLoginError] = useState("");
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
   const inputRef = useRef(null);
+  const isSignedIn = Boolean(authToken);
 
   useEffect(() => {
     (async () => {
@@ -206,6 +264,8 @@ function App() {
     chrome.storage.local.get(
       [
         "apiBase",
+        "authToken",
+        "authEmail",
         "lastSavedGroupId",
         "cachedGroups",
         "lastExtensionError",
@@ -216,6 +276,13 @@ function App() {
       const saved = typeof res.apiBase === "string" ? res.apiBase.trim() : "";
       if (saved) {
         setApiBase(saved);
+      }
+      if (typeof res.authToken === "string" && res.authToken.trim()) {
+        setAuthToken(res.authToken.trim());
+      }
+      if (typeof res.authEmail === "string" && res.authEmail.trim()) {
+        setAuthEmail(res.authEmail.trim());
+        setLoginEmail(res.authEmail.trim());
       }
 
       const pendingUrl =
@@ -277,10 +344,14 @@ function App() {
     });
   }, []);
 
-  // Background fetch/sync groups once storage has loaded
+  // Background fetch/sync groups once storage has loaded and user is signed in
   useEffect(() => {
     if (!isStorageLoaded) return;
-    
+    if (!isSignedIn) {
+      setGroupsLoading(false);
+      return;
+    }
+
     const base = apiBase.trim();
     if (!base) return;
     chrome.storage.local.set({ apiBase: base });
@@ -345,7 +416,7 @@ function App() {
     // `groups.length` is intentionally sampled when storage finishes loading.
     // Including it would refetch every time this effect updates the groups.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiBase, isStorageLoaded]);
+  }, [apiBase, isStorageLoaded, isSignedIn]);
 
   const filteredGroups = useMemo(() => {
     const q = groupQuery.trim().toLowerCase();
@@ -522,6 +593,34 @@ function App() {
     }
   };
 
+  const handleLogin = async (e) => {
+    e.preventDefault();
+    setLoginError("");
+    setIsLoggingIn(true);
+    try {
+      const base = apiBase.trim() || DEFAULT_API_BASE;
+      const data = await loginToApp(base, loginEmail.trim(), loginPassword);
+      setAuthToken(data.token);
+      setAuthEmail(data.user?.email || loginEmail.trim());
+      setLoginPassword("");
+      setShowSettings(false);
+      setPhase("pick");
+      setError("");
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Failed to sign in");
+    } finally {
+      setIsLoggingIn(false);
+    }
+  };
+
+  const handleLogout = async () => {
+    await clearStoredAuth();
+    setAuthToken(null);
+    setAuthEmail("");
+    setGroups([]);
+    setPhase("pick");
+  };
+
   if (showSettings) {
     return (
       <div className="wrap">
@@ -538,6 +637,81 @@ function App() {
             placeholder="http://localhost:3000"
           />
           <p className="hint">Change this if your app runs on a different host.</p>
+
+          <div className="auth-block">
+            {isSignedIn ? (
+              <>
+                <p className="hint">Signed in as {authEmail || "account"}</p>
+                <button type="button" className="ghost-btn" onClick={handleLogout}>
+                  Sign out
+                </button>
+              </>
+            ) : (
+              <form className="auth-form" onSubmit={handleLogin}>
+                <label className="field-label">Email</label>
+                <input
+                  type="email"
+                  value={loginEmail}
+                  onChange={(e) => setLoginEmail(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+                <label className="field-label">Password</label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={(e) => setLoginPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+                {loginError ? <p className="error-panel-message">{loginError}</p> : null}
+                <button type="submit" className="save-btn" disabled={isLoggingIn}>
+                  {isLoggingIn ? "Signing in…" : "Sign in"}
+                </button>
+              </form>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (isStorageLoaded && !isSignedIn) {
+    return (
+      <div className="wrap">
+        <div className="panel">
+          <div className="orb-status orb-status--listen">
+            <ThinkingOrb state="listening" size={64} speed={0.95} theme="dark" />
+            <span className="orb-status-text">Sign in to save links</span>
+          </div>
+          <form className="auth-form auth-form--main" onSubmit={handleLogin}>
+            <label className="field-label">App URL</label>
+            <input
+              value={apiBase}
+              onChange={(e) => setApiBase(e.target.value)}
+              placeholder="http://localhost:3000"
+            />
+            <label className="field-label">Email</label>
+            <input
+              type="email"
+              value={loginEmail}
+              onChange={(e) => setLoginEmail(e.target.value)}
+              autoComplete="username"
+              required
+            />
+            <label className="field-label">Password</label>
+            <input
+              type="password"
+              value={loginPassword}
+              onChange={(e) => setLoginPassword(e.target.value)}
+              autoComplete="current-password"
+              required
+            />
+            {loginError ? <p className="error-panel-message">{loginError}</p> : null}
+            <button type="submit" className="save-btn" disabled={isLoggingIn}>
+              {isLoggingIn ? "Signing in…" : "Sign in"}
+            </button>
+          </form>
         </div>
       </div>
     );

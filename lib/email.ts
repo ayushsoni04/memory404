@@ -1,6 +1,11 @@
 import { Resend } from "resend";
 
-const FROM_ADDRESS = "memory404 <onboarding@resend.dev>";
+const DEFAULT_FROM = "memory404 <onboarding@resend.dev>";
+
+function getFromAddress(): string {
+  const from = process.env.EMAIL_FROM?.trim();
+  return from || DEFAULT_FROM;
+}
 
 function getResendClient(): Resend | null {
   const apiKey = process.env.RESEND_API_KEY?.trim();
@@ -21,7 +26,7 @@ export async function sendPasswordResetEmail(
   }
 
   const { error } = await resend.emails.send({
-    from: FROM_ADDRESS,
+    from: getFromAddress(),
     to: email,
     subject: "Reset your memory404 password",
     html: `

@@ -7,10 +7,17 @@ import GlitchText from "@/components/GlitchText";
 import MorphText from "@/components/MorphText";
 import TrashBin from "@/components/TrashBin";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { playUiSound } from "@/lib/ui-sound";
 import GroupSearchCommand from "./GroupSearchCommand";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
-import { FIELD_CLASS, GRID_SIZES, type GridSize, type GroupRow } from "./types";
+import {
+  controlPress,
+  FIELD_CLASS,
+  GRID_SIZES,
+  type GridSize,
+  type GroupRow,
+} from "./types";
 
 type VaultSidebarProps = {
   gridSize: GridSize;
@@ -93,11 +100,11 @@ export default function VaultSidebar({
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-black lg:rounded-none lg:border-0 lg:border-e lg:border-border">
         <SidebarDitherBackground />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[var(--layout-gap-group)] p-[var(--layout-pad)] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:gap-[var(--layout-gap-section)] lg:overflow-hidden">
-          <div className="flex flex-col items-start gap-3">
+          <div className="flex flex-col items-start gap-[var(--layout-gap-control)]">
             <Link
               href="/"
               aria-label="memory404"
-              className="inline-flex items-center gap-2 text-foreground transition hover:opacity-85"
+              className={`inline-flex items-center gap-2 text-foreground hover:opacity-85 rounded-lg ${controlPress}`}
             >
               <Image
                 src="/logo.png"
@@ -116,7 +123,7 @@ export default function VaultSidebar({
             <div
               role="group"
               aria-label="Grid layout"
-              className="flex items-center gap-3"
+              className="flex items-center gap-[var(--layout-gap-item)]"
             >
               {GRID_SIZES.map((opt) => {
                 const active = gridSize === opt.id;
@@ -126,8 +133,11 @@ export default function VaultSidebar({
                     type="button"
                     title={opt.title}
                     aria-pressed={active}
-                    onClick={() => setGridSizeAndPersist(opt.id)}
-                    className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[12px] font-medium leading-none transition-colors ${
+                    onClick={() => {
+                      setGridSizeAndPersist(opt.id);
+                      playUiSound("toggle");
+                    }}
+                    className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[12px] font-medium leading-none ${controlPress} ${
                       active
                         ? "bg-pill-active text-pill-active-fg"
                         : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
@@ -140,7 +150,7 @@ export default function VaultSidebar({
             </div>
           </div>
 
-          <div className="flex flex-col gap-5 lg:mt-auto">
+          <div className="flex flex-col gap-[var(--layout-gap-group)] lg:mt-auto">
             {showSaveFlow ? (
               <form onSubmit={handleSubmit} className="flex flex-col gap-2">
                 {sidebarShowNotesForm ? (
@@ -177,7 +187,7 @@ export default function VaultSidebar({
                     <button
                       type="button"
                       onClick={finishSidebarNotesFlow}
-                      className="inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer"
+                      className={`inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer ${controlPress}`}
                     >
                       <MorphText duration={220}>
                         {sidebarNotesText.trim() ? "Save Notes" : "Done"}
@@ -296,7 +306,7 @@ export default function VaultSidebar({
                           setNewGroupNameDraft("");
                         }}
                         disabled={saving}
-                        className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill px-3 text-sm text-muted transition hover:bg-pill-hover hover:text-foreground disabled:opacity-50 cursor-pointer"
+                        className={`inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill px-3 text-sm text-muted hover:bg-pill-hover hover:text-foreground disabled:opacity-50 cursor-pointer ${controlPress}`}
                       >
                         Back
                       </button>
@@ -308,7 +318,7 @@ export default function VaultSidebar({
                             ? !newGroupNameDraft.trim()
                             : !placeGroupId)
                         }
-                        className="inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg transition hover:opacity-90 disabled:opacity-50 cursor-pointer"
+                        className={`inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 cursor-pointer ${controlPress}`}
                       >
                         Save
                       </button>
@@ -338,7 +348,7 @@ export default function VaultSidebar({
 
             <nav
               aria-label="Sidebar"
-              className="flex flex-col gap-3"
+              className="flex flex-col gap-[var(--layout-gap-control)]"
             >
               <GroupSearchCommand
                 value={groupSearch}
@@ -352,7 +362,7 @@ export default function VaultSidebar({
               {isOwner ? (
                 <Link
                   href="/workspace"
-                  className="hidden rounded-lg px-2.5 py-1.5 text-[13px] text-muted transition-colors hover:bg-pill hover:text-foreground lg:block"
+                  className={`hidden rounded-lg px-2.5 py-1.5 text-[13px] text-muted hover:bg-pill hover:text-foreground lg:block ${controlPress}`}
                 >
                   Workspace
                 </Link>
@@ -366,7 +376,7 @@ export default function VaultSidebar({
               </p>
             </nav>
 
-            <div className="mt-auto border-t border-border/40 pt-4">
+            <div className="mt-auto border-t border-border pt-4">
               <SidebarProfile />
             </div>
           </div>

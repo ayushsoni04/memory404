@@ -61,6 +61,14 @@ export async function attachSessionCookie(
   return response;
 }
 
+/**
+ * Issues a session JWT for non-cookie clients (Chrome extension / Express).
+ * Same payload and lifetime as the httpOnly cookie.
+ */
+export async function issueSessionToken(userId: string): Promise<string> {
+  return encryptSession({ userId });
+}
+
 /** Route Handlers / Server Components only — resolves the current session, if any. */
 export async function getSession(): Promise<SessionPayload | null> {
   const cookieStore = await cookies();
@@ -73,4 +81,13 @@ export async function getSession(): Promise<SessionPayload | null> {
 export async function deleteSession(): Promise<void> {
   const cookieStore = await cookies();
   cookieStore.delete(SESSION_COOKIE_NAME);
+}
+
+/** Clears the session cookie on an explicit response (e.g. account delete). */
+export function clearSessionCookie(response: NextResponse): NextResponse {
+  response.cookies.set(SESSION_COOKIE_NAME, "", {
+    ...sessionCookieOptions(),
+    maxAge: 0,
+  });
+  return response;
 }

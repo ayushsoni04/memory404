@@ -26,6 +26,7 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const allowDevSkip = process.env.NODE_ENV !== "production";
 
   const passwordIssues = getPasswordRequirementIssues(password);
 
@@ -176,14 +177,16 @@ export function SignupForm() {
         and point App URL at your own server.
       </p>
 
-      <button
-        type="button"
-        onClick={handleSkip}
-        disabled={isSubmitting || isSkipping}
-        className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer disabled:opacity-50"
-      >
-        {isSkipping ? "Skipping…" : "Skip for now"}
-      </button>
+      {allowDevSkip && (
+        <button
+          type="button"
+          onClick={handleSkip}
+          disabled={isSubmitting || isSkipping}
+          className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer disabled:opacity-50"
+        >
+          {isSkipping ? "Skipping…" : "Skip for now"}
+        </button>
+      )}
     </div>
   );
 }

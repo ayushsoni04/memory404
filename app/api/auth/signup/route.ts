@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
-import { attachSessionCookie } from "@/lib/session";
+import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
+import { attachSessionCookie, issueSessionToken } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
 import { getPasswordRequirementIssues } from "@/lib/password-policy";
 import { getMongoEnvError, isDuplicateKeyError } from "@/lib/db/mongodb";
@@ -13,11 +14,15 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 type SignupBody = {
   email?: unknown;
   password?: unknown;
+  name?: unknown;
   leadSource?: unknown;
   utm?: unknown;
 };
 
 export async function POST(request: Request) {
+  const limited = enforceAuthRateLimit(request, "signup");
+  if (limited) return limited;
+
   const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });
@@ -32,6 +37,8 @@ export async function POST(request: Request) {
 
   const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
   const password = typeof body.password === "string" ? body.password : "";
+  const name =
+    typeof body.name === "string" ? body.name.trim().slice(0, 80) || null : null;
   const leadSource = typeof body.leadSource === "string" ? body.leadSource : undefined;
   const utm = body.utm && typeof body.utm === "object" ? (body.utm as UserUtm) : undefined;
 
@@ -57,9 +64,16 @@ export async function POST(request: Request) {
     }
 
     const passwordHash = await hashPassword(password);
-    const user = await createUserWithPassword({ email, passwordHash, leadSource, utm });
+    const user = await createUserWithPassword({
+      email,
+      passwordHash,
+      name,
+      leadSource,
+      utm,
+    });
+    const token = await issueSessionToken(user.id);
     const response = NextResponse.json(
-      { user: { id: user.id, email: user.email, plan: user.plan } },
+      { user: { id: user.id, email: user.email, plan: user.plan }, token },
       { status: 201 },
     );
     return attachSessionCookie(response, user.id);

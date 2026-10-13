@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
 import { getMongoEnvError } from "@/lib/db/mongodb";
 import { findUserByValidResetToken, updateUserPassword } from "@/lib/db/repositories";
 import { hashPassword } from "@/lib/password";
@@ -12,6 +13,9 @@ type ResetPasswordBody = {
 };
 
 export async function POST(request: Request) {
+  const limited = enforceAuthRateLimit(request, "reset-password", 5);
+  if (limited) return limited;
+
   const envErr = getMongoEnvError();
   if (envErr) {
     return NextResponse.json({ error: envErr }, { status: 503 });

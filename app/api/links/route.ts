@@ -314,7 +314,7 @@ export async function POST(request: Request) {
     });
 
     // Detach from the request so the client isn't held open by meta/screenshot work.
-    after(() => enrichLinkMetadataInBackground(created.id, url));
+    after(() => enrichLinkMetadataInBackground(created.id, url, auth.id));
 
     return NextResponse.json(
       { link: linkToApiRow(created) },

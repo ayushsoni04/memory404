@@ -374,3 +374,23 @@ input:focus {
   color: var(--foreground);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
 }
+
+.auth-block {
+  border-top: 1px solid var(--border);
+  margin-top: 4px;
+  padding-top: 4px;
+  padding-bottom: 12px;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-form--main {
+  padding-bottom: 12px;
+}
+
+.auth-form .save-btn {
+  margin: 4px 12px 0;
+}

@@ -1,34 +1,56 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { BillingCycle, Plan, Tab } from "./_components/constants";
+import { useCallback, useEffect, useState } from "react";
+import type { Plan, Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
 import { MembershipTab } from "./_components/MembershipTab";
 import { ProfileTab } from "./_components/ProfileTab";
 import { SettingsNav } from "./_components/SettingsNav";
 import { StatsTab } from "./_components/StatsTab";
 
+type MeUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  username: string | null;
+  avatarUrl: string | null;
+  bannerStyle: string;
+  plan: string;
+};
+
+function asPlan(value: string): Plan {
+  if (value === "pro" || value === "team") return value;
+  return "free";
+}
+
 export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
-  // Profile Form States
-  const [name, setName] = useState("Ayush Soni");
-  const [username, setUsername] = useState("ayushsoni04");
-  const [email, setEmail] = useState("ayush@memory404.design");
+  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [bannerStyle, setBannerStyle] = useState("midnight");
   const [isSaved, setIsSaved] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<Plan>("free");
 
-  // Billing States
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("yearly");
-  const [currentPlan, setCurrentPlan] = useState<Plan>("pro");
-  const [teamSeats, setTeamSeats] = useState(5); // Slider seat count
-
-  // Account Deactivation Modal States
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [deactivateInput, setDeactivateInput] = useState("");
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [deactivatedSuccess, setDeactivatedSuccess] = useState(false);
+  const [deactivateError, setDeactivateError] = useState<string | null>(null);
+
+  const applyUser = useCallback((user: MeUser) => {
+    setName(user.name ?? "");
+    setUsername(user.username ?? "");
+    setEmail(user.email);
+    setBannerStyle(user.bannerStyle || "midnight");
+    setAvatarPreview(user.avatarUrl);
+    setCurrentPlan(asPlan(user.plan));
+  }, []);
 
   useEffect(() => {
     if (!showDeactivateModal) return;
@@ -38,6 +60,7 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
       event.preventDefault();
       setShowDeactivateModal(false);
       setDeactivateInput("");
+      setDeactivateError(null);
     };
 
     window.addEventListener("keydown", closeOnEscape);
@@ -57,90 +80,92 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
     return () => window.clearTimeout(timer);
   }, []);
 
-  // Load profile from localStorage. Runs post-mount (not a lazy initializer)
-  // so server and first-client-render markup match; localStorage isn't
-  // available during SSR.
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const storedName = localStorage.getItem("m404-profile-name");
-      const storedUsername = localStorage.getItem("m404-profile-username");
-      const storedEmail = localStorage.getItem("m404-profile-email");
-      const storedPlan = localStorage.getItem("m404-billing-plan");
-      const storedCycle = localStorage.getItem("m404-billing-cycle");
-      const storedBanner = localStorage.getItem("m404-profile-banner");
-      const storedSeats = localStorage.getItem("m404-billing-seats");
-      const storedAvatar = localStorage.getItem("m404-profile-avatar");
-
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      if (storedName) setName(storedName);
-      if (storedUsername) setUsername(storedUsername);
-      if (storedEmail) setEmail(storedEmail);
-      if (storedPlan === "free" || storedPlan === "pro" || storedPlan === "team") {
-        setCurrentPlan(storedPlan);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/me");
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          throw new Error(data.error || "Failed to load profile");
+        }
+        const data = await res.json();
+        if (!cancelled && data.user) applyUser(data.user as MeUser);
+      } catch (e) {
+        if (!cancelled) {
+          setProfileError(e instanceof Error ? e.message : "Failed to load profile");
+        }
+      } finally {
+        if (!cancelled) setProfileLoading(false);
       }
-      if (storedCycle === "monthly" || storedCycle === "yearly") {
-        setBillingCycle(storedCycle);
-      }
-      if (storedBanner) setBannerStyle(storedBanner);
-      if (storedSeats) setTeamSeats(Number(storedSeats));
-      if (storedAvatar) setAvatarPreview(storedAvatar);
-    }
-  }, []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [applyUser]);
 
-  const handleSaveProfile = (e: React.FormEvent) => {
+  const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    localStorage.setItem("m404-profile-name", name);
-    localStorage.setItem("m404-profile-username", username);
-    localStorage.setItem("m404-profile-email", email);
-    localStorage.setItem("m404-profile-banner", bannerStyle);
-    if (avatarPreview) {
-      localStorage.setItem("m404-profile-avatar", avatarPreview);
+    setProfileError(null);
+    setIsSaving(true);
+    try {
+      const res = await fetch("/api/me", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: name.trim() || null,
+          username: username.trim() || null,
+          bannerStyle,
+          avatarUrl: avatarPreview,
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to save profile");
+      }
+      if (data.user) applyUser(data.user as MeUser);
+      window.dispatchEvent(new CustomEvent("m404:profile-updated"));
+      setIsSaved(true);
+      setTimeout(() => setIsSaved(false), 2000);
+    } catch (err) {
+      setProfileError(err instanceof Error ? err.message : "Failed to save profile");
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsSaved(true);
-    setTimeout(() => setIsSaved(false), 2000);
-  };
-
-  const handlePlanChange = (plan: Plan) => {
-    setCurrentPlan(plan);
-    localStorage.setItem("m404-billing-plan", plan);
-  };
-
-  const handleBillingCycleChange = (cycle: BillingCycle) => {
-    setBillingCycle(cycle);
-    localStorage.setItem("m404-billing-cycle", cycle);
-  };
-
-  const handleSeatsChange = (seats: number) => {
-    setTeamSeats(seats);
-    localStorage.setItem("m404-billing-seats", String(seats));
   };
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result as string;
-        setAvatarPreview(base64String);
-        localStorage.setItem("m404-profile-avatar", base64String);
-      };
-      reader.readAsDataURL(file);
-    }
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64String = reader.result as string;
+      setAvatarPreview(base64String);
+    };
+    reader.readAsDataURL(file);
   };
 
-  const handleDeactivate = (e: React.FormEvent) => {
+  const handleDeactivate = async (e: React.FormEvent) => {
     e.preventDefault();
     if (deactivateInput !== "deactivate") return;
+    setDeactivateError(null);
     setIsDeactivating(true);
-    setTimeout(() => {
-      setIsDeactivating(false);
+    try {
+      const res = await fetch("/api/me", { method: "DELETE" });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete account");
+      }
       setDeactivatedSuccess(true);
-      localStorage.clear();
       setTimeout(() => {
-        window.location.href = "/";
-      }, 2000);
-    }, 1500);
+        window.location.href = "/login";
+      }, 1500);
+    } catch (err) {
+      setDeactivateError(
+        err instanceof Error ? err.message : "Failed to delete account",
+      );
+      setIsDeactivating(false);
+    }
   };
 
   return (
@@ -152,11 +177,8 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
         isOwner={isOwner}
       />
 
-      {/* Main Settings Panel */}
       <main className="flex min-w-0 flex-1 flex-col">
         <div className="max-w-[720px] space-y-8 pt-4 pb-12">
-
-          {/* Header */}
           <header className="space-y-2 pb-5">
             <h1 className="text-xl font-semibold tracking-tight text-foreground uppercase font-mono">
               {activeTab === "profile" && "Profile settings"}
@@ -164,9 +186,12 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
               {activeTab === "statistics" && "Usage statistics"}
             </h1>
             <p className="text-sm text-subtle">
-              {activeTab === "profile" && "Manage your visual profile, banner choices, and local workspace credentials."}
-              {activeTab === "membership" && "Configure pricing layers, run seat calculators, and download receipt histories."}
-              {activeTab === "statistics" && "Track total saved links, group density distributions, and relative additions timelines."}
+              {activeTab === "profile" &&
+                "Manage your name, username, banner, and avatar. Changes sync to your account."}
+              {activeTab === "membership" &&
+                "Your current plan. Paid upgrades are coming soon."}
+              {activeTab === "statistics" &&
+                "Track total saved links, group density distributions, and relative additions timelines."}
             </p>
           </header>
 
@@ -177,31 +202,28 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
               username={username}
               setUsername={setUsername}
               email={email}
-              setEmail={setEmail}
               bannerStyle={bannerStyle}
               setBannerStyle={setBannerStyle}
               avatarPreview={avatarPreview}
               onAvatarChange={handleAvatarChange}
               isSaved={isSaved}
+              isSaving={isSaving}
+              isLoading={profileLoading}
+              error={profileError}
               onSaveProfile={handleSaveProfile}
               currentPlan={currentPlan}
-              onOpenDeactivateModal={() => setShowDeactivateModal(true)}
+              onOpenDeactivateModal={() => {
+                setDeactivateError(null);
+                setShowDeactivateModal(true);
+              }}
             />
           )}
 
           {activeTab === "membership" && (
-            <MembershipTab
-              billingCycle={billingCycle}
-              onBillingCycleChange={handleBillingCycleChange}
-              currentPlan={currentPlan}
-              onPlanChange={handlePlanChange}
-              teamSeats={teamSeats}
-              onSeatsChange={handleSeatsChange}
-            />
+            <MembershipTab currentPlan={currentPlan} />
           )}
 
           {activeTab === "statistics" && <StatsTab bannerStyle={bannerStyle} />}
-
         </div>
       </main>
 
@@ -210,14 +232,15 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
         onClose={() => {
           setShowDeactivateModal(false);
           setDeactivateInput("");
+          setDeactivateError(null);
         }}
         deactivateInput={deactivateInput}
         setDeactivateInput={setDeactivateInput}
         isDeactivating={isDeactivating}
         deactivatedSuccess={deactivatedSuccess}
+        error={deactivateError}
         onSubmit={handleDeactivate}
       />
-
     </div>
   );
 }

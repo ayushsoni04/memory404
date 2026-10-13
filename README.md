@@ -40,7 +40,7 @@ Local split-stack dev: set `MONGODB_URI` (and optionally `MONGODB_DB`) in `.env.
 
 memory404 uses the MongoDB native Node.js driver with MongoDB Atlas. Data is normalized into `users`, `groups`, and `links` collections with per-user uniqueness, relationship, soft-delete, and cursor-pagination indexes created by the Express startup path or migration script.
 
-Supabase is used only for authentication and session refresh. It is not the application database. Configure its public URL and publishable key separately from `MONGODB_URI`.
+Authentication is self-contained: email/password in MongoDB, signed JWTs as httpOnly cookies (web) or Bearer tokens (Chrome extension / Express). Each user has a private vault — links and groups are always scoped by `userId`.
 
 ### Keep-alive (free tier)
 
@@ -49,10 +49,9 @@ GitHub Actions [`.github/workflows/keep-alive.yml`](.github/workflows/keep-alive
 | Service | Why | Schedule |
 |---------|-----|----------|
 | **Render** | Free web services sleep after ~15 min idle | Every 14 minutes |
-| **Supabase Auth** | Auth health visibility | Daily |
 | **Vercel** | Stays warm; avoids cold starts | Every 14 minutes |
 
-Optional GitHub repo variables: `VERCEL_APP_URL`, `RENDER_API_URL`, `SUPABASE_PROJECT_URL` (your Auth project URL).
+Optional GitHub repo variables: `VERCEL_APP_URL`, `RENDER_API_URL`.
 
 Trigger manually: **Actions → Keep services alive → Run workflow**.
 

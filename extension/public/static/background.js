@@ -10,6 +10,30 @@ function getApiBase() {
   });
 }
 
+async function getAuthToken() {
+  const res = await storageGet(["authToken"]);
+  return typeof res.authToken === "string" && res.authToken.trim()
+    ? res.authToken.trim()
+    : null;
+}
+
+async function clearAuthToken() {
+  await storageRemove(["authToken", "authEmail"]);
+}
+
+async function authHeaders(extra = {}) {
+  const token = await getAuthToken();
+  const headers = { ...extra };
+  if (token) headers.Authorization = `Bearer ${token}`;
+  return headers;
+}
+
+async function handleAuthFailure(status) {
+  if (status === 401) {
+    await clearAuthToken();
+  }
+}
+
 function storageGet(keys) {
   return new Promise((resolve) => {
     chrome.storage.local.get(keys, resolve);
@@ -178,10 +202,15 @@ async function saveUrlToApp(url, options = {}) {
   // Skip client imageUrl on batch saves — uploading it server-side can hang;
   // enrichLinkMetadataInBackground fills previews after create.
 
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("Sign in via the extension popup to save links");
+  }
+
   const attempt = async () => {
     const res = await fetchWithTimeout(`${apiBase}/api/links`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: await authHeaders({ "Content-Type": "application/json" }),
       body: JSON.stringify(payload),
     });
     // Guard against a hung body read as well.
@@ -204,6 +233,11 @@ async function saveUrlToApp(url, options = {}) {
     ({ res, data } = await withTimeout(attempt(), FETCH_TIMEOUT_MS + 6_000, "Save retry"));
   }
 
+  if (res.status === 401) {
+    await handleAuthFailure(401);
+    throw new Error("Session expired — sign in again in the extension popup");
+  }
+
   if (res.ok) {
     return { apiBase, link: data?.link };
   }
@@ -221,8 +255,18 @@ async function saveUrlToApp(url, options = {}) {
 
 async function fetchGroupsFromApi() {
   const apiBase = await getApiBase();
-  const res = await fetchWithTimeout(`${apiBase}/api/groups`);
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("Sign in via the extension popup to load groups");
+  }
+  const res = await fetchWithTimeout(`${apiBase}/api/groups`, {
+    headers: await authHeaders(),
+  });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    await handleAuthFailure(401);
+    throw new Error("Session expired — sign in again in the extension popup");
+  }
   if (!res.ok) throw new Error(data?.error || "Failed to load groups");
   const groups = Array.isArray(data.groups) ? data.groups : [];
   await storageSet({ cachedGroups: groups });
@@ -231,12 +275,20 @@ async function fetchGroupsFromApi() {
 
 async function createGroupFromApi(name) {
   const apiBase = await getApiBase();
+  const token = await getAuthToken();
+  if (!token) {
+    throw new Error("Sign in via the extension popup to create groups");
+  }
   const res = await fetchWithTimeout(`${apiBase}/api/groups`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: await authHeaders({ "Content-Type": "application/json" }),
     body: JSON.stringify({ name }),
   });
   const data = await res.json().catch(() => ({}));
+  if (res.status === 401) {
+    await handleAuthFailure(401);
+    throw new Error("Session expired — sign in again in the extension popup");
+  }
   if (!res.ok) throw new Error(data?.error || "Failed to create group");
   const group = data.group;
   const prev = await storageGet(["cachedGroups"]);

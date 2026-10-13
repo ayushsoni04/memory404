@@ -23,6 +23,7 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const allowDevSkip = process.env.NODE_ENV !== "production";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -137,14 +138,16 @@ export function LoginForm() {
         </Link>
       </p>
 
-      <button
-        type="button"
-        onClick={handleSkip}
-        disabled={isSubmitting || isSkipping}
-        className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer disabled:opacity-50"
-      >
-        {isSkipping ? "Skipping…" : "Skip for now"}
-      </button>
+      {allowDevSkip && (
+        <button
+          type="button"
+          onClick={handleSkip}
+          disabled={isSubmitting || isSkipping}
+          className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer disabled:opacity-50"
+        >
+          {isSkipping ? "Skipping…" : "Skip for now"}
+        </button>
+      )}
     </div>
   );
 }

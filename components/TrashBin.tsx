@@ -2,6 +2,7 @@
 
 import { forwardRef, useState } from "react";
 import Link from "next/link";
+import { playUiSound } from "@/lib/ui-sound";
 
 type Props = {
   onDropLink?: (linkId: string) => void;
@@ -33,6 +34,8 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
     if (linkId) onDropLink?.(linkId);
     if (groupId) onDropGroup?.(groupId);
 
+    if (linkId || groupId) playUiSound("droplet");
+
     // Trigger receive animation
     setJustReceived(true);
     setTimeout(() => setJustReceived(false), 280);
@@ -45,7 +48,7 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
-        className={`group/bin flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-1.5 text-[13px] transition-[transform,background-color,border-color,color] duration-[160ms] ease-[var(--ease-out)]
+        className={`group/bin flex items-center gap-2.5 rounded-lg border border-transparent px-2.5 py-1.5 text-[13px] transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background
           ${isDragOver
             ? "border-red-500/40 bg-red-500/15 text-red-400 scale-[1.02]"
             : "text-muted hover:text-foreground hover:bg-pill"

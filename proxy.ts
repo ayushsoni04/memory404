@@ -19,9 +19,11 @@ function isPublicPath(pathname: string): boolean {
 }
 
 export async function proxy(request: NextRequest) {
-  // TEMP: skip login gate until public launch. APIs already fall back to DEV_USER.
-  // Remove AUTH_BYPASS (or set to "0") when hosting for real users.
-  if (process.env.AUTH_BYPASS === "1") {
+  // Dev-only escape hatch. Ignored in production so real users always hit the gate.
+  if (
+    process.env.NODE_ENV !== "production" &&
+    process.env.AUTH_BYPASS === "1"
+  ) {
     return NextResponse.next();
   }
 

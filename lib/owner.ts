@@ -12,7 +12,7 @@ function ownerAllowlist(): string[] {
 
 function isDevOwnerFallback(): boolean {
   return (
-    process.env.NODE_ENV === "development" || process.env.AUTH_BYPASS === "1"
+    process.env.NODE_ENV !== "production" && process.env.AUTH_BYPASS === "1"
   );
 }
 
@@ -20,7 +20,10 @@ function isDevOwnerFallback(): boolean {
 export function isOwnerEmail(email: string): boolean {
   const normalized = email.trim().toLowerCase();
   if (ownerAllowlist().includes(normalized)) return true;
-  if (isDevOwnerFallback() && normalized === DEV_USER_EMAIL.toLowerCase()) {
+  if (
+    process.env.NODE_ENV !== "production" &&
+    normalized === DEV_USER_EMAIL.toLowerCase()
+  ) {
     return true;
   }
   return false;
@@ -30,7 +33,6 @@ export function isOwnerEmail(email: string): boolean {
 export async function getIsOwner(): Promise<boolean> {
   const user = await getAuthUser();
   if (user) return isOwnerEmail(user.email);
-  // No session — in bypass/dev, APIs use DEV_USER; treat the same for UI gates.
   if (isDevOwnerFallback()) return isOwnerEmail(DEV_USER_EMAIL);
   return false;
 }

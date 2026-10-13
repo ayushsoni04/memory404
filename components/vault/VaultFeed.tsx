@@ -65,39 +65,47 @@ export default function VaultFeed({
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
 
   const feedBody = !openedGroupId && groupsError ? (
-    <div className="rounded-xl border border-border bg-surface p-6 text-sm text-muted">
-      <p>Groups could not be loaded.</p>
+    <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface-elevated p-6">
+      <p className="text-sm text-foreground">Groups could not be loaded.</p>
+      <p className="text-[13px] text-subtle">
+        Check your connection, then try again.
+      </p>
       <button
         type="button"
         onClick={() => void loadGroups()}
-        className="mt-2 text-foreground underline"
+        className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
       >
         Retry
       </button>
     </div>
   ) : !openedGroupId || loadingLinks ? (
-    <div className="mind-grid" data-grid-size={gridSize}>
+    <div className="mind-grid" data-grid-size={gridSize} aria-busy="true" aria-label="Loading links">
       {Array.from({ length: 12 }).map((_, i) => {
         return (
-          <div key={i} className="mb-3 break-inside-avoid animate-pulse">
-            <div className="rounded-[4px] bg-surface-elevated p-[1px] border border-border/30">
-              <div className="w-full aspect-[16/10] rounded-[4px] bg-neutral-800/30" />
+          <div
+            key={i}
+            className="mb-[var(--layout-gap-item)] break-inside-avoid"
+            style={{ animationDelay: `${i * 40}ms` }}
+          >
+            <div className="vault-skeleton rounded-[4px] border border-border bg-surface-elevated p-[1px]">
+              <div className="aspect-[16/10] w-full rounded-[4px] bg-neutral-800/50" />
             </div>
-            <div className="mt-2 px-0.5 space-y-1">
-              <div className="h-3.5 w-4/5 rounded bg-neutral-800/40" />
-              <div className="h-3 w-2/5 rounded bg-neutral-800/25" />
+            <div className="mt-2 space-y-1.5 px-0.5">
+              <div className="vault-skeleton h-3.5 w-[80%] rounded bg-neutral-800/55" />
+              <div className="vault-skeleton h-3 w-[40%] rounded bg-neutral-800/40" />
             </div>
           </div>
         );
       })}
     </div>
   ) : fetchError ? (
-    <div className="rounded-xl border border-border bg-surface p-6 text-sm text-danger">
-      <p>{fetchError}</p>
+    <div className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6">
+      <p className="text-sm text-danger">{fetchError}</p>
+      <p className="text-[13px] text-subtle">Something went wrong loading this group.</p>
       <button
         type="button"
         onClick={() => void loadLinks()}
-        className="mt-2 text-foreground underline"
+        className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
       >
         Retry
       </button>
@@ -131,10 +139,12 @@ export default function VaultFeed({
       {hasMoreLinks && (
         <div
           ref={sentinelRef}
-          className="mt-8 flex w-full justify-center pb-12"
-          aria-hidden
+          className="mt-8 flex w-full flex-col items-center gap-2 pb-12"
+          aria-busy="true"
+          aria-label="Loading more links"
         >
-          <div className="h-8 w-8 animate-pulse rounded-full bg-neutral-800/40" />
+          <div className="vault-skeleton size-8 rounded-full bg-neutral-800/50" />
+          <span className="text-[12px] text-subtle">Loading more…</span>
         </div>
       )}
       {!hasMoreLinks ? (
@@ -150,17 +160,15 @@ export default function VaultFeed({
 
   return (
     <main className="relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background lg:h-full">
-      <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-2 pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-4 lg:gap-y-2">
-        <div className="flex min-w-0 flex-col gap-y-1 lg:flex-row lg:flex-wrap lg:items-baseline lg:gap-x-3 lg:gap-y-1">
-          <h1 className="font-departure shrink-0 text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
-            <MorphText>
-              {openedGroupId === "all"
-                ? "All Links"
-                : (openedGroup?.name ?? "memory404")}
-            </MorphText>
-          </h1>
-        </div>
-        <span className="shrink-0 text-[13px] text-subtle tabular-nums">
+      <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-[var(--layout-gap-item)] pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-[var(--layout-gap-control)]">
+        <h1 className="font-departure shrink-0 text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
+          <MorphText>
+            {openedGroupId === "all"
+              ? "All Links"
+              : (openedGroup?.name ?? "memory404")}
+          </MorphText>
+        </h1>
+        <span className="shrink-0 text-[13px] text-muted tabular-nums">
           <MorphText>
             {openedGroupId === "all"
               ? `${allLinksCount} link${allLinksCount === 1 ? "" : "s"}`
@@ -173,7 +181,7 @@ export default function VaultFeed({
 
       <div
         ref={scrollRootRef}
-        className="mt-3 min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+        className="mt-[var(--layout-gap-control)] min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
       >
         <div className="flex flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
           {groupToolbar}

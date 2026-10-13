@@ -34,15 +34,18 @@ export type GroupWithPreview = GroupRow & {
 export async function createUserWithPassword(input: {
   email: string;
   passwordHash: string;
+  name?: string | null;
   leadSource?: string | null;
   utm?: UserUtm | null;
 }): Promise<UserRow> {
   const { users } = await getCollections();
-  const document = {
+  const document: UserDocument = {
     _id: randomUUID(),
     email: input.email,
-    name: null,
+    name: input.name?.trim() || null,
+    username: null,
     avatarUrl: null,
+    bannerStyle: "midnight",
     plan: "free",
     passwordHash: input.passwordHash,
     resetToken: null,
@@ -77,7 +80,9 @@ export async function ensureDemoUser(id: string, email: string): Promise<UserRow
     _id: id,
     email,
     name: null,
+    username: null,
     avatarUrl: null,
+    bannerStyle: "midnight",
     plan: "free",
     passwordHash: null,
     resetToken: null,
@@ -134,6 +139,57 @@ export async function updateUserPassword(
       $unset: { resetToken: "", resetTokenExpiresAt: "" },
     },
   );
+}
+
+export type UserProfileUpdate = {
+  name?: string | null;
+  username?: string | null;
+  avatarUrl?: string | null;
+  bannerStyle?: string | null;
+};
+
+export async function findUserByUsername(
+  username: string,
+): Promise<UserRow | null> {
+  const { users } = await getCollections();
+  const document = await users.findOne(
+    { username },
+    { collation: { locale: "en", strength: 2 } },
+  );
+  return document ? userDocumentToRow(document) : null;
+}
+
+export async function updateUserProfile(
+  userId: string,
+  patch: UserProfileUpdate,
+): Promise<UserRow | null> {
+  const { users } = await getCollections();
+  const $set: Partial<UserDocument> = {};
+  if ("name" in patch) $set.name = patch.name ?? null;
+  if ("username" in patch) $set.username = patch.username ?? null;
+  if ("avatarUrl" in patch) $set.avatarUrl = patch.avatarUrl ?? null;
+  if ("bannerStyle" in patch) $set.bannerStyle = patch.bannerStyle ?? null;
+
+  if (Object.keys($set).length === 0) {
+    return findUserById(userId);
+  }
+
+  const result = await users.findOneAndUpdate(
+    { _id: userId },
+    { $set },
+    { returnDocument: "after" },
+  );
+  return result ? userDocumentToRow(result) : null;
+}
+
+/** Permanently deletes the user and all owned links/groups. */
+export async function deleteUserAccount(userId: string): Promise<void> {
+  const { users, links, groups } = await getCollections();
+  await withMongoTransaction(async (session) => {
+    await links.deleteMany({ userId }, { session });
+    await groups.deleteMany({ userId }, { session });
+    await users.deleteOne({ _id: userId }, { session });
+  });
 }
 
 export async function getOrCreateGeneralGroup(
@@ -220,11 +276,16 @@ export async function listGroupsWithPreviews(
       {
         $lookup: {
           from: "links",
-          let: { groupId: "$_id" },
+          let: { groupId: "$_id", ownerId: "$userId" },
           pipeline: [
             {
               $match: {
-                $expr: { $eq: ["$groupId", "$$groupId"] },
+                $expr: {
+                  $and: [
+                    { $eq: ["$groupId", "$$groupId"] },
+                    { $eq: ["$userId", "$$ownerId"] },
+                  ],
+                },
                 deletedAt: null,
               },
             },

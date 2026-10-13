@@ -6,7 +6,8 @@ React + webpack Chrome extension (Manifest V3) that opens an in-page save overla
 
 - Toolbar icon / `Alt+Shift+L` (`Option+Shift+L` on Mac) opens the save overlay on the current page
 - Overlay stays on the page while you browse; save runs in the service worker
-- Saves to `POST /api/links` with page metadata when available
+- Sign in with your memory404 email/password (Bearer token stored locally)
+- Saves to `POST /api/links` into **your** vault with page metadata when available
 - Choose an existing group or create one inline
 - Right-click a link → **Add to LK** to save that URL
 - Configurable app URL (⚙ in overlay; defaults to `http://localhost:3000`)

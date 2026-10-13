@@ -2,7 +2,6 @@ import { bind, play as cuelumePlay, setEnabled, type SoundName } from "cuelume";
 
 export const SOUND_PREF_KEY = "m404-sounds-enabled";
 
-let unlocked = false;
 let bound = false;
 
 /** Apply stored preference and wire declarative `data-cuelume-*` listeners once. */
@@ -19,25 +18,6 @@ export function bootUiSounds(): void {
   if (!bound) {
     bind();
     bound = true;
-  }
-
-  if (!unlocked) {
-    const unlock = () => {
-      unlocked = true;
-      // Must create/resume Cuelume's shared AudioContext during a real gesture.
-      // `press` is a dull muted knock — only fires once on first interaction.
-      cuelumePlay("press");
-      window.removeEventListener("pointerdown", unlock, true);
-      window.removeEventListener("keydown", unlock, true);
-    };
-    window.addEventListener("pointerdown", unlock, {
-      capture: true,
-      passive: true,
-    });
-    window.addEventListener("keydown", unlock, {
-      capture: true,
-      passive: true,
-    });
   }
 }
 
@@ -59,7 +39,11 @@ export function setSoundsEnabled(enabled: boolean): void {
   }
 }
 
-/** Imperative cue — safe after `bootUiSounds()` has unlocked the context. */
+/**
+ * Imperative cue. Call synchronously inside a click/pointer handler when
+ * possible so the shared AudioContext unlocks during the user gesture —
+ * then later cues after `await` can resume cleanly.
+ */
 export function playUiSound(name: SoundName): void {
   cuelumePlay(name);
 }

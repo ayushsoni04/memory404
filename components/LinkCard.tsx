@@ -84,13 +84,13 @@ function LinkCard({
         if (origin) onOpen(link, origin);
       }}
     >
-      <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated">
+      <div className="mind-card-shell group relative rounded-[4px] bg-surface-elevated transition-transform duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.985]">
         <span className="mind-card-stroke" aria-hidden />
         <div
           role="button"
           tabIndex={0}
           aria-label={`Open details for ${link.displayTitle}`}
-          className="relative z-[1] block w-full cursor-pointer overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-foreground/40"
+          className="relative z-[1] block w-full cursor-pointer overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={(e) => {
             e.stopPropagation();
             openDetails();

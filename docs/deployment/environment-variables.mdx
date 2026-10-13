@@ -24,10 +24,11 @@ Use a dedicated Atlas database user with only the permissions the app needs. Nev
 
 | Variable | Where | Description |
 |----------|-------|-------------|
-| `SESSION_SECRET` | Vercel | Signs session cookies; `openssl rand -base64 32`. Rotating it signs everyone out |
+| `SESSION_SECRET` | Vercel (+ Express if used) | Signs session cookies and Bearer tokens; `openssl rand -base64 32`. Rotating it signs everyone out |
 | `RESEND_API_KEY` | Vercel | Sends password-reset emails via [Resend](https://resend.com) |
+| `EMAIL_FROM` | Vercel | Optional verified sender, e.g. `memory404 <noreply@yourdomain.com>`. Defaults to Resend sandbox |
 
-See [Auth](/deployment/auth) for how these are used.
+See [Auth](/deployment/auth) for how these are used. `AUTH_BYPASS=1` is **dev-only** and ignored in production.
 
 ## Frontend
 
@@ -41,9 +42,10 @@ See [Auth](/deployment/auth) for how these are used.
 NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
 SESSION_SECRET=<generated-secret>
 RESEND_API_KEY=<resend-api-key>
+EMAIL_FROM=memory404 <noreply@yourdomain.com>
 ```
 
-Auth is self-contained (MongoDB + signed session cookies) — no third-party identity provider is involved. Application records and user accounts both live in MongoDB Atlas.
+Auth is self-contained (MongoDB + signed JWTs as cookies or Bearer tokens) — no third-party identity provider is involved. Application records and user accounts both live in MongoDB Atlas. Each user only sees their own links and groups.
 
 ## Backend (Express)
 
@@ -52,12 +54,14 @@ Auth is self-contained (MongoDB + signed session cookies) — no third-party ide
 | `PORT` | Render | Server port (default `4000`) |
 | `NODE_ENV` | Render | `production` |
 | `CORS_ORIGINS` | Render | Comma-separated extra allowed origins |
+| `SESSION_SECRET` | Render | Same secret as Vercel so Bearer tokens verify |
 
 ```bash
 CORS_ORIGINS=https://memory404.vercel.app
+SESSION_SECRET=<same-as-vercel>
 ```
 
-The Express service also requires `MONGODB_URI` and uses the same `MONGODB_DB` as Vercel.
+The Express service also requires `MONGODB_URI` and uses the same `MONGODB_DB` as Vercel. Vault routes require `Authorization: Bearer <token>` from login/signup.
 
 ## Optional
 

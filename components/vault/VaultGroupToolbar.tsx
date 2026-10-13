@@ -156,7 +156,7 @@ export default function VaultGroupToolbar({
   const [refreshing, setRefreshing] = useState(false);
 
   return (
-    <div className="sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-[var(--layout-gap-control)] bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent relative">
+    <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-[var(--layout-gap-control)] bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="relative flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 ps-0.5 pe-1">
           {isDragging && (
@@ -310,26 +310,37 @@ export default function VaultGroupToolbar({
         ) : (
           <button
             type="button"
-            onClick={() => openAddGroup(filteredFolders.length)}
+            onClick={() => {
+              openAddGroup(filteredFolders.length);
+              playUiSound("bloom");
+            }}
             aria-label="Add group"
             title="Add group"
-            className="inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-muted/50 bg-transparent text-muted transition-colors hover:border-foreground/35 hover:text-foreground"
+            className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong bg-transparent text-muted hover:border-foreground/40 hover:text-foreground ${controlPress}`}
           >
             <Plus className="size-3.5" strokeWidth={2} aria-hidden />
           </button>
         )}
       </div>
-      <div className="flex shrink-0 items-center gap-2">
+      <div className="relative z-10 flex shrink-0 items-center gap-2">
         <SortPill sortBy={sortBy} setSortByAndPersist={setSortByAndPersist} />
         <button
           type="button"
-          onClick={() => void loadGroups()}
+          onClick={() => {
+            setRefreshing(true);
+            playUiSound("loading");
+            void loadGroups().finally(() => {
+              window.setTimeout(() => setRefreshing(false), 400);
+            });
+          }}
           aria-label="Refresh"
           title="Refresh"
           className={`${pillIdle} justify-center px-2.5`}
         >
           <RotateCw
-            className="size-3.5 -scale-x-100"
+            className={`size-3.5 -scale-x-100 transition-transform duration-500 ease-out ${
+              refreshing ? "animate-spin" : ""
+            }`}
             strokeWidth={2}
             aria-hidden
           />

@@ -83,7 +83,9 @@ export async function PATCH(request: Request, context: RouteContext) {
       if (!pending) {
         return NextResponse.json({ error: "Link not found" }, { status: 404 });
       }
-      after(() => enrichLinkMetadataInBackground(existing.id, existing.url));
+      after(() =>
+        enrichLinkMetadataInBackground(existing.id, existing.url, auth.id),
+      );
       return NextResponse.json({ link: linkToApiRow(pending) });
     }
 

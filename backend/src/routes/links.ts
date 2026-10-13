@@ -1,6 +1,6 @@
 import { Router, type RequestHandler } from "express";
 import type { Filter } from "mongodb";
-import { DEV_USER_ID } from "@/lib/dev-user";
+import { getRequestUserId, requireBearerAuth } from "../auth.js";
 import {
   getMongoEnvError,
   isDuplicateKeyError,
@@ -28,11 +28,6 @@ import {
 } from "@/lib/links-pagination";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 
-// No session mechanism exists between this Express API and the Next.js app
-// (different origins), so every request is attributed to the same seeded
-// dev user. Swap for real per-request auth once cross-origin auth ships.
-const userId = DEV_USER_ID;
-
 export const linksRouter = Router();
 
 const guardMutationsDuringMaintenance: RequestHandler = (req, res, next) => {
@@ -47,6 +42,7 @@ const guardMutationsDuringMaintenance: RequestHandler = (req, res, next) => {
 };
 
 linksRouter.use(guardMutationsDuringMaintenance);
+linksRouter.use(requireBearerAuth);
 
 type PostBody = {
   url?: string;
@@ -65,7 +61,10 @@ type PatchBody = {
   refreshPreview?: unknown;
 };
 
-async function resolveTargetGroupIdForCreate(body: PostBody): Promise<
+async function resolveTargetGroupIdForCreate(
+  userId: string,
+  body: PostBody,
+): Promise<
   | { ok: true; groupId: string }
   | { ok: false; status: number; error: string }
 > {
@@ -126,6 +125,8 @@ linksRouter.get("/", async (req, res) => {
     res.status(503).json({ error: envErr });
     return;
   }
+
+  const userId = getRequestUserId(req);
 
   try {
     const search =
@@ -236,6 +237,8 @@ linksRouter.post("/", async (req, res) => {
     return;
   }
 
+  const userId = getRequestUserId(req);
+
   try {
     const body = req.body as PostBody;
     const rawUrl = body.url;
@@ -260,7 +263,7 @@ linksRouter.post("/", async (req, res) => {
       return;
     }
 
-    const resolved = await resolveTargetGroupIdForCreate(body);
+    const resolved = await resolveTargetGroupIdForCreate(userId, body);
     if (!resolved.ok) {
       res.status(resolved.status).json({ error: resolved.error });
       return;
@@ -288,7 +291,7 @@ linksRouter.post("/", async (req, res) => {
       groupId: resolved.groupId,
     });
 
-    void enrichLinkMetadataInBackground(created.id, url);
+    void enrichLinkMetadataInBackground(created.id, url, userId);
 
     res.status(201).json({ link: linkToApiRow(created) });
   } catch (e) {
@@ -308,6 +311,7 @@ linksRouter.patch("/:id", async (req, res) => {
     return;
   }
 
+  const userId = getRequestUserId(req);
   const id = req.params.id;
   if (!id) {
     res.status(400).json({ error: "Invalid id" });
@@ -345,7 +349,7 @@ linksRouter.patch("/:id", async (req, res) => {
         res.status(404).json({ error: "Link not found" });
         return;
       }
-      void enrichLinkMetadataInBackground(existing.id, existing.url);
+      void enrichLinkMetadataInBackground(existing.id, existing.url, userId);
       res.json({ link: linkToApiRow(pending) });
       return;
     }
@@ -445,6 +449,7 @@ linksRouter.delete("/:id", async (req, res) => {
     return;
   }
 
+  const userId = getRequestUserId(req);
   const id = req.params.id;
   if (!id) {
     res.status(400).json({ error: "Invalid id" });

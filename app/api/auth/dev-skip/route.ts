@@ -7,9 +7,13 @@ export const runtime = "nodejs";
 
 /**
  * Signs the browser in as the seeded demo user so proxy.ts's session check
- * passes without a real signup/login round-trip.
+ * passes without a real signup/login round-trip. Development only.
  */
 export async function POST() {
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
   try {
     if (!process.env.SESSION_SECRET?.trim()) {
       return NextResponse.json(
@@ -18,7 +22,6 @@ export async function POST() {
       );
     }
 
-    // Best-effort seed; requireAuth already falls back to DEV_USER if the row is absent.
     let userId = DEV_USER_ID;
     try {
       const user = await ensureDemoUser(DEV_USER_ID, DEV_USER_EMAIL);

@@ -12,7 +12,12 @@ import { uploadImageToCloudinary } from "@/lib/cloudinary";
 export async function enrichLinkMetadataInBackground(
   linkId: string,
   pageUrl: string,
+  userId?: string,
 ): Promise<void> {
+  const ownerFilter = userId
+    ? { _id: linkId, userId, deletedAt: null }
+    : { _id: linkId, deletedAt: null };
+
   try {
     const meta = await extractLinkMetadata(pageUrl, pageUrl);
     const description =
@@ -28,25 +33,19 @@ export async function enrichLinkMetadataInBackground(
       }
     }
 
-    await updateLink(
-      { _id: linkId, deletedAt: null },
-      {
-        $set: {
-          title: meta.title,
-          description: description || null,
-          imageUrl: imageUrl || null,
-          faviconUrl: meta.faviconUrl,
-          metadataStatus: "ready",
-        },
+    await updateLink(ownerFilter, {
+      $set: {
+        title: meta.title,
+        description: description || null,
+        imageUrl: imageUrl || null,
+        faviconUrl: meta.faviconUrl,
+        metadataStatus: "ready",
       },
-    );
+    });
   } catch (e) {
     console.error("[enrich-link-metadata]", linkId, e);
     try {
-      await updateLink(
-        { _id: linkId, deletedAt: null },
-        { $set: { metadataStatus: "ready" } },
-      );
+      await updateLink(ownerFilter, { $set: { metadataStatus: "ready" } });
     } catch (inner) {
       console.error(
         "[enrich-link-metadata] status update failed",

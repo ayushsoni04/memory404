@@ -127,6 +127,15 @@ export async function ensureMongoIndexes(): Promise<void> {
       await Promise.all([
         users.createIndex({ email: 1 }, { unique: true, name: "users_email_unique" }),
         users.createIndex(
+          { username: 1 },
+          {
+            unique: true,
+            sparse: true,
+            collation: { locale: "en", strength: 2 },
+            name: "users_username_unique",
+          },
+        ),
+        users.createIndex(
           { resetToken: 1 },
           { sparse: true, name: "users_reset_token" },
         ),
