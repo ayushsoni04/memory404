@@ -54,6 +54,7 @@ export function useLinkActions({
   const undoTimer = useRef<number | null>(null);
   const openedGroupIdRef = useRef(openedGroupId);
   const linksRef = useRef(links);
+  const returnFocusId = useRef<string | null>(null);
 
   useEffect(() => {
     openedGroupIdRef.current = openedGroupId;
@@ -131,6 +132,8 @@ export function useLinkActions({
 
   const openLinkDetail = useCallback(
     (link: LinkApiRow, originEl: HTMLElement) => {
+      const card = originEl.closest<HTMLElement>("[data-feed-card]");
+      returnFocusId.current = card?.id ?? null;
       setOverlayOrigin(originEl.getBoundingClientRect());
       setOpenedLink(link);
     },
@@ -163,20 +166,32 @@ export function useLinkActions({
     setOverlayOrigin(null);
   }, []);
 
+  useEffect(() => {
+    if (openedLink) return;
+    const id = returnFocusId.current;
+    if (!id) return;
+    returnFocusId.current = null;
+    document.getElementById(id)?.focus();
+  }, [openedLink]);
+
   const goPrevLink = useCallback(() => {
     if (!openedLink) return;
     const idx = sortedLinks.findIndex((l) => l.id === openedLink.id);
     if (idx <= 0) return;
+    const next = sortedLinks[idx - 1];
+    returnFocusId.current = `feed-card-${next.id}`;
     setOverlayOrigin(null);
-    setOpenedLink(sortedLinks[idx - 1]);
+    setOpenedLink(next);
   }, [openedLink, sortedLinks]);
 
   const goNextLink = useCallback(() => {
     if (!openedLink) return;
     const idx = sortedLinks.findIndex((l) => l.id === openedLink.id);
     if (idx < 0 || idx >= sortedLinks.length - 1) return;
+    const next = sortedLinks[idx + 1];
+    returnFocusId.current = `feed-card-${next.id}`;
     setOverlayOrigin(null);
-    setOpenedLink(sortedLinks[idx + 1]);
+    setOpenedLink(next);
   }, [openedLink, sortedLinks]);
 
   const handleDelete = async (id: string) => {

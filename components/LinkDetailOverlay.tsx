@@ -13,6 +13,10 @@ import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
 import { apiUrl } from "@/lib/api-base";
 import MindCardActions from "@/components/vault/MindCardActions";
+import { isTextEntryTarget } from "@/components/vault/feed-keyboard";
+
+const overlayFocus =
+  "outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-black";
 
 type GroupOption = { id: string; name: string };
 
@@ -102,14 +106,14 @@ function NoteEditor({
         }}
         rows={3}
         placeholder="What should you remember?"
-        className="mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm leading-relaxed text-foreground outline-none placeholder:text-subtle focus:border-white/30"
+        className={`mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-subtle focus:border-white/30 ${overlayFocus}`}
       />
       {dirty ? (
         <button
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="mt-2 inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50"
+          className={`mt-2 inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 ${overlayFocus}`}
         >
           {saving ? "Saving…" : "Save note"}
         </button>
@@ -320,14 +324,22 @@ export default function LinkDetailOverlay({
       if (e.key === "Escape") {
         e.preventDefault();
         animateClose(true);
-      } else if (e.key === "ArrowLeft" && hasPrev) {
-        e.preventDefault();
-        keyboardNavigationRef.current = true;
-        onPrev();
-      } else if (e.key === "ArrowRight" && hasNext) {
-        e.preventDefault();
-        keyboardNavigationRef.current = true;
-        onNext();
+      } else if (
+        (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
+        !e.altKey &&
+        !e.metaKey &&
+        !e.ctrlKey &&
+        !isTextEntryTarget(e.target)
+      ) {
+        if (e.key === "ArrowLeft" && hasPrev) {
+          e.preventDefault();
+          keyboardNavigationRef.current = true;
+          onPrev();
+        } else if (e.key === "ArrowRight" && hasNext) {
+          e.preventDefault();
+          keyboardNavigationRef.current = true;
+          onNext();
+        }
       }
     };
     window.addEventListener("keydown", onKey);
@@ -544,7 +556,7 @@ export default function LinkDetailOverlay({
       </div>
 
       <div
-        className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto"
+        className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain"
         onClick={() => animateClose()}
       >
         <div
@@ -555,7 +567,7 @@ export default function LinkDetailOverlay({
           <button
             type="button"
             onClick={() => animateClose()}
-            className="flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 hover:text-foreground"
+            className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 hover:text-foreground ${overlayFocus}`}
             data-overlay-close=""
             aria-label="Close"
           >
@@ -565,7 +577,7 @@ export default function LinkDetailOverlay({
             type="button"
             disabled={!hasPrev}
             onClick={onPrev}
-            className="flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30"
+            className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 ${overlayFocus}`}
             aria-label="Previous"
           >
             ‹
@@ -574,7 +586,7 @@ export default function LinkDetailOverlay({
             type="button"
             disabled={!hasNext}
             onClick={onNext}
-            className="flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30"
+            className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 ${overlayFocus}`}
             aria-label="Next"
           >
             ›
@@ -685,7 +697,7 @@ export default function LinkDetailOverlay({
                   <select
                     value={link.groupId}
                     onChange={(e) => onMove(link, e.target.value)}
-                    className="rounded-[4px] border border-white/12 bg-black/25 px-2 py-2 text-sm text-foreground backdrop-blur-sm"
+                    className={`rounded-[4px] border border-white/12 bg-black/25 px-2 py-2 text-sm text-foreground backdrop-blur-sm ${overlayFocus}`}
                   >
                     {groups.map((g) => (
                       <option key={g.id} value={g.id}>
@@ -700,7 +712,7 @@ export default function LinkDetailOverlay({
                     onDelete(link.id);
                     animateClose();
                   }}
-                  className="rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10"
+                  className={`rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 ${overlayFocus}`}
                 >
                   Delete
                 </button>

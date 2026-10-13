@@ -197,8 +197,16 @@ export default function VaultInbox({
   return (
     <>
       <ExtensionErrorBanner />
+      <a
+        href="#vault-feed"
+        inert={openedLink ? true : undefined}
+        className="sr-only focus-visible:not-sr-only focus-visible:fixed focus-visible:left-4 focus-visible:top-4 focus-visible:z-[260] focus-visible:inline-flex focus-visible:h-8 focus-visible:items-center focus-visible:rounded-full focus-visible:bg-pill-active focus-visible:px-3 focus-visible:text-[13px] focus-visible:font-medium focus-visible:text-pill-active-fg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+      >
+        Skip to links
+      </a>
       <div
         ref={pageRef}
+        inert={openedLink ? true : undefined}
         className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-0 lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0 min-[1712px]:border-x min-[1712px]:border-border"
       >
       <VaultSidebar

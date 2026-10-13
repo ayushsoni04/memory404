@@ -6,6 +6,7 @@ import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { playUiSound } from "@/lib/ui-sound";
+import { nextOptionIndex } from "./feed-keyboard";
 import {
   controlPress,
   pillActive,
@@ -97,7 +98,7 @@ export function CollectionDrop({
   );
 }
 
-function SortPill({
+export function SortPill({
   sortBy,
   setSortByAndPersist,
 }: {
@@ -106,16 +107,25 @@ function SortPill({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
   const label =
     SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Newest";
 
   useEffect(() => {
     if (!open) return;
+    const selected = Math.max(
+      0,
+      SORT_OPTIONS.findIndex((option) => option.value === sortBy),
+    );
+    optionRefs.current[selected]?.focus();
     const onClickAway = (e: MouseEvent) => {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key !== "Escape") return;
+      setOpen(false);
+      buttonRef.current?.focus();
     };
     document.addEventListener("mousedown", onClickAway);
     document.addEventListener("keydown", onKey);
@@ -123,18 +133,39 @@ function SortPill({
       document.removeEventListener("mousedown", onClickAway);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open]);
+  }, [open, sortBy]);
+
+  const moveOption = (key: string) => {
+    const buttons = optionRefs.current;
+    const focusIndex = buttons.findIndex((button) => button === document.activeElement);
+    const selected = SORT_OPTIONS.findIndex((option) => option.value === sortBy);
+    const next = nextOptionIndex(
+      focusIndex >= 0 ? focusIndex : selected,
+      key,
+      SORT_OPTIONS.length,
+    );
+    if (next === null) return false;
+    buttons[next]?.focus();
+    return true;
+  };
 
   return (
     <div ref={rootRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         aria-label="Sort links"
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls="sort-links-list"
         onClick={() => {
           setOpen((v) => !v);
           playUiSound("toggle");
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          event.preventDefault();
+          setOpen(true);
         }}
         className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-pill ps-3 pe-2.5 text-[13px] font-medium leading-none text-muted hover:bg-pill-hover hover:text-foreground cursor-pointer ${controlPress}`}
       >
@@ -149,17 +180,32 @@ function SortPill({
       </button>
       {open ? (
         <ul
+          id="sort-links-list"
           role="listbox"
           aria-label="Sort links"
           className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[10.5rem] overflow-hidden rounded-xl border border-border bg-surface-elevated p-1 shadow-lg"
+          onKeyDown={(event) => {
+            if (event.key === "Tab") {
+              setOpen(false);
+              return;
+            }
+            if (!moveOption(event.key)) return;
+            event.preventDefault();
+            event.stopPropagation();
+          }}
         >
-          {SORT_OPTIONS.map((opt) => (
+          {SORT_OPTIONS.map((opt, index) => (
             <li key={opt.value} role="option" aria-selected={opt.value === sortBy}>
               <button
+                ref={(node) => {
+                  optionRefs.current[index] = node;
+                }}
                 type="button"
+                tabIndex={-1}
                 onClick={() => {
                   setSortByAndPersist(opt.value);
                   setOpen(false);
+                  buttonRef.current?.focus();
                   playUiSound("tick");
                 }}
                 className={`flex w-full cursor-pointer items-center rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-[background-color,color,transform] duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.98] ${
@@ -321,6 +367,7 @@ export default function VaultGroupToolbar({
                 >
                   <button
                     type="button"
+                    aria-pressed={g.id === openedGroupId}
                     onClick={() => {
                       selectGroup(g.id);
                       playUiSound("tick");
