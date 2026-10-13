@@ -107,6 +107,7 @@ function FocusHarness() {
     setLinksCache: () => {},
     removeLinkFromPages: () => {},
     replaceLinkInPages: () => {},
+    prependLinkToPages: () => {},
     sortedLinks: links,
   });
 

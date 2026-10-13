@@ -11,6 +11,7 @@ import { useLinkActions } from "./vault/useLinkActions";
 import { useVaultGroups } from "./vault/useVaultGroups";
 import { useVaultLinks } from "./vault/useVaultLinks";
 import { useVaultPreferences } from "./vault/useVaultPreferences";
+import UndoNotice from "./vault/UndoNotice";
 import VaultFeed from "./vault/VaultFeed";
 import VaultSidebar from "./vault/VaultSidebar";
 import type { InitialVaultData } from "./vault/types";
@@ -141,6 +142,9 @@ export default function VaultInbox({
     moveLinkToGroup,
     deleteErrors,
     patchErrors,
+    undoNotice,
+    runUndo,
+    dismissUndo,
   } = useLinkActions({
     links,
     setLinks,
@@ -148,8 +152,16 @@ export default function VaultInbox({
     setLinksCache,
     removeLinkFromPages,
     replaceLinkInPages,
+    prependLinkToPages,
     loadGroups,
     sortedLinks,
+    groupLabel: (id) => {
+      const group = groups.find((item) => item.id === id);
+      if (!group) return "that group";
+      return group.name.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase()
+        ? "All"
+        : group.name;
+    },
   });
 
   const overlayGroups = useMemo(
@@ -325,6 +337,12 @@ export default function VaultInbox({
           onNotesSaved={updateSavedLink}
         />
       ) : null}
+
+      <UndoNotice
+        notice={undoNotice}
+        onUndo={() => void runUndo()}
+        onDismiss={dismissUndo}
+      />
 
       <CommandPalette
         open={paletteOpen}
