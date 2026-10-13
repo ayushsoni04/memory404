@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
+import { saveLinkNote } from "@/lib/save-link-note";
 import { writeLinksCacheToStorage } from "./storage";
 import type { GroupRow } from "./types";
 
@@ -70,32 +70,23 @@ export function useAddLinkFlow({
     const linkId = sidebarSavedLinkId;
     const txt = sidebarNotesText.trim();
     if (linkId && txt) {
-      try {
-        const res = await fetch(apiUrl(`/api/links/${linkId}`), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ notes: txt }),
+      const result = await saveLinkNote(linkId, txt);
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      const updated = result.link;
+      setLinks((prev) => prev.map((l) => (l.id === linkId ? updated : l)));
+      if (openedGroupId) {
+        setLinksCache((prev) => {
+          const list = prev[openedGroupId] || [];
+          const next = {
+            ...prev,
+            [openedGroupId]: list.map((l) => (l.id === linkId ? updated : l)),
+          };
+          writeLinksCacheToStorage(next);
+          return next;
         });
-        const data = await res.json();
-        if (res.ok && data.link) {
-          const updated = data.link as LinkApiRow;
-          setLinks((prev) => prev.map((l) => (l.id === linkId ? updated : l)));
-          if (openedGroupId) {
-            setLinksCache((prev) => {
-              const list = prev[openedGroupId] || [];
-              const next = {
-                ...prev,
-                [openedGroupId]: list.map((l) =>
-                  l.id === linkId ? updated : l,
-                ),
-              };
-              writeLinksCacheToStorage(next);
-              return next;
-            });
-          }
-        }
-      } catch (e) {
-        console.error("Failed to save sidebar notes:", e);
       }
     }
     setSidebarShowNotesForm(false);
@@ -111,6 +102,7 @@ export function useAddLinkFlow({
     setLinks,
     setLinksCache,
     resetSaveForm,
+    setSaveError,
   ]);
 
   const handlePasteSubmit = async (e: React.FormEvent) => {

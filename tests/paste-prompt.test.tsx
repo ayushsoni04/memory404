@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PastePrompt from "@/components/vault/PastePrompt";
 
@@ -60,5 +60,61 @@ describe("PastePrompt empty states", () => {
     );
     expect(screen.getByText("Nothing in References yet")).toBeInTheDocument();
     expect(screen.queryByText("Download extension")).not.toBeInTheDocument();
+  });
+
+  it("keeps the typed note when saving it fails", async () => {
+    const onSaved = vi.fn();
+    saveLink.mockResolvedValue({
+      ok: true,
+      link: {
+        id: "link-1",
+        url: "https://example.com/pricing",
+        title: "Pricing page",
+        customTitle: null,
+        displayTitle: "Pricing page",
+        description: null,
+        imageUrl: "",
+        faviconUrl: "",
+        tags: [],
+        notes: null,
+        groupId: "general",
+        metadataStatus: "ready",
+        createdAt: "2026-10-01T12:00:00.000Z",
+        deletedAt: null,
+      },
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Could not save the note" }),
+      }),
+    );
+
+    render(
+      <PastePrompt
+        variant="empty"
+        emptyMode="group"
+        groupName="References"
+        groupId="group-1"
+        saveLink={saveLink}
+        onSaved={onSaved}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Paste a URL to save"), {
+      target: { value: "https://example.com/pricing" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Add link" }));
+
+    const notes = await screen.findByLabelText("Notes");
+    fireEvent.change(notes, { target: { value: "Remember the pricing section." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save Notes" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Could not save the note");
+    expect(screen.getByLabelText("Notes")).toHaveValue("Remember the pricing section.");
+    expect(onSaved).not.toHaveBeenCalled();
+    vi.unstubAllGlobals();
+    saveLink.mockReset();
   });
 });
