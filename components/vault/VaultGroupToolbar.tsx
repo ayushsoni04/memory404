@@ -47,7 +47,55 @@ type VaultGroupToolbarProps = {
   loadGroups: () => Promise<unknown>;
   loadLinks?: () => Promise<unknown>;
   onOpenSearch?: () => void;
+  onDropLink?: (linkId: string, groupId: string) => void;
 };
+
+export function CollectionDrop({
+  groupId,
+  onDropLink,
+  className,
+  children,
+}: {
+  groupId: string;
+  onDropLink?: (linkId: string, groupId: string) => void;
+  className: string;
+  children: React.ReactNode;
+}) {
+  const [over, setOver] = useState(false);
+
+  return (
+    <div
+      data-drop-target={groupId}
+      data-drop-over={over ? "true" : "false"}
+      title="Drop a link to move it here"
+      className={`${className} ${over ? "ring-2 ring-foreground/70" : ""}`}
+      onDragOver={(event) => {
+        if (!onDropLink) return;
+        event.preventDefault();
+        event.stopPropagation();
+        event.dataTransfer.dropEffect = "move";
+        setOver(true);
+      }}
+      onDragLeave={(event) => {
+        if (event.currentTarget.contains(event.relatedTarget as Node)) return;
+        setOver(false);
+      }}
+      onDrop={(event) => {
+        if (!onDropLink) return;
+        event.preventDefault();
+        event.stopPropagation();
+        setOver(false);
+        const linkId = event.dataTransfer.getData("linkId");
+        if (!linkId) return;
+        playUiSound("droplet");
+        onDropLink(linkId, groupId);
+      }}
+    >
+      {children}
+      {over ? <span className="ms-1 text-[11px] font-medium">Move</span> : null}
+    </div>
+  );
+}
 
 function SortPill({
   sortBy,
@@ -155,6 +203,7 @@ export default function VaultGroupToolbar({
   loadGroups,
   loadLinks,
   onOpenSearch,
+  onDropLink,
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
@@ -194,19 +243,41 @@ export default function VaultGroupToolbar({
             </div>
           )}
 
-          <button
-            type="button"
-            aria-pressed={openedGroupId === "all"}
-            onClick={() => {
-              selectGroup("all");
-              playUiSound("tick");
-            }}
-            className={`z-10 relative ${
-              openedGroupId === "all" ? pillActive : pillIdle
-            }`}
-          >
-            All
-          </button>
+          {generalGroup && onDropLink ? (
+            <CollectionDrop
+              groupId={generalGroup.id}
+              onDropLink={onDropLink}
+              className={`z-10 relative ${
+                openedGroupId === "all" ? pillActive : pillIdle
+              }`}
+            >
+              <button
+                type="button"
+                aria-pressed={openedGroupId === "all"}
+                onClick={() => {
+                  selectGroup("all");
+                  playUiSound("tick");
+                }}
+                className="h-7 bg-transparent px-4 -mx-4"
+              >
+                All
+              </button>
+            </CollectionDrop>
+          ) : (
+            <button
+              type="button"
+              aria-pressed={openedGroupId === "all"}
+              onClick={() => {
+                selectGroup("all");
+                playUiSound("tick");
+              }}
+              className={`z-10 relative ${
+                openedGroupId === "all" ? pillActive : pillIdle
+              }`}
+            >
+              All
+            </button>
+          )}
 
           <Reorder.Group
             axis="x"
@@ -239,7 +310,9 @@ export default function VaultGroupToolbar({
                 }}
                 layout
               >
-                <div
+                <CollectionDrop
+                  groupId={g.id}
+                  onDropLink={onDropLink}
                   className={`${g.id === openedGroupId ? pillActive : pillIdle} gap-0 pe-1.5 ${
                     draggingGroupId === g.id
                       ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
@@ -269,7 +342,7 @@ export default function VaultGroupToolbar({
                       <X className="size-2.5" />
                     </button>
                   )}
-                </div>
+                </CollectionDrop>
               </Reorder.Item>
             ))}
           </Reorder.Group>

@@ -4,6 +4,7 @@ import { useCallback, useMemo, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import { copyTextToClipboard } from "./link-utils";
+import { cacheAfterMove, linkStaysInOpenGroup } from "./move-link";
 import { writeLinksCacheToStorage } from "./storage";
 
 type UseLinkActionsDeps = {
@@ -14,6 +15,8 @@ type UseLinkActionsDeps = {
     React.SetStateAction<Record<string, LinkApiRow[]>>
   >;
   removeLinkFromPages: (id: string) => void;
+  replaceLinkInPages: (link: LinkApiRow) => void;
+  loadGroups?: () => Promise<unknown>;
   sortedLinks: LinkApiRow[];
 };
 
@@ -23,6 +26,8 @@ export function useLinkActions({
   openedGroupId,
   setLinksCache,
   removeLinkFromPages,
+  replaceLinkInPages,
+  loadGroups,
   sortedLinks,
 }: UseLinkActionsDeps) {
   const [deleteErrors, setDeleteErrors] = useState<Record<string, string>>({});
@@ -176,15 +181,15 @@ export function useLinkActions({
     });
 
     const originalLinks = links;
+    const stays = linkStaysInOpenGroup(openedGroupId, nextGroupId);
+    const optimistic = { ...link, groupId: nextGroupId };
 
-    if (nextGroupId !== openedGroupId) {
-      setLinks((prev) => prev.filter((l) => l.id !== link.id));
-    } else {
+    if (stays) {
       setLinks((prev) =>
-        prev.map((l) =>
-          l.id === link.id ? { ...l, groupId: nextGroupId } : l,
-        ),
+        prev.map((item) => (item.id === link.id ? optimistic : item)),
       );
+    } else {
+      setLinks((prev) => prev.filter((item) => item.id !== link.id));
     }
 
     try {
@@ -204,29 +209,26 @@ export function useLinkActions({
 
       const updatedLink = data.link
         ? (data.link as LinkApiRow)
-        : { ...link, groupId: nextGroupId };
+        : optimistic;
 
       setLinksCache((prev) => {
-        const next = { ...prev };
-        if (link.groupId && next[link.groupId]) {
-          next[link.groupId] = next[link.groupId].filter((l) => l.id !== link.id);
-        }
-        if (nextGroupId && next[nextGroupId]) {
-          next[nextGroupId] = [
-            updatedLink,
-            ...next[nextGroupId].filter((l) => l.id !== link.id),
-          ];
-        }
-        writeLinksCacheToStorage(next);
+        const next = cacheAfterMove(prev, link.id, updatedLink);
+        if (next !== prev) writeLinksCacheToStorage(next);
         return next;
       });
-      if (openedLink?.id === link.id && nextGroupId !== openedGroupId) {
-        setOpenedLink(null);
-        setOverlayOrigin(null);
-      }
-      if (nextGroupId !== openedGroupId) {
+      if (stays) {
+        setLinks((prev) =>
+          prev.map((item) => (item.id === link.id ? updatedLink : item)),
+        );
+        replaceLinkInPages(updatedLink);
+      } else {
+        if (openedLink?.id === link.id) {
+          setOpenedLink(null);
+          setOverlayOrigin(null);
+        }
         removeLinkFromPages(link.id);
       }
+      void loadGroups?.();
     } catch {
       setLinks(originalLinks);
       setPatchErrors((p) => ({

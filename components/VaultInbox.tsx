@@ -89,6 +89,7 @@ export default function VaultInbox({
     loadLinks,
     prependLinkToPages,
     removeLinkFromPages,
+    replaceLinkInPages,
     saveLink,
   } = useVaultLinks(openedGroupId, sortBy, initialData);
 
@@ -146,6 +147,8 @@ export default function VaultInbox({
     openedGroupId,
     setLinksCache,
     removeLinkFromPages,
+    replaceLinkInPages,
+    loadGroups,
     sortedLinks,
   });
 
@@ -248,6 +251,11 @@ export default function VaultInbox({
               loadGroups={loadGroups}
               loadLinks={loadLinks}
               onOpenSearch={() => setPaletteOpen(true)}
+              onDropLink={(linkId, groupId) => {
+                const link = links.find((item) => item.id === linkId);
+                if (!link) return;
+                void moveLinkToGroup(link, groupId);
+              }}
             />
           }
           openedGroupId={openedGroupId}
