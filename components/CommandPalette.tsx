@@ -12,7 +12,8 @@ import {
 } from "cmdk";
 import { Folder, LayoutGrid, Plus, Settings, Trash2 } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
-import { linkHostname, type LinkApiRow } from "@/lib/links";
+import type { LinkApiRow } from "@/lib/links";
+import SearchResultText from "@/components/vault/SearchResultText";
 import { saveOfferUrl } from "@/lib/save-query";
 
 type PaletteGroup = { id: string; name: string };
@@ -264,10 +265,7 @@ export default function CommandPalette({
                 }}
                 className="flex cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
               >
-                <span className="truncate">{link.displayTitle || link.title}</span>
-                <span className="truncate text-[11px] text-subtle">
-                  {linkHostname(link.url)}
-                </span>
+                <SearchResultText link={link} />
               </CommandItem>
             ))}
           </CommandGroup>
