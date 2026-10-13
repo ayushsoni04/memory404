@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
+import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 
 type Props = {
@@ -49,7 +50,7 @@ export default function AddLinkCard({
     let finalLink = savedLink;
     if (notes.trim()) {
       try {
-        const res = await fetch(`/api/links/${savedLink.id}`, {
+        const res = await fetch(apiUrl(`/api/links/${savedLink.id}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ notes: notes.trim() }),

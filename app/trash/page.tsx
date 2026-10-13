@@ -4,12 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/trash/route";
+import { apiUrl } from "@/lib/api-base";
 import { linkHostname } from "@/lib/links";
-
-function apiUrl(path: string) {
-  if (typeof window !== "undefined") return path;
-  return `${process.env.NEXT_PUBLIC_BASE_URL ?? ""}${path}`;
-}
 
 function DaysLeft({ days }: { days: number }) {
   const color =
@@ -51,12 +47,14 @@ function GroupCard({
       <DaysLeft days={item.daysLeft} />
       <div className="trash-card-actions ml-2 flex items-center gap-1.5 opacity-0">
         <button
+          type="button"
           onClick={onRestore}
           className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Restore
         </button>
         <button
+          type="button"
           onClick={onDelete}
           className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
@@ -104,12 +102,14 @@ function LinkCard({
       <DaysLeft days={item.daysLeft} />
       <div className="trash-card-actions ml-2 flex items-center gap-1.5 opacity-0">
         <button
+          type="button"
           onClick={onRestore}
           className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
           Restore
         </button>
         <button
+          type="button"
           onClick={onDelete}
           className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
         >
@@ -159,24 +159,42 @@ export default function TrashPage() {
     });
   }, []);
 
+  const runTrashAction = async (path: string, method: "PATCH" | "DELETE") => {
+    try {
+      const res = await fetch(apiUrl(path), { method });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(typeof data.error === "string" ? data.error : "Request failed");
+        return false;
+      }
+      setError(null);
+      return true;
+    } catch {
+      setError("Network error — try again");
+      return false;
+    }
+  };
+
   const restoreLink = async (id: string) => {
-    await fetch(apiUrl(`/api/trash/links/${id}`), { method: "PATCH" });
-    await removeWithExit([id]);
+    if (await runTrashAction(`/api/trash/links/${id}`, "PATCH")) {
+      await removeWithExit([id]);
+    }
   };
 
   const deleteLink = async (id: string) => {
-    await fetch(apiUrl(`/api/trash/links/${id}`), { method: "DELETE" });
-    await removeWithExit([id]);
+    if (await runTrashAction(`/api/trash/links/${id}`, "DELETE")) {
+      await removeWithExit([id]);
+    }
   };
 
   const restoreGroup = async (id: string) => {
-    await fetch(apiUrl(`/api/trash/groups/${id}`), { method: "PATCH" });
-    await removeWithExit([id]);
+    if (await runTrashAction(`/api/trash/groups/${id}`, "PATCH")) {
+      await removeWithExit([id]);
+    }
   };
 
   const deleteGroup = async (id: string) => {
-    await fetch(apiUrl(`/api/trash/groups/${id}`), { method: "DELETE" });
-    // Also remove links that were in this group
+    if (!(await runTrashAction(`/api/trash/groups/${id}`, "DELETE"))) return;
     const removedIds = items
       .filter(
         (item) =>
@@ -188,8 +206,9 @@ export default function TrashPage() {
 
   const emptyTrash = async () => {
     setEmptying(true);
-    await fetch(apiUrl("/api/trash"), { method: "DELETE" });
-    await removeWithExit(items.map((item) => item.id));
+    if (await runTrashAction("/api/trash", "DELETE")) {
+      await removeWithExit(items.map((item) => item.id));
+    }
     setEmptying(false);
   };
 
@@ -202,7 +221,7 @@ export default function TrashPage() {
       <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
         <div className="mx-auto max-w-3xl px-6 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <Link href="/" className="flex items-center justify-center size-8 rounded-lg hover:bg-surface transition-colors text-muted hover:text-foreground">
+            <Link href="/" aria-label="Back to vault" className="flex items-center justify-center size-8 rounded-lg hover:bg-surface transition-colors text-muted hover:text-foreground">
               <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
                 <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
               </svg>
@@ -219,6 +238,7 @@ export default function TrashPage() {
           </div>
           {items.length > 0 && (
             <button
+              type="button"
               onClick={emptyTrash}
               disabled={emptying}
               className="rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2 text-[13px] font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"

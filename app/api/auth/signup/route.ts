@@ -71,12 +71,13 @@ export async function POST(request: Request) {
       leadSource,
       utm,
     });
-    const token = await issueSessionToken(user.id);
+    const sessionVersion = user.sessionVersion ?? 0;
+    const token = await issueSessionToken(user.id, sessionVersion);
     const response = NextResponse.json(
       { user: { id: user.id, email: user.email, plan: user.plan }, token },
       { status: 201 },
     );
-    return attachSessionCookie(response, user.id);
+    return attachSessionCookie(response, user.id, sessionVersion);
   } catch (e) {
     if (isDuplicateKeyError(e)) {
       return NextResponse.json(

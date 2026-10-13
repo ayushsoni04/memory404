@@ -89,10 +89,13 @@ export default function GlitchText({
 }: Props) {
   const target = children;
   const [display, setDisplay] = useState(target);
+  const [seenTarget, setSeenTarget] = useState(target);
+  if (seenTarget !== target) {
+    setSeenTarget(target);
+    setDisplay(target);
+  }
 
   useEffect(() => {
-    setDisplay(target);
-
     const reduce =
       typeof window !== "undefined" &&
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;

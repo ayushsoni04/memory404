@@ -754,7 +754,7 @@ export function ParticleScroll({
       { source, content, output },
       initialOptions,
     );
-    if (native && !instanceRef.current) setFailed(true);
+    if (native && !instanceRef.current) queueMicrotask(() => setFailed(true));
     return () => {
       instanceRef.current?.destroy();
       instanceRef.current = null;

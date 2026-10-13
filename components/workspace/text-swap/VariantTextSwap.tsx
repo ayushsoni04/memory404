@@ -73,8 +73,8 @@ function FromBelowSwap({
 
     const el = elRef.current;
     if (!el) {
-      setDisplay(text);
-      return;
+      const id = window.setTimeout(() => setDisplay(text), 0);
+      return () => window.clearTimeout(id);
     }
 
     const gen = ++genRef.current;
@@ -102,8 +102,6 @@ function FromBelowSwap({
     return () => {
       window.clearTimeout(t1);
     };
-    // tick intentionally included so re-running the same string restarts
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [text, tick]);
 
   return (

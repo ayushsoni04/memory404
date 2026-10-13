@@ -64,7 +64,10 @@ export default function VaultFeed({
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
 
-  const feedBody = !openedGroupId && groupsError ? (
+  const groupsFailedToLoad = Boolean(
+    groupsError && /load groups/i.test(groupsError),
+  );
+  const feedBody = groupsFailedToLoad && !loadingLinks && sortedLinks.length === 0 ? (
     <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface-elevated p-6">
       <p className="text-sm text-foreground">Groups could not be loaded.</p>
       <p className="text-[13px] text-subtle">

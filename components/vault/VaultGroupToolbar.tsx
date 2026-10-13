@@ -45,6 +45,7 @@ type VaultGroupToolbarProps = {
   sortBy: SortBy;
   setSortByAndPersist: (val: SortBy) => void;
   loadGroups: () => Promise<unknown>;
+  loadLinks?: () => Promise<unknown>;
 };
 
 function SortPill({
@@ -151,6 +152,7 @@ export default function VaultGroupToolbar({
   sortBy,
   setSortByAndPersist,
   loadGroups,
+  loadLinks,
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
@@ -230,41 +232,37 @@ export default function VaultGroupToolbar({
                 }}
                 layout
               >
-                <button
-                  type="button"
-                  onClick={() => {
-                    selectGroup(g.id);
-                    playUiSound("tick");
-                  }}
-                  className={`${g.id === openedGroupId ? pillActive : pillIdle} ${
+                <div
+                  className={`${g.id === openedGroupId ? pillActive : pillIdle} gap-0 pe-1.5 ${
                     draggingGroupId === g.id
                       ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
                       : ""
                   }`}
                 >
-                  <span>{g.name}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      selectGroup(g.id);
+                      playUiSound("tick");
+                    }}
+                    className="bg-transparent"
+                  >
+                    {g.name}
+                  </button>
                   {g.name !== GENERAL_GROUP_NAME && (
-                    <span
-                      role="button"
-                      tabIndex={0}
+                    <button
+                      type="button"
                       aria-label={`Move ${g.name} to Trash`}
                       onClick={(e) => {
                         e.stopPropagation();
                         void handleDeleteGroup(g.id);
                       }}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          void handleDeleteGroup(g.id);
-                        }
-                      }}
-                      className="group-pill-delete ms-1.5 -me-0.5 inline-flex size-4 items-center justify-center rounded-full opacity-0 hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer"
+                      className="group-pill-delete ms-1.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer"
                     >
                       <X className="size-2.5" />
-                    </span>
+                    </button>
                   )}
-                </button>
+                </div>
               </Reorder.Item>
             ))}
           </Reorder.Group>
@@ -329,7 +327,7 @@ export default function VaultGroupToolbar({
           onClick={() => {
             setRefreshing(true);
             playUiSound("loading");
-            void loadGroups().finally(() => {
+            void Promise.all([loadGroups(), loadLinks?.()]).finally(() => {
               window.setTimeout(() => setRefreshing(false), 400);
             });
           }}

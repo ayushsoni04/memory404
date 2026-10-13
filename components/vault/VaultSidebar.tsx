@@ -132,6 +132,7 @@ export default function VaultSidebar({
                     key={opt.id}
                     type="button"
                     title={opt.title}
+                    aria-label={opt.title}
                     aria-pressed={active}
                     onClick={() => {
                       setGridSizeAndPersist(opt.id);
@@ -174,6 +175,7 @@ export default function VaultSidebar({
                       )}
                     </div>
                     <textarea
+                      aria-label="Notes"
                       value={sidebarNotesText}
                       onChange={(e) => {
                         setSidebarNotesText(e.target.value);
@@ -331,19 +333,19 @@ export default function VaultSidebar({
                 {savedFlash ? (
                   <p className="text-xs text-success">Saved</p>
                 ) : null}
-                {groupsError ? (
-                  <p className="text-xs text-muted">
-                    {groupsError}{" "}
-                    <button
-                      type="button"
-                      onClick={() => void loadGroups()}
-                      className="underline hover:text-foreground"
-                    >
-                      Retry
-                    </button>
-                  </p>
-                ) : null}
               </form>
+            ) : null}
+            {groupsError ? (
+              <p className="text-xs text-danger" role="alert">
+                {groupsError}{" "}
+                <button
+                  type="button"
+                  onClick={() => void loadGroups()}
+                  className="underline hover:text-foreground"
+                >
+                  Retry
+                </button>
+              </p>
             ) : null}
 
             <nav

@@ -46,8 +46,14 @@ export async function DELETE(_req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   try {
     const { links } = await getCollections();
-    const result = await links.deleteOne({ _id: id, userId: auth.id });
-    if (result.deletedCount !== 1) throw new Error("LINK_NOT_FOUND");
+    const result = await links.deleteOne({
+      _id: id,
+      userId: auth.id,
+      deletedAt: { $ne: null },
+    });
+    if (result.deletedCount !== 1) {
+      return NextResponse.json({ error: "Link is not in Trash" }, { status: 404 });
+    }
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Failed to permanently delete link" }, { status: 500 });

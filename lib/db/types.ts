@@ -20,6 +20,8 @@ export type UserDocument = {
   passwordHash: string | null;
   resetToken: string | null;
   resetTokenExpiresAt: Date | null;
+  /** Bumped when the password changes so older session JWTs stop working. */
+  sessionVersion?: number;
   /** How the user found the product, captured once at signup. */
   leadSource: string | null;
   utm: UserUtm | null;
@@ -65,6 +67,7 @@ export function userDocumentToRow(document: UserDocument): UserRow {
     // Legacy rows created before profile fields existed.
     username: fields.username ?? null,
     bannerStyle: fields.bannerStyle ?? "midnight",
+    sessionVersion: fields.sessionVersion ?? 0,
   };
 }
 

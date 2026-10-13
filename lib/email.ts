@@ -13,6 +13,14 @@ function getResendClient(): Resend | null {
   return new Resend(apiKey);
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 export async function sendPasswordResetEmail(
   email: string,
   resetUrl: string,
@@ -20,18 +28,19 @@ export async function sendPasswordResetEmail(
   const resend = getResendClient();
   if (!resend) {
     console.warn(
-      `sendPasswordResetEmail: RESEND_API_KEY is not configured — email not sent. Reset link for ${email}: ${resetUrl}`,
+      "sendPasswordResetEmail: RESEND_API_KEY is not configured — email not sent.",
     );
     return;
   }
 
+  const safeUrl = escapeHtml(resetUrl);
   const { error } = await resend.emails.send({
     from: getFromAddress(),
     to: email,
     subject: "Reset your memory404 password",
     html: `
       <p>Someone requested a password reset for this email address.</p>
-      <p><a href="${resetUrl}">Click here to choose a new password</a>. This link expires in 1 hour.</p>
+      <p><a href="${safeUrl}">Click here to choose a new password</a>. This link expires in 1 hour.</p>
       <p>If you didn't request this, you can safely ignore this email.</p>
     `,
   });

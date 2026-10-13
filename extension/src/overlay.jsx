@@ -8,14 +8,6 @@ import overlayCss from "./overlay-styles.css";
 const ROOT_ID = "m404-save-root";
 const DEFAULT_API_BASE = "http://localhost:3000";
 
-const PROGRESSIVE_MESSAGES = [
-  { afterMs: 0, text: "Saving…" },
-  { afterMs: 2500, text: "Still working…" },
-  { afterMs: 5500, text: "Almost there…" },
-  { afterMs: 10000, text: "Taking a bit longer…" },
-  { afterMs: 16000, text: "Hang tight…" },
-];
-
 function sendMessage(message) {
   return new Promise((resolve) => {
     try {
@@ -65,43 +57,6 @@ function pickDefaultGroup(groups, lastSavedGroupId) {
       null;
   }
   return defaultGroup;
-}
-
-function useProgressiveMessage(active, initial = "Saving…") {
-  const [message, setMessage] = useState(initial);
-
-  useEffect(() => {
-    if (!active) return;
-    const started = Date.now();
-    const tick = () => {
-      const elapsed = Date.now() - started;
-      let next = initial;
-      for (const step of PROGRESSIVE_MESSAGES) {
-        if (elapsed >= step.afterMs) {
-          next = step.afterMs === 0 ? initial : step.text;
-        }
-      }
-      setMessage(next);
-    };
-    const firstTick = window.setTimeout(tick, 0);
-    const id = window.setInterval(tick, 400);
-    return () => {
-      window.clearTimeout(firstTick);
-      window.clearInterval(id);
-    };
-  }, [active, initial]);
-
-  return active ? message : initial;
-}
-
-function OrbStatus({ active, label = "Saving…", state = "searching" }) {
-  const message = useProgressiveMessage(active, label);
-  return (
-    <div className="orb-status" role="status" aria-live="polite" aria-label={message}>
-      <ThinkingOrb state={state} size={64} speed={0.95} theme="dark" />
-      <span className="orb-status-text">{message}</span>
-    </div>
-  );
 }
 
 function applyJobToState(job, setters) {
@@ -190,6 +145,9 @@ function App({ onClose }) {
   const [saveMode, setSaveMode] = useState("active");
   const [pendingRememberUrl, setPendingRememberUrl] = useState(null);
   const [bootToken, setBootToken] = useState(0);
+  const [loginEmail, setLoginEmail] = useState("");
+  const [loginPassword, setLoginPassword] = useState("");
+  const [loginPending, setLoginPending] = useState(false);
   const [saveProgress, setSaveProgress] = useState({
     done: 0,
     total: 0,
@@ -571,6 +529,27 @@ function App({ onClose }) {
     }
   };
 
+  const needsSignIn = /sign in/i.test(error);
+
+  const submitSignIn = async () => {
+    setLoginPending(true);
+    const res = await sendMessage({
+      type: "SIGN_IN",
+      email: loginEmail.trim(),
+      password: loginPassword,
+    });
+    setLoginPending(false);
+    if (!res?.ok) {
+      setError(res?.error || "Failed to sign in");
+      return;
+    }
+    setLoginPassword("");
+    setError("");
+    setPhase("pick");
+    setGroupsLoading(true);
+    setBootToken((n) => n + 1);
+  };
+
   const saveApiBase = async () => {
     const res = await sendMessage({ type: "SET_API_BASE", apiBase });
     if (res?.ok) setApiBase(res.apiBase);
@@ -673,31 +652,78 @@ function App({ onClose }) {
 
         {phase === "error" ? (
           <div className="error-panel" role="alert">
-            <p className="error-panel-title">Something went wrong</p>
+            <p className="error-panel-title">
+              {needsSignIn ? "Sign in" : "Something went wrong"}
+            </p>
             <p className="error-panel-message">
               {error || "Could not complete that action"}
             </p>
-            <div className="error-panel-actions">
-              <button
-                type="button"
-                className="save-btn"
-                onClick={() => {
-                  setError("");
-                  setPhase("pick");
-                  setDropdownOpen(true);
-                  setTimeout(() => inputRef.current?.focus(), 50);
+            {needsSignIn ? (
+              <form
+                className="error-panel-actions"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitSignIn();
                 }}
               >
-                Try again
-              </button>
-              <button
-                type="button"
-                className="ghost-btn error-settings-link"
-                onClick={() => setShowSettings(true)}
-              >
-                Check App URL
-              </button>
-            </div>
+                <label className="field-label" htmlFor="m404-email">
+                  Email
+                </label>
+                <input
+                  id="m404-email"
+                  className="settings-input"
+                  type="email"
+                  autoComplete="email"
+                  value={loginEmail}
+                  onChange={(event) => setLoginEmail(event.target.value)}
+                  required
+                />
+                <label className="field-label" htmlFor="m404-password">
+                  Password
+                </label>
+                <input
+                  id="m404-password"
+                  className="settings-input"
+                  type="password"
+                  autoComplete="current-password"
+                  value={loginPassword}
+                  onChange={(event) => setLoginPassword(event.target.value)}
+                  required
+                />
+                <button type="submit" className="save-btn" disabled={loginPending}>
+                  {loginPending ? "Signing in…" : "Sign in"}
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn error-settings-link"
+                  onClick={() => setShowSettings(true)}
+                >
+                  Check App URL
+                </button>
+              </form>
+            ) : (
+              <div className="error-panel-actions">
+                <button
+                  type="button"
+                  className="save-btn"
+                  onClick={() => {
+                    setError("");
+                    setPhase("pick");
+                    setDropdownOpen(true);
+                    setTimeout(() => inputRef.current?.focus(), 50);
+                  }}
+                >
+                  Try again
+                </button>
+                <button
+                  type="button"
+                  className="ghost-btn error-settings-link"
+                  onClick={() => setShowSettings(true)}
+                >
+                  Check App URL
+                </button>
+              </div>
+            )}
           </div>
         ) : null}
 

@@ -48,12 +48,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: INVALID_CREDENTIALS }, { status: 401 });
     }
 
-    const token = await issueSessionToken(user.id);
+    const sessionVersion = user.sessionVersion ?? 0;
+    const token = await issueSessionToken(user.id, sessionVersion);
     const response = NextResponse.json({
       user: { id: user.id, email: user.email, plan: user.plan },
       token,
     });
-    return attachSessionCookie(response, user.id);
+    return attachSessionCookie(response, user.id, sessionVersion);
   } catch (e) {
     console.error("POST /api/auth/login:", e);
     return NextResponse.json({ error: "Failed to sign in" }, { status: 500 });

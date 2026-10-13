@@ -23,15 +23,17 @@ export async function POST() {
     }
 
     let userId = DEV_USER_ID;
+    let sessionVersion = 0;
     try {
       const user = await ensureDemoUser(DEV_USER_ID, DEV_USER_EMAIL);
       userId = user.id;
+      sessionVersion = user.sessionVersion ?? 0;
     } catch (e) {
       console.error("ensureDemoUser (non-fatal):", e);
     }
 
     const response = NextResponse.json({ ok: true });
-    return attachSessionCookie(response, userId);
+    return attachSessionCookie(response, userId, sessionVersion);
   } catch (e) {
     console.error("POST /api/auth/dev-skip:", e);
     const message = e instanceof Error ? e.message : "Failed to skip sign-in";

@@ -17,7 +17,8 @@ export function ExtensionInstallCard({
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    setAppUrl(window.location.origin);
+    const id = window.setTimeout(() => setAppUrl(window.location.origin), 0);
+    return () => window.clearTimeout(id);
   }, []);
 
   const copyAppUrl = async () => {

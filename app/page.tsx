@@ -1,9 +1,13 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import VaultInbox from "@/components/VaultInbox";
 import { OPENED_GROUP_COOKIE } from "@/components/vault/types";
+import { getAuthUser } from "@/lib/auth";
+import { getMongoEnvError } from "@/lib/db/mongodb";
 import { getIsOwner } from "@/lib/owner";
+import { getSession } from "@/lib/session";
 import { getInitialVaultData } from "@/lib/vault-initial-data";
 
 export const runtime = "nodejs";
@@ -46,6 +50,14 @@ function VaultFallback() {
 }
 
 export default async function Home() {
+  const bypass =
+    process.env.NODE_ENV !== "production" && process.env.AUTH_BYPASS === "1";
+  if (!bypass && !getMongoEnvError()) {
+    const session = await getSession();
+    const user = session ? await getAuthUser() : null;
+    if (session && !user) redirect("/login");
+  }
+
   const cookieStore = await cookies();
   const [initialData, isOwner] = await Promise.all([
     getInitialVaultData(cookieStore.get(OPENED_GROUP_COOKIE)?.value ?? "all"),

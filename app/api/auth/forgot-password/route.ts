@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
 import { getMongoEnvError } from "@/lib/db/mongodb";
 import { findUserByEmail, setPasswordResetToken } from "@/lib/db/repositories";
+import { trustedAppOrigin } from "@/lib/app-origin";
 import { sendPasswordResetEmail } from "@/lib/email";
 
 export const runtime = "nodejs";
@@ -43,8 +44,7 @@ export async function POST(request: Request) {
     const token = randomBytes(32).toString("hex");
     await setPasswordResetToken(user.id, token, new Date(Date.now() + RESET_TOKEN_TTL_MS));
 
-    const { origin } = new URL(request.url);
-    const resetUrl = `${origin}/reset-password?token=${token}`;
+    const resetUrl = `${trustedAppOrigin(request)}/reset-password?token=${token}`;
     await sendPasswordResetEmail(user.email, resetUrl);
   } catch (e) {
     console.error("POST /api/auth/forgot-password:", e);

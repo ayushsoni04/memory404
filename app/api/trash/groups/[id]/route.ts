@@ -62,7 +62,7 @@ export async function PATCH(_req: Request, ctx: Ctx) {
   }
 }
 
-// DELETE — permanently delete a group and ALL its links (regardless of their deletedAt)
+// DELETE — permanently delete a group that is already in Trash, and its links.
 export async function DELETE(_req: Request, ctx: Ctx) {
   if (process.env.MAINTENANCE_MODE === "true") {
     return NextResponse.json(
@@ -79,10 +79,11 @@ export async function DELETE(_req: Request, ctx: Ctx) {
     await withMongoTransaction(async (session) => {
       const { groups, links } = await getCollections();
       const group = await groups.findOne(
-        { _id: id, userId: auth.id },
+        { _id: id, userId: auth.id, deletedAt: { $ne: null } },
         { session, projection: { name: 1 } },
       );
-      if (!group || group.name === GENERAL_GROUP_NAME) {
+      if (!group) throw new Error("GROUP_NOT_IN_TRASH");
+      if (group.name === GENERAL_GROUP_NAME) {
         throw new Error("GROUP_PURGE_FORBIDDEN");
       }
       await links.deleteMany({ groupId: id, userId: auth.id }, { session });
@@ -93,7 +94,17 @@ export async function DELETE(_req: Request, ctx: Ctx) {
       if (result.deletedCount !== 1) throw new Error("GROUP_PURGE_CONFLICT");
     });
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "";
+    if (message === "GROUP_NOT_IN_TRASH") {
+      return NextResponse.json({ error: "Group is not in Trash" }, { status: 404 });
+    }
+    if (message === "GROUP_PURGE_FORBIDDEN") {
+      return NextResponse.json(
+        { error: "This group cannot be deleted" },
+        { status: 400 },
+      );
+    }
     return NextResponse.json({ error: "Failed to permanently delete group" }, { status: 500 });
   }
 }

@@ -1,63 +1,25 @@
 import { NextRequest, NextResponse } from "next/server";
+import { fetchPublicImage } from "@/lib/safe-url";
+
+export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const targetUrl = searchParams.get("url");
-
+  const targetUrl = new URL(req.url).searchParams.get("url");
   if (!targetUrl) {
     return NextResponse.json({ error: "Missing url parameter" }, { status: 400 });
   }
 
-  try {
-    const parsed = new URL(targetUrl);
-    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-      return NextResponse.json({ error: "Invalid protocol" }, { status: 400 });
-    }
-  } catch {
-    return NextResponse.json({ error: "Invalid url" }, { status: 400 });
+  const result = await fetchPublicImage(targetUrl);
+  if (!result.ok) {
+    return NextResponse.json({ error: result.error }, { status: result.status });
   }
 
-  try {
-    const res = await fetch(targetUrl, {
-      headers: {
-        "User-Agent":
-          "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-      },
-      next: { revalidate: 86400 },
-    });
-
-    if (!res.ok) {
-      return NextResponse.json(
-        { error: "Failed to fetch remote image" },
-        { status: res.status },
-      );
-    }
-
-    const contentType = res.headers.get("content-type") || "image/png";
-    const buffer = await res.arrayBuffer();
-
-    const headers = new Headers();
-    headers.set("Content-Type", contentType);
-    headers.set(
-      "Cache-Control",
-      "public, max-age=86400, s-maxage=31536000, stale-while-revalidate=86400",
-    );
-    headers.set(
-      "Vercel-CDN-Cache-Control",
-      "public, s-maxage=31536000, stale-while-revalidate=86400",
-    );
-
-    return new Response(buffer, {
-      status: 200,
-      headers,
-    });
-  } catch (error: unknown) {
-    return NextResponse.json(
-      {
-        error: "Failed to proxy image",
-        details: error instanceof Error ? error.message : "Unknown error",
-      },
-      { status: 500 },
-    );
-  }
+  return new Response(Buffer.from(result.bytes), {
+    status: 200,
+    headers: {
+      "Content-Type": result.contentType,
+      "Cache-Control": "public, max-age=86400, s-maxage=86400",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }

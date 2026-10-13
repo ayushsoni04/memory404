@@ -143,55 +143,6 @@ async function setActiveSaveJob(job) {
   }
 }
 
-async function tabStillOpen(tabId) {
-  if (tabId == null) return false;
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    return Boolean(tab?.id);
-  } catch {
-    return false;
-  }
-}
-
-async function extractPageMeta(tabId) {
-  // Closed / discarded tabs cannot be scripted — bail immediately.
-  if (!(await tabStillOpen(tabId))) {
-    return { title: null, description: null, imageUrl: null };
-  }
-
-  try {
-    const scriptPromise = chrome.scripting.executeScript({
-      target: { tabId },
-      func: () => {
-        const text = (sel) => document.querySelector(sel)?.content?.trim() || null;
-        const title =
-          text('meta[property="og:title"]') ||
-          text('meta[name="twitter:title"]') ||
-          document.title ||
-          null;
-        const description =
-          text('meta[property="og:description"]') ||
-          text('meta[name="twitter:description"]') ||
-          text('meta[name="description"]') ||
-          null;
-        const imageUrl =
-          text('meta[property="og:image"]') ||
-          text('meta[name="twitter:image"]') ||
-          null;
-        return { title, description, imageUrl };
-      },
-    });
-    const [{ result }] = await withTimeout(
-      scriptPromise,
-      4000,
-      "Page meta",
-    );
-    return result ?? { title: null, description: null, imageUrl: null };
-  } catch {
-    return { title: null, description: null, imageUrl: null };
-  }
-}
-
 async function saveUrlToApp(url, options = {}) {
   const apiBase = await getApiBase();
   const payload = { url };
@@ -204,7 +155,7 @@ async function saveUrlToApp(url, options = {}) {
 
   const token = await getAuthToken();
   if (!token) {
-    throw new Error("Sign in via the extension popup to save links");
+    throw new Error("Sign in to memory404 to save links");
   }
 
   const attempt = async () => {
@@ -235,7 +186,7 @@ async function saveUrlToApp(url, options = {}) {
 
   if (res.status === 401) {
     await handleAuthFailure(401);
-    throw new Error("Session expired — sign in again in the extension popup");
+    throw new Error("Session expired — sign in again");
   }
 
   if (res.ok) {
@@ -257,7 +208,7 @@ async function fetchGroupsFromApi() {
   const apiBase = await getApiBase();
   const token = await getAuthToken();
   if (!token) {
-    throw new Error("Sign in via the extension popup to load groups");
+    throw new Error("Sign in to memory404 to load groups");
   }
   const res = await fetchWithTimeout(`${apiBase}/api/groups`, {
     headers: await authHeaders(),
@@ -265,7 +216,7 @@ async function fetchGroupsFromApi() {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     await handleAuthFailure(401);
-    throw new Error("Session expired — sign in again in the extension popup");
+    throw new Error("Session expired — sign in again");
   }
   if (!res.ok) throw new Error(data?.error || "Failed to load groups");
   const groups = Array.isArray(data.groups) ? data.groups : [];
@@ -277,7 +228,7 @@ async function createGroupFromApi(name) {
   const apiBase = await getApiBase();
   const token = await getAuthToken();
   if (!token) {
-    throw new Error("Sign in via the extension popup to create groups");
+    throw new Error("Sign in to memory404 to create groups");
   }
   const res = await fetchWithTimeout(`${apiBase}/api/groups`, {
     method: "POST",
@@ -287,7 +238,7 @@ async function createGroupFromApi(name) {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     await handleAuthFailure(401);
-    throw new Error("Session expired — sign in again in the extension popup");
+    throw new Error("Session expired — sign in again");
   }
   if (!res.ok) throw new Error(data?.error || "Failed to create group");
   const group = data.group;
@@ -1126,6 +1077,49 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           ok: false,
           error: e instanceof Error ? e.message : "Failed to create group",
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "SIGN_IN") {
+    void (async () => {
+      try {
+        const apiBase = await getApiBase();
+        const email = typeof message.email === "string" ? message.email.trim() : "";
+        const password = typeof message.password === "string" ? message.password : "";
+        if (!email || !password) {
+          sendResponse({ ok: false, error: "Email and password are required" });
+          return;
+        }
+        const res = await fetchWithTimeout(`${apiBase}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, password }),
+        });
+        const data = await withTimeout(
+          res.json().catch(() => ({})),
+          5_000,
+          "Sign-in response",
+        );
+        if (!res.ok) {
+          sendResponse({ ok: false, error: data?.error || "Failed to sign in" });
+          return;
+        }
+        if (typeof data.token !== "string" || !data.token) {
+          sendResponse({ ok: false, error: "Server did not return an auth token" });
+          return;
+        }
+        await storageSet({
+          authToken: data.token,
+          authEmail: typeof data.user?.email === "string" ? data.user.email : email,
+        });
+        sendResponse({ ok: true, email: data.user?.email || email });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to sign in",
         });
       }
     })();

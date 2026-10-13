@@ -140,6 +140,8 @@ export default function VaultInbox({
     goNextLink,
     handleDelete,
     moveLinkToGroup,
+    deleteErrors,
+    patchErrors,
   } = useLinkActions({
     links,
     setLinks,
@@ -249,6 +251,7 @@ export default function VaultInbox({
               sortBy={sortBy}
               setSortByAndPersist={setSortByAndPersist}
               loadGroups={loadGroups}
+              loadLinks={loadLinks}
             />
           }
           openedGroupId={openedGroupId}
@@ -281,7 +284,16 @@ export default function VaultInbox({
       {openedLink ? (
         <LinkDetailOverlay
           link={openedLink}
-          groupName={openedGroup?.name ?? null}
+          groupName={(() => {
+            const raw =
+              groups.find((group) => group.id === openedLink.groupId)?.name ??
+              openedGroup?.name ??
+              null;
+            if (!raw) return null;
+            return raw.trim().toLowerCase() === GENERAL_GROUP_NAME.toLowerCase()
+              ? "All"
+              : raw;
+          })()}
           groups={overlayGroups}
           originRect={overlayOrigin}
           onClose={closeLinkDetail}
@@ -291,7 +303,12 @@ export default function VaultInbox({
           onMove={(link, groupId) => void moveLinkToGroup(link, groupId)}
           hasPrev={openedLinkIndex > 0}
           hasNext={
-            openedLinkIndex >= 0 && openedLinkIndex < links.length - 1
+            openedLinkIndex >= 0 && openedLinkIndex < sortedLinks.length - 1
+          }
+          actionError={
+            openedLink
+              ? (deleteErrors[openedLink.id] ?? patchErrors[openedLink.id] ?? null)
+              : null
           }
         />
       ) : null}

@@ -72,12 +72,12 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     if (body.refreshPreview === true) {
-      const existing = await findLink({ _id: id, userId: auth.id });
+      const existing = await findLink({ _id: id, userId: auth.id, deletedAt: null });
       if (!existing) {
         return NextResponse.json({ error: "Link not found" }, { status: 404 });
       }
       const pending = await updateLink(
-        { _id: id, userId: auth.id },
+        { _id: id, userId: auth.id, deletedAt: null },
         { $set: { metadataStatus: "pending" } },
       );
       if (!pending) {
@@ -172,7 +172,7 @@ export async function PATCH(request: Request, context: RouteContext) {
     }
 
     const updated = await updateLink(
-      { _id: id, userId: auth.id },
+      { _id: id, userId: auth.id, deletedAt: null },
       { $set: updateData },
     );
     if (!updated) {
@@ -213,7 +213,7 @@ export async function DELETE(_request: Request, context: RouteContext) {
 
     // Soft-delete: move to Trash instead of permanently removing
     const trashed = await updateLink(
-      { _id: id, userId: auth.id },
+      { _id: id, userId: auth.id, deletedAt: null },
       { $set: { deletedAt: new Date() } },
     );
     if (!trashed) {

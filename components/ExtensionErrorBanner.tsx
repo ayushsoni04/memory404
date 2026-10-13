@@ -21,12 +21,15 @@ export function ExtensionErrorBanner() {
     } catch {
       // keep raw
     }
-    setMessage(decoded.trim() || "Extension save failed");
-
-    const next = new URLSearchParams(searchParams.toString());
-    next.delete("error");
-    const qs = next.toString();
-    router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    const text = decoded.trim() || "Extension save failed";
+    const id = window.setTimeout(() => {
+      setMessage(text);
+      const next = new URLSearchParams(searchParams.toString());
+      next.delete("error");
+      const qs = next.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    }, 0);
+    return () => window.clearTimeout(id);
   }, [searchParams, router, pathname]);
 
   if (!message) return null;

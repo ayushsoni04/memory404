@@ -23,7 +23,6 @@ export default function TextSwap({ children }: { children: string }) {
     if (!mountedRef.current) {
       mountedRef.current = true;
       displayRef.current = text;
-      setDisplay(text);
       return;
     }
 
@@ -31,8 +30,8 @@ export default function TextSwap({ children }: { children: string }) {
 
     const el = elRef.current;
     if (!el) {
-      setDisplay(text);
-      return;
+      const id = window.setTimeout(() => setDisplay(text), 0);
+      return () => window.clearTimeout(id);
     }
 
     const gen = ++genRef.current;
@@ -41,9 +40,9 @@ export default function TextSwap({ children }: { children: string }) {
       window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
     if (reduce) {
-      setDisplay(text);
+      const id = window.setTimeout(() => setDisplay(text), 0);
       el.classList.remove("is-exit", "is-enter-start");
-      return;
+      return () => window.clearTimeout(id);
     }
 
     const raw = getComputedStyle(el).getPropertyValue("--text-swap-dur").trim();

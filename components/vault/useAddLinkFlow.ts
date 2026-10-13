@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import { writeLinksCacheToStorage } from "./storage";
 import type { GroupRow } from "./types";
@@ -39,6 +40,7 @@ export function useAddLinkFlow({
   saveLink,
 }: UseAddLinkFlowDeps) {
   const [urlInput, setUrlInput] = useState("");
+  const urlRef = useRef("");
   const [saving, setSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -57,6 +59,7 @@ export function useAddLinkFlow({
   );
 
   const resetSaveForm = useCallback(() => {
+    urlRef.current = "";
     setUrlInput("");
     setNewGroupNameDraft("");
     setCreatingNewGroup(false);
@@ -71,7 +74,7 @@ export function useAddLinkFlow({
     const txt = sidebarNotesText.trim();
     if (linkId && txt) {
       try {
-        const res = await fetch(`/api/links/${linkId}`, {
+        const res = await fetch(apiUrl(`/api/links/${linkId}`), {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ notes: txt }),
@@ -131,7 +134,7 @@ export function useAddLinkFlow({
     e.preventDefault();
     setSaveError(null);
     setSavedFlash(false);
-    const url = urlInput.trim();
+    const url = urlRef.current.trim();
     if (!url) {
       setSaveError("Enter a URL");
       return;
@@ -227,7 +230,7 @@ export function useAddLinkFlow({
   };
 
   const handlePlaceSave = async () => {
-    const url = urlInput.trim();
+    const url = urlRef.current.trim();
     if (!url) {
       setSaveError("Enter a URL");
       setSavePhase("paste");
@@ -349,6 +352,39 @@ export function useAddLinkFlow({
       setSaving(false);
     }
   };
+
+  const pasteActionRef = useRef<(url: string) => void>(() => {});
+  pasteActionRef.current = (url: string) => {
+    urlRef.current = url;
+    setUrlInput(url);
+    setSaveError(null);
+    if (!openedGroupId || openedGroupId === "all") {
+      setPlaceGroupId(null);
+      setCreatingNewGroup(false);
+      setNewGroupNameDraft("");
+      setSavePhase("place");
+      return;
+    }
+    void handlePasteSubmit({ preventDefault() {} } as React.FormEvent);
+  };
+
+  useEffect(() => {
+    const onPaste = (event: ClipboardEvent) => {
+      const target = event.target;
+      if (
+        target instanceof HTMLElement &&
+        target.closest("input, textarea, select, [contenteditable='true']")
+      ) {
+        return;
+      }
+      const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
+      if (!/^https?:\/\/\S+$/i.test(text)) return;
+      event.preventDefault();
+      pasteActionRef.current(text);
+    };
+    window.addEventListener("paste", onPaste);
+    return () => window.removeEventListener("paste", onPaste);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

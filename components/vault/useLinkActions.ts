@@ -84,10 +84,6 @@ export function useLinkActions({
     const originalLinks = links;
 
     setLinks((prev) => prev.filter((l) => l.id !== id));
-    if (openedLink?.id === id) {
-      setOpenedLink(null);
-      setOverlayOrigin(null);
-    }
 
     try {
       const res = await fetch(apiUrl(`/api/links/${id}`), { method: "DELETE" });
@@ -105,6 +101,11 @@ export function useLinkActions({
           [id]: `${msg}${hint}`,
         }));
         return;
+      }
+
+      if (openedLink?.id === id) {
+        setOpenedLink(null);
+        setOverlayOrigin(null);
       }
 
       if (openedGroupId) {
@@ -157,10 +158,6 @@ export function useLinkActions({
 
     if (nextGroupId !== openedGroupId) {
       setLinks((prev) => prev.filter((l) => l.id !== link.id));
-      if (openedLink?.id === link.id) {
-        setOpenedLink(null);
-        setOverlayOrigin(null);
-      }
     } else {
       setLinks((prev) =>
         prev.map((l) =>
@@ -202,6 +199,10 @@ export function useLinkActions({
         writeLinksCacheToStorage(next);
         return next;
       });
+      if (openedLink?.id === link.id && nextGroupId !== openedGroupId) {
+        setOpenedLink(null);
+        setOverlayOrigin(null);
+      }
       if (nextGroupId !== openedGroupId) {
         removeLinkFromPages(link.id);
       }

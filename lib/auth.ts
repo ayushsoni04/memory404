@@ -15,9 +15,13 @@ function unauthorizedResponse(): Response {
   });
 }
 
-async function userFromId(userId: string): Promise<AuthUser | null> {
-  const row = await findUserById(userId);
+async function userFromSession(payload: {
+  userId: string;
+  sessionVersion: number;
+}): Promise<AuthUser | null> {
+  const row = await findUserById(payload.userId);
   if (!row) return null;
+  if ((row.sessionVersion ?? 0) !== payload.sessionVersion) return null;
   return { id: row.id, email: row.email, plan: row.plan as AuthUser["plan"] };
 }
 
@@ -38,7 +42,7 @@ export async function getAuthUser(): Promise<AuthUser | null> {
   try {
     const session = await getSession();
     if (session) {
-      const fromCookie = await userFromId(session.userId);
+      const fromCookie = await userFromSession(session);
       if (fromCookie) return fromCookie;
     }
 
@@ -46,13 +50,23 @@ export async function getAuthUser(): Promise<AuthUser | null> {
     if (bearer) {
       const payload = await decryptSession(bearer);
       if (payload) {
-        const fromBearer = await userFromId(payload.userId);
+        const fromBearer = await userFromSession(payload);
         if (fromBearer) return fromBearer;
       }
     }
 
     return null;
   } catch (e) {
+    // Next throws this while prerendering so the route stays dynamic. Rethrow
+    // it; logging and swallowing it prints a false build error.
+    if (
+      typeof e === "object" &&
+      e !== null &&
+      "digest" in e &&
+      (e as { digest?: unknown }).digest === "DYNAMIC_SERVER_USAGE"
+    ) {
+      throw e;
+    }
     console.error("getAuthUser:", e);
     return null;
   }
