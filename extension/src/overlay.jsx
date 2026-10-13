@@ -659,6 +659,11 @@ function App({ onClose }) {
               {error || "Could not complete that action"}
             </p>
             {needsSignIn ? (
+              <p className="hint">
+                After you sign in, pick a group or type a new name. This saves the current tab.
+              </p>
+            ) : null}
+            {needsSignIn ? (
               <form
                 className="error-panel-actions"
                 onSubmit={(event) => {
@@ -735,7 +740,9 @@ function App({ onClose }) {
                 <span className="orb-status-text">
                   {saveMode === "remember" && pendingRememberUrl
                     ? `Remember ${hostnameOf(pendingRememberUrl)}`
-                    : "Choose a group, then save"}
+                    : groups.length === 0
+                      ? "Type a name to create a group, then save"
+                      : "Choose a group, then save"}
                 </span>
               </div>
             ) : phase === "saved" ? (

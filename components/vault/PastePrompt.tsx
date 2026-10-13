@@ -14,6 +14,9 @@ import { FIELD_CLASS } from "./types";
 type Props = {
   groupId: string | null;
   variant: "empty" | "end";
+  /** Library empty is first-run. A group empty means other links already exist. */
+  emptyMode?: "library" | "group";
+  groupName?: string;
   onSaved: (link: LinkApiRow) => void;
   saveLink: (
     url: string,
@@ -27,6 +30,8 @@ type Phase = "idle" | "saving" | "success" | "notes";
 export default function PastePrompt({
   groupId,
   variant,
+  emptyMode = "library",
+  groupName = "this group",
   onSaved,
   saveLink,
 }: Props) {
@@ -228,12 +233,23 @@ export default function PastePrompt({
                 void submit();
               }}
             >
-              <p className="text-center text-[13px] text-muted">
-                <span className="relative inline-block text-foreground">
-                  Save webpages
-                </span>{" "}
-                worth coming back to.
-              </p>
+              {variant === "empty" && emptyMode === "group" ? (
+                <div className="space-y-1 text-center">
+                  <p className="text-[13px] text-foreground">
+                    Nothing in {groupName} yet
+                  </p>
+                  <p className="text-[12px] text-muted">
+                    Paste a URL to add it here. You can move it later.
+                  </p>
+                </div>
+              ) : (
+                <p className="text-center text-[13px] text-muted">
+                  <span className="relative inline-block text-foreground">
+                    Save webpages
+                  </span>{" "}
+                  worth coming back to.
+                </p>
+              )}
               <div className="flex w-full items-center gap-2">
                 <input
                   ref={inputRef}
@@ -261,8 +277,15 @@ export default function PastePrompt({
           )}
         </div>
 
-        {variant === "empty" && phase === "idle" ? (
-          <ExtensionInstallCard variant="empty" />
+        {variant === "empty" && phase === "idle" && emptyMode === "library" ? (
+          <>
+            <ol className="mx-auto mt-4 max-w-[28rem] space-y-1.5 text-left text-[12px] text-subtle">
+              <li>1. Paste a URL. It lands in All, so you can sort it later.</li>
+              <li>2. Name a group when a set of links belongs together.</li>
+              <li>3. Or save the current tab from the Chrome extension.</li>
+            </ol>
+            <ExtensionInstallCard variant="empty" />
+          </>
         ) : null}
       </div>
     </div>
