@@ -320,6 +320,22 @@ export function useVaultLinks(
     [mutateSWRLinks],
   );
 
+  const replaceLinkInPages = useCallback(
+    (updated: LinkApiRow) => {
+      void mutateSWRLinks(
+        (pages) =>
+          pages?.map((page) => ({
+            ...page,
+            links: page.links.map((link) =>
+              link.id === updated.id ? updated : link,
+            ),
+          })),
+        { revalidate: false },
+      );
+    },
+    [mutateSWRLinks],
+  );
+
   useEffect(() => {
     if (openedGroupId) {
       const cached = linksCacheRef.current[openedGroupId];
@@ -466,6 +482,7 @@ export function useVaultLinks(
     loadLinks,
     prependLinkToPages,
     removeLinkFromPages,
+    replaceLinkInPages,
     saveLink,
   };
 }
