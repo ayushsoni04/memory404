@@ -202,7 +202,12 @@ export default function SettingsClient({
       />
 
       <main className="flex min-w-0 flex-1 flex-col">
-        <div className="max-w-[720px] space-y-8 pt-4 pb-12">
+        <div
+          role="tabpanel"
+          id={`settings-panel-${activeTab}`}
+          aria-labelledby={`settings-tab-${activeTab}`}
+          className="max-w-[720px] space-y-8 pt-4 pb-12"
+        >
           <header className="space-y-2 pb-5">
             <h1 className="text-xl font-semibold tracking-tight text-foreground uppercase font-mono">
               {TAB_COPY[activeTab].title}
