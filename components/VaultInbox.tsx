@@ -65,6 +65,8 @@ export default function VaultInbox({
     createGroupName,
     setCreateGroupName,
     creatingGroup,
+    createGroupError,
+    setCreateGroupError,
     addingAt,
     groupsError,
     draggingGroupId,
@@ -282,6 +284,8 @@ export default function VaultInbox({
               createGroupName={createGroupName}
               setCreateGroupName={setCreateGroupName}
               creatingGroup={creatingGroup}
+              createGroupError={createGroupError}
+              setCreateGroupError={setCreateGroupError}
               createGroup={createGroup}
               openAddGroup={openAddGroup}
               cancelAddGroup={cancelAddGroup}

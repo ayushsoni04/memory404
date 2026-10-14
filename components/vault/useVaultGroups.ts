@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useQueryState } from "nuqs";
 import { apiUrl } from "@/lib/api-base";
+import { createGroupErrorMessage } from "./create-group";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import {
   GROUP_PILL_MIN_PX,
@@ -36,6 +37,7 @@ export function useVaultGroups(
 
   const [createGroupName, setCreateGroupName] = useState("");
   const [creatingGroup, setCreatingGroup] = useState(false);
+  const [createGroupError, setCreateGroupError] = useState<string | null>(null);
   const [addingAt, setAddingAt] = useState<number | null>(null);
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
@@ -126,13 +128,13 @@ export function useVaultGroups(
   const createGroup = async () => {
     const name = createGroupName.trim();
     if (!name) {
-      setGroupsError("Group name cannot be empty");
+      setCreateGroupError("Group name cannot be empty");
       return;
     }
     const insertAt =
       (addingAt ?? folderGroups.length) + (generalGroup ? 1 : 0);
     setCreatingGroup(true);
-    setGroupsError(null);
+    setCreateGroupError(null);
     try {
       const res = await fetch(apiUrl("/api/groups"), {
         method: "POST",
@@ -141,9 +143,7 @@ export function useVaultGroups(
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setGroupsError(
-          typeof data.error === "string" ? data.error : "Failed to create group",
-        );
+        setCreateGroupError(createGroupErrorMessage(data));
         return;
       }
       const created = data.group as GroupRow | undefined;
@@ -154,7 +154,7 @@ export function useVaultGroups(
         void setOpenedGroupId(created.id);
       }
     } catch {
-      setGroupsError("Failed to create group");
+      setCreateGroupError(createGroupErrorMessage(null, true));
     } finally {
       setCreatingGroup(false);
     }
@@ -163,13 +163,14 @@ export function useVaultGroups(
   const openAddGroup = (at: number) => {
     setAddingAt(at);
     setCreateGroupName("");
-    setGroupsError(null);
+    setCreateGroupError(null);
     window.setTimeout(() => groupInputRef.current?.focus(), 30);
   };
 
   const cancelAddGroup = () => {
     setAddingAt(null);
     setCreateGroupName("");
+    setCreateGroupError(null);
   };
 
   useEffect(() => {
@@ -262,6 +263,8 @@ export function useVaultGroups(
     createGroupName,
     setCreateGroupName,
     creatingGroup,
+    createGroupError,
+    setCreateGroupError,
     addingAt,
     groupsError,
     setGroupsError,
