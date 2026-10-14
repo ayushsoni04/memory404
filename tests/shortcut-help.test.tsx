@@ -15,7 +15,6 @@ afterEach(() => {
 
 function key(partial: Partial<KeyboardEvent> & { key: string }): KeyboardEvent {
   return {
-    key: partial.key,
     metaKey: false,
     ctrlKey: false,
     altKey: false,
