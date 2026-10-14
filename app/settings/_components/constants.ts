@@ -5,12 +5,39 @@ export const BANNER_GRADIENTS = [
   { id: "ocean", label: "Deep Ocean", class: "bg-gradient-to-r from-sky-950 via-blue-900 to-sky-950 border-b border-blue-900/30" },
 ];
 
-export const PRICING = {
-  free: { monthly: 0, yearly: 0 },
-  pro: { monthly: 15, yearly: 12 },
-  team: { monthly: 29, yearly: 24 },
-};
+export type Tab = "profile" | "statistics";
 
-export type Tab = "profile" | "membership" | "statistics";
-export type Plan = "free" | "pro" | "team";
-export type BillingCycle = "monthly" | "yearly";
+/** Profile, or Stats when the URL asks for it. Retired tabs, including membership, land on Profile. */
+export function resolveSettingsTab(value: string | null | undefined): Tab {
+  if (value === "statistics") return "statistics";
+  return "profile";
+}
+
+type SearchParam = string | string[] | undefined;
+
+export function firstSearchParam(value: SearchParam): string | null {
+  if (Array.isArray(value)) return value[0] ?? null;
+  return value ?? null;
+}
+
+/**
+ * `/settings?tab=membership` no longer has a screen. Drop that param and
+ * keep the rest of the query so the address bar opens Profile.
+ */
+export function settingsHrefWithoutRetiredTab(
+  tab: string | null,
+  params: Record<string, SearchParam>,
+): string | null {
+  if (tab !== "membership") return null;
+  const next = new URLSearchParams();
+  for (const [key, value] of Object.entries(params)) {
+    if (key === "tab" || value == null) continue;
+    if (Array.isArray(value)) {
+      for (const item of value) next.append(key, item);
+    } else {
+      next.set(key, value);
+    }
+  }
+  const qs = next.toString();
+  return qs ? `/settings?${qs}` : "/settings";
+}

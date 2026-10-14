@@ -94,7 +94,7 @@ export default function VaultFeed({
         return (
           <div
             key={i}
-            className="mb-[var(--layout-gap-item)] break-inside-avoid"
+            className="mind-card break-inside-avoid"
             style={{ animationDelay: `${i * 40}ms` }}
           >
             <div className="vault-skeleton rounded-[4px] border border-border bg-surface-elevated p-[1px]">
@@ -214,9 +214,9 @@ export default function VaultFeed({
 
       <div
         ref={scrollRootRef}
-        className="mt-[var(--layout-gap-control)] min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+        className="mt-[var(--layout-gap-control)] min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
       >
-        <div className="flex flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
+        <div className="flex min-w-0 flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
           {missingGroupNotice ? (
             <p role="status" className="text-[13px] text-muted">
               {missingGroupNotice}

@@ -2,8 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { Check, Copy, Download, Puzzle } from "lucide-react";
-
-const EXTENSION_ZIP_HREF = "/downloads/memory404-extension.zip";
+import {
+  EXTENSION_ZIP_FILENAME,
+  EXTENSION_ZIP_HREF,
+} from "@/lib/extension-download";
 
 type ExtensionInstallCardProps = {
   /** Compact layout for empty vault; full for settings. */
@@ -41,7 +43,7 @@ export function ExtensionInstallCard({
         <div className="flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
           <a
             href={EXTENSION_ZIP_HREF}
-            download="memory404-extension.zip"
+            download={EXTENSION_ZIP_FILENAME}
             className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
           >
             <Download className="size-3.5" aria-hidden />
@@ -83,7 +85,7 @@ export function ExtensionInstallCard({
           </div>
           <a
             href={EXTENSION_ZIP_HREF}
-            download="memory404-extension.zip"
+            download={EXTENSION_ZIP_FILENAME}
             className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted transition-colors hover:bg-pill hover:text-foreground"
           >
             <Download className="size-3.5" aria-hidden />
