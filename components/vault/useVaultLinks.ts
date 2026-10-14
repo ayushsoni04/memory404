@@ -6,7 +6,7 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { apiUrl } from "@/lib/api-base";
 import { clearCardRectsCache } from "@/lib/card-vicinity-stroke";
-import type { LinkApiRow } from "@/lib/links";
+import { duplicateSaveError, type LinkApiRow } from "@/lib/links";
 import { sortLinks } from "./link-utils";
 import {
   readJsonStorage,
@@ -436,13 +436,10 @@ export function useVaultLinks(
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          if (
-            res.status === 409 &&
-            data.link &&
-            typeof data.link === "object"
-          ) {
-            playUiSound("success");
-            return { ok: true, link: data.link as LinkApiRow };
+          const duplicate = duplicateSaveError(res.status, data);
+          if (duplicate) {
+            playUiSound("error");
+            return { ok: false, error: duplicate };
           }
           playUiSound("error");
           const msg =
