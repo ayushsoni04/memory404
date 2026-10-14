@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
 import MorphText from "@/components/MorphText";
+import { authFailureMessage } from "@/lib/auth-form-error";
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState("");
@@ -16,19 +17,23 @@ export default function ForgotPasswordPage() {
     setError(null);
     setIsSubmitting(true);
 
-    const res = await fetch("/api/auth/forgot-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-
-    setIsSubmitting(false);
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Failed to send reset link");
-      return;
+      setIsSubmitting(false);
+      if (!res.ok) {
+        setError(authFailureMessage(data, "Failed to send reset link"));
+        return;
+      }
+      setSent(true);
+    } catch {
+      setError(authFailureMessage(null, "Failed to send reset link", true));
+      setIsSubmitting(false);
     }
-    setSent(true);
   };
 
   return (
@@ -62,7 +67,11 @@ export default function ForgotPasswordPage() {
               />
             </label>
 
-            {error && <p className="text-xs text-danger">{error}</p>}
+            {error ? (
+              <p className="text-xs text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
 
             <button
               type="submit"

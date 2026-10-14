@@ -34,7 +34,7 @@ function VaultFallback() {
         </div>
         <div className="mind-grid mt-8" data-grid-size="large">
           {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="mb-3 break-inside-avoid animate-pulse">
+            <div key={i} className="mind-card break-inside-avoid animate-pulse">
               <div className="rounded-[4px] border border-border/30 bg-surface-elevated p-[1px]">
                 <div className="aspect-[16/10] w-full rounded-[4px] bg-neutral-800/30" />
               </div>

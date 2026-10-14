@@ -92,10 +92,13 @@ pre,
   -moz-osx-font-smoothing: unset;
 }
 
-/* recent.design-style masonry feed — density via data-grid-size */
+/* recent.design-style masonry feed — density via data-grid-size.
+   Vertical rhythm uses the same token as column-gap, as padding on the card
+   so the title and note stay inside the gap (column margins collapse). */
 .mind-grid {
+  --mind-card-gap: 0.75rem;
   column-count: 1;
-  column-gap: 0.75rem;
+  column-gap: var(--mind-card-gap);
 }
 
 /* Default — balanced */
@@ -192,7 +195,7 @@ pre,
 }
 
 .mind-grid[data-grid-size="large"] {
-  column-gap: 1rem;
+  --mind-card-gap: 1rem;
 }
 
 .mind-grid[data-grid-size="large"] .mind-card-preview {
@@ -203,9 +206,14 @@ pre,
 .mind-card {
   display: inline-block;
   width: 100%;
+  margin: 0;
+  /* Padding is inside the column item, after the caption and note. */
+  padding-bottom: var(--mind-card-gap, 0.75rem);
+  vertical-align: top;
+  break-inside: avoid;
   /* Skip layout/paint work for offscreen masonry cards (Core Web Vitals). */
   content-visibility: auto;
-  contain-intrinsic-size: auto 280px;
+  contain-intrinsic-size: auto 360px;
 }
 
 @keyframes mind-card-enter {

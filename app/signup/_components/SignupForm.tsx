@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
+import { authFailureMessage } from "@/lib/auth-form-error";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
@@ -36,25 +37,28 @@ export function SignupForm() {
     setIsSubmitting(true);
     const utm = readUtmFromSearchParams(searchParams);
 
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email,
-        password,
-        leadSource: leadSource || undefined,
-        utm,
-      }),
-    });
-
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email,
+          password,
+          leadSource: leadSource || undefined,
+          utm,
+        }),
+      });
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Failed to create account");
+      if (!res.ok) {
+        setError(authFailureMessage(data, "Failed to create account"));
+        setIsSubmitting(false);
+        return;
+      }
+      window.location.assign(redirectPath);
+    } catch {
+      setError(authFailureMessage(null, "Failed to create account", true));
       setIsSubmitting(false);
-      return;
     }
-
-    window.location.assign(redirectPath);
   };
 
   const handleSkip = async () => {
@@ -146,7 +150,11 @@ export function SignupForm() {
           </select>
         </label>
 
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error ? (
+          <p className="text-xs text-danger" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <button
           type="submit"
