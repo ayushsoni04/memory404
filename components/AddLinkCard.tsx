@@ -197,7 +197,11 @@ export default function AddLinkCard({
                   Cancel
                 </button>
               </div>
-              {error ? <p className="text-[11px] text-danger">{error}</p> : null}
+              {error ? (
+                <p className="text-[11px] text-danger" role="alert">
+                  {error}
+                </p>
+              ) : null}
             </form>
           </div>
 
