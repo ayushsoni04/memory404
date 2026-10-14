@@ -13,8 +13,10 @@ import {
 import { Folder, LayoutGrid, Plus, Settings, Trash2 } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
+import MorphText from "@/components/MorphText";
 import SearchResultText from "@/components/vault/SearchResultText";
 import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
+import { saveLinkNote } from "@/lib/save-link-note";
 import { saveOfferUrl } from "@/lib/save-query";
 
 type PaletteGroup = { id: string; name: string };
@@ -27,7 +29,10 @@ type Props = {
   onOpenLink?: (link: LinkApiRow, originEl: HTMLElement) => void;
   onSaveUrl?: (
     url: string,
-  ) => Promise<{ ok: true } | { ok: false; error: string }>;
+  ) => Promise<
+    { ok: true; link: LinkApiRow } | { ok: false; error: string }
+  >;
+  onNoteSaved?: (link: LinkApiRow) => void;
   isOwner?: boolean;
 };
 
@@ -38,6 +43,7 @@ export default function CommandPalette({
   onSelectGroup,
   onOpenLink,
   onSaveUrl,
+  onNoteSaved,
   isOwner = false,
 }: Props) {
   const router = useRouter();
@@ -47,6 +53,11 @@ export default function CommandPalette({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingUrl, setSavingUrl] = useState(false);
+  const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
+  const [note, setNote] = useState("");
+  const [noteError, setNoteError] = useState<string | null>(null);
+  const [savingNote, setSavingNote] = useState(false);
+  const noteRef = useRef<HTMLTextAreaElement | null>(null);
   const requestIdRef = useRef(0);
 
   const closePalette = useCallback(() => {
@@ -58,6 +69,10 @@ export default function CommandPalette({
     setSearchError(null);
     setSaveError(null);
     setSavingUrl(false);
+    setSavedLink(null);
+    setNote("");
+    setNoteError(null);
+    setSavingNote(false);
   }, [onOpenChange]);
 
   useEffect(() => {
@@ -74,6 +89,12 @@ export default function CommandPalette({
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open, onOpenChange, closePalette]);
+
+  useEffect(() => {
+    if (!open || !savedLink) return;
+    const timer = window.setTimeout(() => noteRef.current?.focus(), 30);
+    return () => window.clearTimeout(timer);
+  }, [open, savedLink]);
 
   const handleDialogOpenChange = useCallback(
     (next: boolean) => {
@@ -157,8 +178,29 @@ export default function CommandPalette({
       setSaveError(result.error);
       return;
     }
+    setSavedLink(result.link);
+    setNote("");
+    setNoteError(null);
+  }, [offerUrl, onSaveUrl, savingUrl]);
+
+  const finishNote = useCallback(async () => {
+    if (!savedLink || savingNote) return;
+    const trimmed = note.trim();
+    if (!trimmed) {
+      closePalette();
+      return;
+    }
+    setSavingNote(true);
+    setNoteError(null);
+    const result = await saveLinkNote(savedLink.id, trimmed);
+    setSavingNote(false);
+    if (!result.ok) {
+      setNoteError(result.error);
+      return;
+    }
+    onNoteSaved?.(result.link);
     closePalette();
-  }, [closePalette, offerUrl, onSaveUrl, savingUrl]);
+  }, [closePalette, note, onNoteSaved, savedLink, savingNote]);
 
   return (
     <CommandDialog
@@ -169,12 +211,63 @@ export default function CommandPalette({
       contentClassName="fixed left-1/2 top-[18%] z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-2xl"
       overlayClassName="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
     >
+      {savedLink ? (
+        <form
+          className="flex flex-col gap-2 p-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            void finishNote();
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Escape") event.stopPropagation();
+          }}
+        >
+          <p className="text-[12px] font-medium text-success" role="status">
+            Link saved
+          </p>
+          <label htmlFor="palette-save-note" className="text-[11px] text-muted">
+            Add a note
+          </label>
+          <textarea
+            ref={noteRef}
+            id="palette-save-note"
+            aria-label="Notes"
+            value={note}
+            rows={2}
+            placeholder="What should you remember?"
+            onChange={(event) => {
+              setNote(event.target.value);
+              setNoteError(null);
+            }}
+            className="w-full resize-none rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
+          />
+          <div>
+            <button
+              type="submit"
+              disabled={savingNote}
+              className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+            >
+              <MorphText duration={220}>
+                {note.trim() ? "Save Notes" : "Done"}
+              </MorphText>
+            </button>
+          </div>
+          {noteError ? (
+            <p className="text-[12px] text-danger" role="alert">
+              {noteError}
+            </p>
+          ) : null}
+        </form>
+      ) : null}
+      {savedLink ? null : (
       <CommandInput
         value={search}
         onValueChange={handleSearchChange}
         placeholder="Search links, jump to a group, or go to a page…"
         className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
       />
+      )}
+      {savedLink ? null : (
       <CommandList className="max-h-80 overflow-y-auto p-2">
         {loadingLinks ? (
           <CommandLoading className="px-2 py-1.5 text-[12px] text-subtle">
@@ -313,6 +406,8 @@ export default function CommandPalette({
           </CommandItem>
         </CommandGroup>
       </CommandList>
+      )}
+      {savedLink ? null : (
       <div className="flex items-center justify-between border-t border-border px-3 py-2">
         <span className="text-[11px] text-subtle">Keyboard shortcuts</span>
         <button
@@ -327,6 +422,7 @@ export default function CommandPalette({
           ?
         </button>
       </div>
+      )}
     </CommandDialog>
   );
 }
