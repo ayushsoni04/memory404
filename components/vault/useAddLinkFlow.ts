@@ -158,6 +158,7 @@ export function useAddLinkFlow({
           setSaveError(result.error);
           setLinks(originalLinks);
           setSaving(false);
+          setSavePhase("place");
           return;
         }
 
@@ -190,8 +191,10 @@ export function useAddLinkFlow({
 
         setSidebarShowNotesForm(true);
       } catch {
+        setSaveError("Network error — try again");
         setLinks(originalLinks);
         setSaving(false);
+        setSavePhase("place");
       }
       return;
     }
@@ -247,11 +250,10 @@ export function useAddLinkFlow({
     };
 
     const originalLinks = links;
+    const insertedDraft =
+      (groupId === openedGroupId || openedGroupId === "all") && !trimmedNew;
 
-    if (
-      (groupId === openedGroupId || openedGroupId === "all") &&
-      !trimmedNew
-    ) {
+    if (insertedDraft) {
       setLinks((prev) => [draftLink, ...prev]);
     }
 
@@ -265,9 +267,7 @@ export function useAddLinkFlow({
       });
       if (!result.ok) {
         setSaveError(result.error);
-        if (groupId === openedGroupId && !trimmedNew) {
-          setLinks(originalLinks);
-        }
+        if (insertedDraft) setLinks(originalLinks);
         setSaving(false);
         return;
       }
@@ -317,9 +317,8 @@ export function useAddLinkFlow({
 
       setSidebarShowNotesForm(true);
     } catch {
-      if (groupId === openedGroupId && !trimmedNew) {
-        setLinks(originalLinks);
-      }
+      setSaveError("Network error — try again");
+      if (insertedDraft) setLinks(originalLinks);
       setSaving(false);
     }
   };
