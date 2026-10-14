@@ -15,6 +15,7 @@ import GroupTrashConfirm, {
   groupTrashTarget,
 } from "./vault/GroupTrashConfirm";
 import UndoNotice from "./vault/UndoNotice";
+import VaultColumns from "./vault/VaultColumns";
 import VaultFeed from "./vault/VaultFeed";
 import VaultSidebar from "./vault/VaultSidebar";
 import type { InitialVaultData } from "./vault/types";
@@ -228,6 +229,8 @@ export default function VaultInbox({
         inert={openedLink ? true : undefined}
         className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-0 lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0 min-[1712px]:border-x min-[1712px]:border-border"
       >
+      <VaultColumns
+        sidebar={
       <VaultSidebar
         gridSize={gridSize}
         setGridSizeAndPersist={setGridSizeAndPersist}
@@ -261,8 +264,8 @@ export default function VaultInbox({
         filteredFolders={filteredFolders}
         selectGroup={selectGroup}
       />
-
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col lg:h-full lg:overflow-hidden">
+        }
+        feed={
         <VaultFeed
           groupToolbar={
             <VaultGroupToolbar
@@ -317,11 +320,13 @@ export default function VaultInbox({
           sentinelRef={sentinelRef}
           scrollRootRef={scrollRootRef}
         />
-
-        <p className="mt-[var(--layout-gap-section)] shrink-0 text-[13px] text-subtle lg:hidden">
-          © {new Date().getFullYear()} memory404
-        </p>
-      </div>
+        }
+        footer={
+          <p className="mt-[var(--layout-gap-section)] shrink-0 text-[13px] text-subtle lg:hidden">
+            © {new Date().getFullYear()} memory404
+          </p>
+        }
+      />
       </div>
 
       {openedLink ? (
