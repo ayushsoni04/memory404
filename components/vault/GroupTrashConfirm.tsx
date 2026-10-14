@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { useDialogContainment } from "@/lib/dialog-focus";
 import { controlPress } from "./types";
 
 export type GroupTrashTarget = {
@@ -61,10 +62,12 @@ export default function GroupTrashConfirm({
   onConfirm,
   onCancel,
 }: Props) {
+  const portalRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  useDialogContainment(true, portalRef, dialogRef, cancelRef);
 
   useEffect(() => {
-    if (!pending) cancelRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || pending) return;
       event.preventDefault();
@@ -76,7 +79,10 @@ export default function GroupTrashConfirm({
   }, [onCancel, pending]);
 
   const dialog = (
-    <div className="fixed inset-0 z-[260] flex items-end justify-center p-4 sm:items-center">
+    <div
+      ref={portalRef}
+      className="fixed inset-0 z-[260] flex items-end justify-center p-4 sm:items-center"
+    >
       <div
         className="absolute inset-0 bg-black/60"
         onClick={() => {
@@ -84,6 +90,7 @@ export default function GroupTrashConfirm({
         }}
       />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-busy={pending}

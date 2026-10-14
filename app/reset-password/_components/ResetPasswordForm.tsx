@@ -9,6 +9,7 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { authFailureMessage } from "@/lib/auth-form-error";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
 
 export function ResetPasswordForm() {
@@ -38,21 +39,26 @@ export function ResetPasswordForm() {
     }
 
     setIsSubmitting(true);
-    const res = await fetch("/api/auth/reset-password", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, password }),
-    });
-    setIsSubmitting(false);
-
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/auth/reset-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, password }),
+      });
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Failed to reset password");
-      return;
-    }
+      setIsSubmitting(false);
 
-    setDone(true);
-    setTimeout(() => router.push("/login"), 1500);
+      if (!res.ok) {
+        setError(authFailureMessage(data, "Failed to reset password"));
+        return;
+      }
+
+      setDone(true);
+      setTimeout(() => router.push("/login"), 1500);
+    } catch {
+      setError(authFailureMessage(null, "Failed to reset password", true));
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -100,7 +106,11 @@ export function ResetPasswordForm() {
             </p>
           </div>
 
-          {error && <p className="text-xs text-danger">{error}</p>}
+          {error ? (
+            <p className="text-xs text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
 
           <button
             type="submit"

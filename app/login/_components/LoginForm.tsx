@@ -13,6 +13,7 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { authFailureMessage } from "@/lib/auth-form-error";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 
 export function LoginForm() {
@@ -32,20 +33,23 @@ export function LoginForm() {
     setError(null);
     setIsSubmitting(true);
 
-    const res = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
-
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
       const data = await res.json().catch(() => ({}));
-      setError(data.error || "Failed to sign in");
+      if (!res.ok) {
+        setError(authFailureMessage(data, "Failed to sign in"));
+        setIsSubmitting(false);
+        return;
+      }
+      window.location.assign(redirectPath);
+    } catch {
+      setError(authFailureMessage(null, "Failed to sign in", true));
       setIsSubmitting(false);
-      return;
     }
-
-    window.location.assign(redirectPath);
   };
 
   const handleSkip = async () => {
@@ -124,7 +128,11 @@ export function LoginForm() {
           </Link>
         </div>
 
-        {error && <p className="text-xs text-danger">{error}</p>}
+        {error ? (
+          <p className="text-xs text-danger" role="alert">
+            {error}
+          </p>
+        ) : null}
 
         <button
           type="submit"
