@@ -302,7 +302,9 @@ export default function VaultSidebar({
                   </>
                 )}
                 {saveError ? (
-                  <p className="text-xs text-danger">{saveError}</p>
+                  <p className="text-xs text-danger" role="alert">
+                    {saveError}
+                  </p>
                 ) : null}
                 {savedFlash ? (
                   <p className="text-xs text-success">Saved</p>
