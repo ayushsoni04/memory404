@@ -51,6 +51,7 @@ export default function CommandPalette({
   const [linkResults, setLinkResults] = useState<LinkApiRow[]>([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
+  const [searchAttempt, setSearchAttempt] = useState(0);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savingUrl, setSavingUrl] = useState(false);
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
@@ -67,6 +68,7 @@ export default function CommandPalette({
     setLinkResults([]);
     setLoadingLinks(false);
     setSearchError(null);
+    setSearchAttempt(0);
     setSaveError(null);
     setSavingUrl(false);
     setSavedLink(null);
@@ -151,7 +153,7 @@ export default function CommandPalette({
         });
     }, 250);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [search, searchAttempt]);
 
   const filteredGroups = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -276,9 +278,22 @@ export default function CommandPalette({
         ) : null}
 
         {searchError && !loadingLinks ? (
-          <p className="px-2 py-3 text-[13px] text-danger" role="alert">
-            {searchError}. Try the search again.
-          </p>
+          <div className="flex flex-col items-start gap-2 px-2 py-3" role="alert">
+            <p className="text-[13px] text-danger">
+              {searchError}. Your library is unchanged.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoadingLinks(true);
+                setSearchError(null);
+                setSearchAttempt((attempt) => attempt + 1);
+              }}
+              className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97]"
+            >
+              Retry
+            </button>
+          </div>
         ) : null}
 
         {search.trim() &&

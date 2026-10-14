@@ -125,3 +125,34 @@ describe("CommandPalette note after save", () => {
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
   });
 });
+
+describe("CommandPalette search failure", () => {
+  it("retries the same query without asking for it again", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Search failed"))
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ links: [savedLink] }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPalette(vi.fn());
+
+    fireEvent.change(screen.getByPlaceholderText(/Search links/), {
+      target: { value: "pricing" },
+    });
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Search failed");
+    expect(alert).toHaveTextContent("Your library is unchanged.");
+    const retry = screen.getByRole("button", { name: "Retry" });
+    expect(retry.className).toContain("focus-visible:ring-2");
+
+    fireEvent.click(retry);
+
+    expect(await screen.findByText("Pricing page")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(String(fetchMock.mock.calls[1]?.[0])).toContain("search=pricing");
+  });
+});
