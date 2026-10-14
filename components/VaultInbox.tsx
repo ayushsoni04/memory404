@@ -38,6 +38,8 @@ export default function VaultInbox({
   const [groupPendingTrashId, setGroupPendingTrashId] = useState<string | null>(
     null,
   );
+  const [groupTrashPending, setGroupTrashPending] = useState(false);
+  const [groupTrashError, setGroupTrashError] = useState<string | null>(null);
 
   const {
     sortBy,
@@ -193,6 +195,8 @@ export default function VaultInbox({
     (groupId: string) => {
       const target = groupTrashTarget(groups, groupId);
       if (!target) return;
+      setGroupTrashError(null);
+      setGroupTrashPending(false);
       setGroupPendingTrashId(target.id);
     },
     [groups],
@@ -201,6 +205,19 @@ export default function VaultInbox({
   const groupPendingTrash = groupPendingTrashId
     ? groupTrashTarget(groups, groupPendingTrashId)
     : null;
+
+  const confirmDeleteGroup = async () => {
+    if (!groupPendingTrash || groupTrashPending) return;
+    setGroupTrashPending(true);
+    setGroupTrashError(null);
+    const result = await handleDeleteGroup(groupPendingTrash.id);
+    setGroupTrashPending(false);
+    if (result.ok) {
+      setGroupPendingTrashId(null);
+      return;
+    }
+    setGroupTrashError(result.error);
+  };
 
   const handleFeedLinkSaved = useCallback(
     (row: (typeof sortedLinks)[number]) => {
@@ -368,11 +385,15 @@ export default function VaultInbox({
         <GroupTrashConfirm
           name={groupPendingTrash.name}
           linksCount={groupPendingTrash.linksCount}
-          onCancel={() => setGroupPendingTrashId(null)}
-          onConfirm={() => {
-            const id = groupPendingTrash.id;
+          pending={groupTrashPending}
+          error={groupTrashError}
+          onCancel={() => {
+            if (groupTrashPending) return;
+            setGroupTrashError(null);
             setGroupPendingTrashId(null);
-            void handleDeleteGroup(id);
+          }}
+          onConfirm={() => {
+            void confirmDeleteGroup();
           }}
         />
       ) : null}
