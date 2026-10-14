@@ -9,6 +9,7 @@ import TrashBin from "@/components/TrashBin";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { playUiSound } from "@/lib/ui-sound";
 import GroupSearchCommand from "./GroupSearchCommand";
+import { openShortcutHelp } from "./ShortcutHelp";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
 import {
@@ -342,6 +343,15 @@ export default function VaultSidebar({
                   Workspace
                 </Link>
               ) : null}
+              <button
+                type="button"
+                onClick={openShortcutHelp}
+                aria-label="Keyboard shortcuts"
+                className={`rounded-lg px-2.5 py-1.5 text-start text-[13px] text-muted hover:bg-pill hover:text-foreground ${controlPress}`}
+              >
+                Shortcuts
+                <kbd className="ms-2 font-mono text-[10px] text-subtle">?</kbd>
+              </button>
               <TrashBin
                 onDropLink={(linkId) => void onDeleteLink(linkId)}
                 onDropGroup={(groupId) => void onDeleteGroup(groupId)}

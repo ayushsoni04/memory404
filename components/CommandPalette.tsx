@@ -14,6 +14,7 @@ import { Folder, LayoutGrid, Plus, Settings, Trash2 } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import SearchResultText from "@/components/vault/SearchResultText";
+import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
 import { saveOfferUrl } from "@/lib/save-query";
 
 type PaletteGroup = { id: string; name: string };
@@ -312,6 +313,20 @@ export default function CommandPalette({
           </CommandItem>
         </CommandGroup>
       </CommandList>
+      <div className="flex items-center justify-between border-t border-border px-3 py-2">
+        <span className="text-[11px] text-subtle">Keyboard shortcuts</span>
+        <button
+          type="button"
+          onClick={() => {
+            closePalette();
+            openShortcutHelp();
+          }}
+          aria-label="Show keyboard shortcuts"
+          className="rounded-md border border-border bg-pill px-1.5 py-0.5 font-mono text-[11px] text-subtle hover:text-foreground"
+        >
+          ?
+        </button>
+      </div>
     </CommandDialog>
   );
 }
