@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { useQueryState } from "nuqs";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { groupTrashFailureMessage } from "./GroupTrashConfirm";
 import { MISSING_GROUP_NOTICE, resolveOpenedGroup } from "./opened-group";
 import {
   GROUP_PILL_MIN_PX,
@@ -272,18 +273,22 @@ export function useVaultGroups(
     }, 400);
   }, []);
 
-  const handleDeleteGroup = async (groupId: string) => {
-    setGroups((prev) => prev.filter((g) => g.id !== groupId));
-    if (openedGroupId === groupId) selectGroup("all");
+  const handleDeleteGroup = async (
+    groupId: string,
+  ): Promise<{ ok: true } | { ok: false; error: string }> => {
     try {
       const res = await fetch(apiUrl(`/api/groups/${groupId}`), {
         method: "DELETE",
       });
+      const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        void loadGroups();
+        return { ok: false, error: groupTrashFailureMessage(data) };
       }
+      setGroups((prev) => prev.filter((group) => group.id !== groupId));
+      if (openedGroupId === groupId) selectGroup("all");
+      return { ok: true };
     } catch {
-      void loadGroups();
+      return { ok: false, error: groupTrashFailureMessage(null, true) };
     }
   };
 
