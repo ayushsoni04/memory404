@@ -125,7 +125,8 @@ function LinkCard({
 export default function TrashPage() {
   const [items, setItems] = useState<TrashApiItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [emptying, setEmptying] = useState(false);
   const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = useState<PermanentDelete | null>(null);
@@ -133,14 +134,14 @@ export default function TrashPage() {
 
   const loadTrash = useCallback(async () => {
     setLoading(true);
-    setError(null);
+    setLoadError(null);
     try {
       const res = await fetch(apiUrl("/api/trash"));
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed");
       setItems(data.items ?? []);
     } catch (error: unknown) {
-      setError(error instanceof Error ? error.message : "Failed to load trash");
+      setLoadError(error instanceof Error ? error.message : "Failed to load trash");
     } finally {
       setLoading(false);
     }
@@ -168,13 +169,13 @@ export default function TrashPage() {
       const res = await fetch(apiUrl(path), { method });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Request failed");
+        setActionError(typeof data.error === "string" ? data.error : "Request failed");
         return false;
       }
-      setError(null);
+      setActionError(null);
       return true;
     } catch {
-      setError("Network error — try again");
+      setActionError("Network error — try again");
       return false;
     }
   };
@@ -218,7 +219,7 @@ export default function TrashPage() {
   };
 
   const askPermanentDelete = (pending: PermanentDelete) => {
-    setError(null);
+    setActionError(null);
     setPendingDelete(pending);
   };
 
@@ -276,12 +277,12 @@ export default function TrashPage() {
             Loading trash…
           </div>
         )}
-        {error && !pendingDelete ? (
+        {loadError ? (
           <div
             className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
             role="alert"
           >
-            <p className="text-sm text-danger">{error}</p>
+            <p className="text-sm text-danger">{loadError}</p>
             <p className="text-[13px] text-subtle">
               Check your connection, then try again.
             </p>
@@ -294,7 +295,23 @@ export default function TrashPage() {
             </button>
           </div>
         ) : null}
-        {!loading && !error && items.length === 0 && (
+        {actionError && !pendingDelete ? (
+          <div
+            className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
+            role="alert"
+          >
+            <p className="text-sm text-danger">{actionError}</p>
+            <p className="text-[13px] text-subtle">Nothing changed.</p>
+            <button
+              type="button"
+              onClick={() => setActionError(null)}
+              className="inline-flex h-8 items-center justify-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+            >
+              Dismiss
+            </button>
+          </div>
+        ) : null}
+        {!loading && !loadError && items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <svg viewBox="0 0 48 48" fill="none" className="size-12 text-border">
               <path d="M20 10h8a4 4 0 0 0-8 0ZM16 10a8 8 0 0 1 16 0h10a2 2 0 0 1 0 4h-1.3l-2.2 26.1A7 7 0 0 1 31.7 46H16.3a7 7 0 0 1-6.8-5.9L7.3 14H6a2 2 0 0 1 0-4h10Z" fill="currentColor" />
@@ -366,7 +383,7 @@ export default function TrashPage() {
         <PermanentDeleteConfirm
           pending={pendingDelete}
           busy={confirming}
-          error={error}
+          error={actionError}
           onCancel={() => {
             if (!confirming) setPendingDelete(null);
           }}
