@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import VaultInbox from "@/components/VaultInbox";
+import ShortcutHelp from "@/components/vault/ShortcutHelp";
 import { OPENED_GROUP_COOKIE } from "@/components/vault/types";
 import { getAuthUser } from "@/lib/auth";
 import { getMongoEnvError } from "@/lib/db/mongodb";
@@ -68,6 +69,7 @@ export default async function Home() {
     <div className="flex min-h-full flex-1 flex-col bg-background">
       <Suspense fallback={<VaultFallback />}>
         <VaultInbox initialData={initialData} isOwner={isOwner} />
+        <ShortcutHelp />
       </Suspense>
     </div>
   );

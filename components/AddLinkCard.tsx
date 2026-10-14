@@ -4,8 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
-import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
+import { saveLinkNote } from "@/lib/save-link-note";
 
 type Props = {
   groupId: string | null;
@@ -45,21 +45,16 @@ export default function AddLinkCard({
   const finishFlow = useCallback(async () => {
     if (!savedLink) return;
     let finalLink = savedLink;
-    if (notes.trim()) {
-      try {
-        const res = await fetch(apiUrl(`/api/links/${savedLink.id}`), {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ notes: notes.trim() }),
-        });
-        const data = await res.json();
-        if (res.ok && data.link) {
-          finalLink = data.link;
-        }
-      } catch (e) {
-        console.error("Failed to save notes:", e);
+    const trimmed = notes.trim();
+    if (trimmed) {
+      const result = await saveLinkNote(savedLink.id, trimmed);
+      if (!result.ok) {
+        setError(result.error);
+        return;
       }
+      finalLink = result.link;
     }
+    setError(null);
     onSaved(finalLink);
     setOpen(false);
     setUrl("");
@@ -235,7 +230,10 @@ export default function AddLinkCard({
               <textarea
                 aria-label="Notes"
                 value={notes}
-                onChange={(e) => setNotes(e.target.value)}
+                onChange={(e) => {
+                  setNotes(e.target.value);
+                  setError(null);
+                }}
                 tabIndex={phase === "notes" ? 0 : -1}
                 placeholder="What should you remember?"
                 rows={2}
@@ -253,6 +251,11 @@ export default function AddLinkCard({
                   </MorphText>
                 </button>
               </div>
+              {error ? (
+                <p className="text-[11px] text-danger" role="alert">
+                  {error}
+                </p>
+              ) : null}
             </div>
           </div>
         </div>
