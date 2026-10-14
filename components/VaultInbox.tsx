@@ -398,9 +398,10 @@ export default function VaultInbox({
           const result = await saveLink(url, groupId);
           if (result.ok) handleFeedLinkSaved(result.link);
           return result.ok
-            ? { ok: true }
+            ? { ok: true, link: result.link }
             : { ok: false, error: result.error };
         }}
+        onNoteSaved={updateSavedLink}
         isOwner={isOwner}
       />
     </>
