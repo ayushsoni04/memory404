@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  nextSettingsTab,
   resolveSettingsTab,
   settingsHrefWithoutRetiredTab,
 } from "@/app/settings/_components/constants";
@@ -23,5 +24,18 @@ describe("settings tabs", () => {
     expect(settingsHrefWithoutRetiredTab("statistics", { tab: "statistics" })).toBe(
       null,
     );
+  });
+
+  it("moves between Profile and Stats with the arrow keys and stops at the ends", () => {
+    expect(nextSettingsTab("profile", "ArrowDown")).toBe("statistics");
+    expect(nextSettingsTab("profile", "ArrowRight")).toBe("statistics");
+    expect(nextSettingsTab("statistics", "ArrowUp")).toBe("profile");
+    expect(nextSettingsTab("statistics", "ArrowLeft")).toBe("profile");
+    expect(nextSettingsTab("profile", "ArrowUp")).toBeNull();
+    expect(nextSettingsTab("statistics", "ArrowDown")).toBeNull();
+    expect(nextSettingsTab("statistics", "Home")).toBe("profile");
+    expect(nextSettingsTab("profile", "End")).toBe("statistics");
+    expect(nextSettingsTab("profile", "Home")).toBeNull();
+    expect(nextSettingsTab("profile", "Enter")).toBeNull();
   });
 });

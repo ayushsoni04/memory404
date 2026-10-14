@@ -7,6 +7,22 @@ export const BANNER_GRADIENTS = [
 
 export type Tab = "profile" | "statistics";
 
+export const SETTINGS_TABS: readonly Tab[] = ["profile", "statistics"];
+
+/** Next settings tab for a vertical or horizontal tab list. Stops at the ends. */
+export function nextSettingsTab(current: Tab, key: string): Tab | null {
+  const index = SETTINGS_TABS.indexOf(current);
+  if (index < 0) return null;
+  let next = index;
+  if (key === "Home") next = 0;
+  else if (key === "End") next = SETTINGS_TABS.length - 1;
+  else if (key === "ArrowDown" || key === "ArrowRight") next = index + 1;
+  else if (key === "ArrowUp" || key === "ArrowLeft") next = index - 1;
+  else return null;
+  if (next < 0 || next >= SETTINGS_TABS.length || next === index) return null;
+  return SETTINGS_TABS[next];
+}
+
 /** Profile, or Stats when the URL asks for it. Retired tabs, including membership, land on Profile. */
 export function resolveSettingsTab(value: string | null | undefined): Tab {
   if (value === "statistics") return "statistics";
