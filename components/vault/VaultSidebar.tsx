@@ -2,14 +2,19 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { Download } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import GlitchText from "@/components/GlitchText";
 import MorphText from "@/components/MorphText";
 import TrashBin from "@/components/TrashBin";
+import {
+  EXTENSION_VERSION,
+  EXTENSION_ZIP_FILENAME,
+  EXTENSION_ZIP_HREF,
+} from "@/lib/extension-download";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { playUiSound } from "@/lib/ui-sound";
 import GroupSearchCommand from "./GroupSearchCommand";
-import { openShortcutHelp } from "./ShortcutHelp";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
 import {
@@ -345,15 +350,17 @@ export default function VaultSidebar({
                   Workspace
                 </Link>
               ) : null}
-              <button
-                type="button"
-                onClick={openShortcutHelp}
-                aria-label="Keyboard shortcuts"
-                className={`rounded-lg px-2.5 py-1.5 text-start text-[13px] text-muted hover:bg-pill hover:text-foreground ${controlPress}`}
+              <a
+                href={EXTENSION_ZIP_HREF}
+                download={EXTENSION_ZIP_FILENAME}
+                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
-                Shortcuts
-                <kbd className="ms-2 font-mono text-[10px] text-subtle">?</kbd>
-              </button>
+                <Download className="size-3.5" aria-hidden />
+                Download extension
+                <span className="font-mono text-[10px] font-normal opacity-70">
+                  {EXTENSION_VERSION}
+                </span>
+              </a>
               <TrashBin
                 onDropLink={(linkId) => void onDeleteLink(linkId)}
                 onDropGroup={(groupId) => void onDeleteGroup(groupId)}
