@@ -7,6 +7,7 @@ import useSWRInfinite from "swr/infinite";
 import { apiUrl } from "@/lib/api-base";
 import { clearCardRectsCache } from "@/lib/card-vicinity-stroke";
 import { duplicateSaveError, type LinkApiRow } from "@/lib/links";
+import { isLaterLinksPage } from "./feed-load";
 import { sortLinks } from "./link-utils";
 import {
   readJsonStorage,
@@ -63,6 +64,7 @@ export function useVaultLinks(
     return !(storedGroupId && cache[storedGroupId]);
   });
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [loadMoreError, setLoadMoreError] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMoreLinks, setHasMoreLinks] = useState(
     initialMatches ? initialData.firstPage.hasMore : true,
@@ -121,8 +123,21 @@ export function useVaultLinks(
   } = useSWRInfinite<LinksPage>(
     getLinksPageKey,
     async (url: string) => {
-      setFetchError(null);
-      const res = await fetch(url);
+      const laterPage = isLaterLinksPage(url);
+      if (laterPage) setLoadMoreError(null);
+      else setFetchError(null);
+      let res: Response;
+      try {
+        res = await fetch(url);
+      } catch (err) {
+        const fullMsg =
+          err instanceof Error && err.message
+            ? err.message
+            : "Failed to load links";
+        if (laterPage) setLoadMoreError(fullMsg);
+        else setFetchError(fullMsg);
+        throw err;
+      }
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const msg =
@@ -132,9 +147,11 @@ export function useVaultLinks(
             ? ` — ${data.hint.trim()}`
             : "";
         const fullMsg = `${msg}${hint}`;
-        setFetchError(fullMsg);
+        if (laterPage) setLoadMoreError(fullMsg);
+        else setFetchError(fullMsg);
         throw new Error(fullMsg);
       }
+      if (laterPage) setLoadMoreError(null);
       const pageLinks = Array.isArray(data.links)
         ? (data.links as LinkApiRow[])
         : [];
@@ -182,14 +199,18 @@ export function useVaultLinks(
   }, [swrLinkPages, openedGroupId]);
 
   useEffect(() => {
-    if (swrLinksError) {
-      const msg =
-        swrLinksError instanceof Error
-          ? swrLinksError.message
-          : "Failed to load links";
-      setFetchError(msg);
+    if (!swrLinksError || swrValidating) return;
+    const msg =
+      swrLinksError instanceof Error
+        ? swrLinksError.message
+        : "Failed to load links";
+    const loaded = (swrLinkPages?.length ?? 0) > 0 && linkPageCount > 1;
+    if (loaded) {
+      setLoadMoreError(msg);
+      return;
     }
-  }, [swrLinksError]);
+    setFetchError(msg);
+  }, [linkPageCount, swrLinkPages, swrLinksError, swrValidating]);
 
   useEffect(() => {
     const cached = linksCacheRef.current[openedGroupId || ""];
@@ -212,6 +233,7 @@ export function useVaultLinks(
 
   useEffect(() => {
     setLinkPageCount(1);
+    setLoadMoreError(null);
     setHasMoreLinks(
       openedGroupId === initialData.openedGroupId
         ? initialData.firstPage.hasMore
@@ -362,12 +384,25 @@ export function useVaultLinks(
   }, [sortedLinks]);
 
   const loadMoreLinks = useCallback(() => {
-    if (!hasMoreLinks || loadingMore || loadMoreLockRef.current) return;
+    if (
+      !hasMoreLinks ||
+      loadingMore ||
+      loadMoreError ||
+      swrValidating ||
+      loadMoreLockRef.current
+    ) {
+      return;
+    }
     loadMoreLockRef.current = true;
     void setLinkPageCount((n) => n + 1).finally(() => {
       loadMoreLockRef.current = false;
     });
-  }, [hasMoreLinks, loadingMore, setLinkPageCount]);
+  }, [hasMoreLinks, loadMoreError, loadingMore, setLinkPageCount, swrValidating]);
+
+  const retryLoadMore = useCallback(() => {
+    setLoadMoreError(null);
+    return mutateSWRLinks();
+  }, [mutateSWRLinks]);
 
   useEffect(() => {
     if (!hasMoreLinks) return;
@@ -469,6 +504,8 @@ export function useVaultLinks(
     setLinks,
     loadingLinks,
     fetchError,
+    loadMoreError,
+    retryLoadMore,
     loadingMore,
     hasMoreLinks,
     sentinelRef,

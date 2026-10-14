@@ -94,6 +94,8 @@ export default function VaultInbox({
     setLinks,
     loadingLinks,
     fetchError,
+    loadMoreError,
+    retryLoadMore,
     hasMoreLinks,
     sentinelRef,
     scrollRootRef,
@@ -330,6 +332,8 @@ export default function VaultInbox({
           loadGroups={loadGroups}
           loadingLinks={loadingLinks}
           fetchError={fetchError}
+          loadMoreError={loadMoreError}
+          retryLoadMore={retryLoadMore}
           loadLinks={loadLinks}
           gridSize={gridSize}
           generalGroup={generalGroup}

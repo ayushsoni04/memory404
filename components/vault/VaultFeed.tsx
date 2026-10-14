@@ -5,6 +5,7 @@ import LinkCard from "@/components/LinkCard";
 import MorphText from "@/components/MorphText";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
+import { replaceFeedWithLoadError } from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import type { GridSize, GroupRow } from "./types";
 
@@ -22,6 +23,8 @@ type VaultFeedProps = {
   loadGroups: () => Promise<unknown>;
   loadingLinks: boolean;
   fetchError: string | null;
+  loadMoreError: string | null;
+  retryLoadMore: () => Promise<unknown>;
   loadLinks: () => Promise<unknown>;
   gridSize: GridSize;
   generalGroup: GroupRow | null;
@@ -50,6 +53,8 @@ export default function VaultFeed({
   loadGroups,
   loadingLinks,
   fetchError,
+  loadMoreError,
+  retryLoadMore,
   loadLinks,
   gridSize,
   generalGroup,
@@ -103,7 +108,7 @@ export default function VaultFeed({
         );
       })}
     </div>
-  ) : fetchError ? (
+  ) : replaceFeedWithLoadError(fetchError, sortedLinks.length) ? (
     <div className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6">
       <p className="text-sm text-danger">{fetchError}</p>
       <p className="text-[13px] text-subtle">Something went wrong loading this group.</p>
@@ -145,7 +150,22 @@ export default function VaultFeed({
           />
         ))}
       </FeedGrid>
-      {hasMoreLinks && (
+      {loadMoreError ? (
+        <div
+          className="mt-8 flex w-full flex-col items-center gap-3 pb-12 text-center"
+          role="alert"
+        >
+          <p className="text-sm text-danger">{loadMoreError}</p>
+          <p className="text-[13px] text-subtle">The links above are still here.</p>
+          <button
+            type="button"
+            onClick={() => void retryLoadMore()}
+            className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+          >
+            Retry
+          </button>
+        </div>
+      ) : hasMoreLinks ? (
         <div
           ref={sentinelRef}
           className="mt-8 flex w-full flex-col items-center gap-2 pb-12"
@@ -155,8 +175,8 @@ export default function VaultFeed({
           <div className="vault-skeleton size-8 rounded-full bg-neutral-800/50" />
           <span className="text-[12px] text-subtle">Loading more…</span>
         </div>
-      )}
-      {!hasMoreLinks ? (
+      ) : null}
+      {!hasMoreLinks && !loadMoreError ? (
         <PastePrompt
           variant="end"
           groupId={addLinkGroupId}
