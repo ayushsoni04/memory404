@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/trash/route";
+import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
+import type { PermanentDelete } from "@/app/trash/permanent-delete";
 import { apiUrl } from "@/lib/api-base";
 import { linkHostname } from "@/lib/links";
 
@@ -126,6 +128,8 @@ export default function TrashPage() {
   const [error, setError] = useState<string | null>(null);
   const [emptying, setEmptying] = useState(false);
   const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set());
+  const [pendingDelete, setPendingDelete] = useState<PermanentDelete | null>(null);
+  const [confirming, setConfirming] = useState(false);
 
   const loadTrash = useCallback(async () => {
     setLoading(true);
@@ -182,9 +186,9 @@ export default function TrashPage() {
   };
 
   const deleteLink = async (id: string) => {
-    if (await runTrashAction(`/api/trash/links/${id}`, "DELETE")) {
-      await removeWithExit([id]);
-    }
+    if (!(await runTrashAction(`/api/trash/links/${id}`, "DELETE"))) return false;
+    await removeWithExit([id]);
+    return true;
   };
 
   const restoreGroup = async (id: string) => {
@@ -194,7 +198,7 @@ export default function TrashPage() {
   };
 
   const deleteGroup = async (id: string) => {
-    if (!(await runTrashAction(`/api/trash/groups/${id}`, "DELETE"))) return;
+    if (!(await runTrashAction(`/api/trash/groups/${id}`, "DELETE"))) return false;
     const removedIds = items
       .filter(
         (item) =>
@@ -202,14 +206,31 @@ export default function TrashPage() {
       )
       .map((item) => item.id);
     await removeWithExit(removedIds);
+    return true;
   };
 
   const emptyTrash = async () => {
     setEmptying(true);
-    if (await runTrashAction("/api/trash", "DELETE")) {
-      await removeWithExit(items.map((item) => item.id));
-    }
+    const ok = await runTrashAction("/api/trash", "DELETE");
+    if (ok) await removeWithExit(items.map((item) => item.id));
     setEmptying(false);
+    return ok;
+  };
+
+  const askPermanentDelete = (pending: PermanentDelete) => {
+    setError(null);
+    setPendingDelete(pending);
+  };
+
+  const confirmPermanentDelete = async () => {
+    if (!pendingDelete || confirming) return;
+    setConfirming(true);
+    let ok = false;
+    if (pendingDelete.kind === "empty") ok = await emptyTrash();
+    else if (pendingDelete.kind === "link") ok = await deleteLink(pendingDelete.id);
+    else ok = await deleteGroup(pendingDelete.id);
+    setConfirming(false);
+    if (ok) setPendingDelete(null);
   };
 
   const groups = items.filter((i): i is TrashGroupItem => i.type === "group");
@@ -239,7 +260,7 @@ export default function TrashPage() {
           {items.length > 0 && (
             <button
               type="button"
-              onClick={emptyTrash}
+              onClick={() => askPermanentDelete({ kind: "empty", count: items.length })}
               disabled={emptying}
               className="rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2 text-[13px] font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
             >
@@ -293,7 +314,9 @@ export default function TrashPage() {
                   item={g}
                   exiting={exitingIds.has(g.id)}
                   onRestore={() => void restoreGroup(g.id)}
-                  onDelete={() => void deleteGroup(g.id)}
+                  onDelete={() =>
+                    askPermanentDelete({ kind: "group", id: g.id, name: g.name })
+                  }
                 />
               ))}
             </div>
@@ -313,13 +336,30 @@ export default function TrashPage() {
                   item={l}
                   exiting={exitingIds.has(l.id)}
                   onRestore={() => void restoreLink(l.id)}
-                  onDelete={() => void deleteLink(l.id)}
+                  onDelete={() =>
+                    askPermanentDelete({
+                      kind: "link",
+                      id: l.id,
+                      title: l.displayTitle,
+                    })
+                  }
                 />
               ))}
             </div>
           </section>
         )}
       </div>
+      {pendingDelete ? (
+        <PermanentDeleteConfirm
+          pending={pendingDelete}
+          busy={confirming}
+          error={error}
+          onCancel={() => {
+            if (!confirming) setPendingDelete(null);
+          }}
+          onConfirm={() => void confirmPermanentDelete()}
+        />
+      ) : null}
     </div>
   );
 }
