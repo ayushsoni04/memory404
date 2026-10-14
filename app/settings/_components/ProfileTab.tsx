@@ -57,6 +57,7 @@ export function ProfileTab({
   onOpenDeactivateModal,
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
 
   useEffect(() => {
@@ -65,15 +66,16 @@ export function ProfileTab({
 
   // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
+    setExportError(null);
+    setIsExporting(true);
     try {
-      setIsExporting(true);
       const allLinks: unknown[] = [];
       let cursor: string | null = null;
       for (let page = 0; page < 500; page += 1) {
         const params = new URLSearchParams({ limit: "100" });
         if (cursor) params.set("cursor", cursor);
         const res = await fetch(`/api/links?${params.toString()}`);
-        if (!res.ok) throw new Error("Failed to fetch links");
+        if (!res.ok) throw new Error("Could not export your links");
         const data = await res.json();
         const batch = Array.isArray(data.links) ? data.links : [];
         allLinks.push(...batch);
@@ -81,7 +83,6 @@ export function ProfileTab({
         cursor = data.nextCursor as string;
       }
 
-      // Download triggered client-side
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLinks, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
@@ -89,8 +90,8 @@ export function ProfileTab({
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
-    } catch (error) {
-      console.error("Export failed", error);
+    } catch {
+      setExportError("Could not export your links. Try again.");
     } finally {
       setIsExporting(false);
     }
@@ -313,6 +314,11 @@ export function ProfileTab({
             )}
           </button>
         </div>
+        {exportError ? (
+          <p className="text-[12px] text-danger" role="alert">
+            {exportError}
+          </p>
+        ) : null}
       </section>
 
       {/* Danger Zone: Account Deactivation Modal */}
