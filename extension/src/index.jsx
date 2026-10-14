@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
+import { classifyLinkSave, saveHeadline } from "./save-outcome";
 import "./styles.css";
 
 const DEFAULT_API_BASE = "http://localhost:3000";
@@ -119,13 +120,9 @@ async function saveTab(apiBase, tab, groupId, isFirstGroupLink = false, groupNam
   });
   await handleUnauthorized(res);
   const data = await res.json().catch(() => ({}));
-  if (res.ok) {
-    return data.link;
-  }
-  if (res.status === 409 && (data.existingId || data.link?.id)) {
-    return data.link ?? { id: data.existingId, groupId: data.link?.groupId ?? groupId };
-  }
-  throw new Error(data?.error || "Failed to save");
+  const outcome = classifyLinkSave(res.status, data);
+  if (outcome.kind === "error") throw new Error(outcome.message);
+  return outcome;
 }
 
 async function saveUrl(apiBase, url, groupId) {
@@ -139,13 +136,9 @@ async function saveUrl(apiBase, url, groupId) {
   });
   await handleUnauthorized(res);
   const data = await res.json().catch(() => ({}));
-  if (res.ok) {
-    return data.link;
-  }
-  if (res.status === 409 && (data.existingId || data.link?.id)) {
-    return data.link ?? { id: data.existingId, groupId: data.link?.groupId ?? groupId };
-  }
-  throw new Error(data?.error || "Failed to save");
+  const outcome = classifyLinkSave(res.status, data);
+  if (outcome.kind === "error") throw new Error(outcome.message);
+  return outcome;
 }
 
 function hostnameOf(url) {
@@ -239,6 +232,7 @@ function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [saveNotice, setSaveNotice] = useState(null);
   const inputRef = useRef(null);
   const isSignedIn = Boolean(authToken);
 
@@ -514,14 +508,26 @@ function App() {
     const base = apiBase.trim();
     if (!base) return;
     setError("");
+    setSaveNotice(null);
     setPhase("saving");
     try {
       const target = await resolveTargetGroup();
 
       let savedLink = null;
+      let saved = 0;
+      let already = 0;
+      let duplicateMessage = "";
+      let total = 1;
 
       if (saveMode === "remember" && pendingRememberUrl) {
-        savedLink = await saveUrl(base, pendingRememberUrl, target.id);
+        const result = await saveUrl(base, pendingRememberUrl, target.id);
+        savedLink = result.link;
+        if (result.kind === "duplicate") {
+          already = 1;
+          duplicateMessage = result.message || "";
+        } else {
+          saved = 1;
+        }
       } else {
         let tabsToSave = [];
         if (saveMode === "active") {
@@ -544,17 +550,31 @@ function App() {
         if (tabsToSave.length === 0) {
           throw new Error("No tabs found to save");
         }
+        total = tabsToSave.length;
 
         for (const tab of tabsToSave) {
           const result = await saveTab(base, tab, target.id);
+          if (result.kind === "duplicate") {
+            already += 1;
+            duplicateMessage = result.message || duplicateMessage;
+          } else {
+            saved += 1;
+          }
           if (tab.active || !savedLink) {
-            savedLink = result;
+            savedLink = result.link;
           }
         }
       }
 
+      const notice = saveHeadline({
+        total,
+        saved,
+        already,
+        duplicateMessage,
+      });
       const finalGroupId = target.id;
-      setLinkId(savedLink?.id || "multiple");
+      setSaveNotice(notice);
+      setLinkId(notice.offerNote ? savedLink?.id || null : null);
       setCurrentGroupId(finalGroupId);
       setSelectedGroupId(finalGroupId);
       setGroupQuery(target.name);
@@ -776,7 +796,9 @@ function App() {
               </div>
             ) : phase === "saved" ? (
               <div className="saved-row">
-                <span className="saved-text">Saved to memory404</span>
+                <span className="saved-text">
+                  {saveNotice?.title || "Saved to memory404"}
+                </span>
               </div>
             ) : null}
 
@@ -912,11 +934,15 @@ function App() {
                     </button>
                   ) : null}
 
-                  {phase === "saved" && currentGroupName ? (
+                  {phase === "saved" && currentGroupName && saveNotice?.offerNote !== false ? (
                     <p className="current-group">In {currentGroupName}</p>
                   ) : null}
 
-                  {phase === "saved" && linkId ? (
+                  {phase === "saved" && saveNotice?.detail ? (
+                    <p className="assign-note" role="status">
+                      {saveNotice.detail}
+                    </p>
+                  ) : phase === "saved" && linkId ? (
                     <p className="assign-note">
                       {saveMode === "remember"
                         ? "Link remembered"
