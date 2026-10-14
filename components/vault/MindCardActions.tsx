@@ -17,6 +17,7 @@ type Props = {
 
 export default function MindCardActions({ url, host }: Props) {
   const [copied, setCopied] = useState(false);
+  const [failed, setFailed] = useState(false);
   const copiedTimer = useRef<number | null>(null);
 
   useEffect(() => {
@@ -31,22 +32,31 @@ export default function MindCardActions({ url, host }: Props) {
         type="button"
         data-card-action="copy"
         data-copied={copied ? "true" : undefined}
-        data-hold={copied ? "true" : undefined}
-        title={copied ? "Copied" : "Copy link"}
-        aria-label={copied ? "Link copied" : `Copy link: ${host}`}
+        data-failed={failed ? "true" : undefined}
+        data-hold={copied || failed ? "true" : undefined}
+        title={copied ? "Copied" : failed ? "Couldn't copy" : "Copy link"}
+        aria-label={
+          copied ? "Link copied" : failed ? "Couldn't copy the link" : `Copy link: ${host}`
+        }
         onClick={(e) => {
           e.preventDefault();
           e.stopPropagation();
-          // Unlock + confirm in the same gesture before any await.
-          playUiSound("success");
           void (async () => {
             const ok = await copyTextToClipboard(url);
+            if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
             if (!ok) {
               playUiSound("error");
+              setCopied(false);
+              setFailed(true);
+              copiedTimer.current = window.setTimeout(() => {
+                setFailed(false);
+                copiedTimer.current = null;
+              }, COPIED_HOLD_MS);
               return;
             }
+            playUiSound("success");
+            setFailed(false);
             setCopied(true);
-            if (copiedTimer.current) window.clearTimeout(copiedTimer.current);
             copiedTimer.current = window.setTimeout(() => {
               setCopied(false);
               copiedTimer.current = null;
@@ -89,6 +99,11 @@ export default function MindCardActions({ url, host }: Props) {
             <span className="mind-card-copy-label">Copied</span>
           </span>
         </span>
+        {failed ? (
+          <span className="mind-card-copy-label" role="status">
+            Couldn&apos;t copy
+          </span>
+        ) : null}
       </button>
       <a
         href={url}
