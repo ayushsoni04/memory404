@@ -67,6 +67,7 @@ export default function VaultInbox({
     creatingGroup,
     addingAt,
     groupsError,
+    missingGroupNotice,
     draggingGroupId,
     setDraggingGroupId,
     groupInputRef,
@@ -306,6 +307,7 @@ export default function VaultInbox({
           openedGroup={openedGroup}
           allLinksCount={allLinksCount}
           groupsError={groupsError}
+          missingGroupNotice={missingGroupNotice}
           loadGroups={loadGroups}
           loadingLinks={loadingLinks}
           fetchError={fetchError}

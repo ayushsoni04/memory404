@@ -236,7 +236,9 @@ export default function PastePrompt({
                 </button>
               </div>
               {error ? (
-                <p className="w-full text-left text-[11px] text-danger">{error}</p>
+                <p className="w-full text-left text-[11px] text-danger" role="alert">
+                  {error}
+                </p>
               ) : null}
             </form>
           )}

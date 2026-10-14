@@ -3,7 +3,7 @@ import { trustedAppOrigin } from "@/lib/app-origin";
 import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
 import { clientIp } from "@/lib/client-ip";
 import { isAllowedCorsOrigin } from "@/lib/cors-origin";
-import { duplicateLinkMessage } from "@/lib/links";
+import { duplicateLinkMessage, duplicateSaveError } from "@/lib/links";
 import { hashPassword, verifyPassword } from "@/lib/password";
 import { getPasswordRequirementIssues } from "@/lib/password-policy";
 import {
@@ -127,6 +127,20 @@ describe("profile, redirects, cors, and duplicate links", () => {
   it("explains when a duplicate url is sitting in trash", () => {
     expect(duplicateLinkMessage(false)).toMatch(/already exists/);
     expect(duplicateLinkMessage(true)).toMatch(/Trash/);
+  });
+
+  it("treats a duplicate save as a message, not a new link", () => {
+    expect(
+      duplicateSaveError(409, {
+        error: duplicateLinkMessage(true),
+        link: { id: "trashed" },
+      }),
+    ).toBe(duplicateLinkMessage(true));
+    expect(duplicateSaveError(409, { link: { id: "existing" } })).toBe(
+      duplicateLinkMessage(false),
+    );
+    expect(duplicateSaveError(201, { link: { id: "new" } })).toBeNull();
+    expect(duplicateSaveError(500, { error: "Failed to save link" })).toBeNull();
   });
 
   it("pins reset links to the configured app origin", () => {

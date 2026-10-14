@@ -5,6 +5,7 @@ import useSWR from "swr";
 import { useQueryState } from "nuqs";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { MISSING_GROUP_NOTICE, resolveOpenedGroup } from "./opened-group";
 import {
   GROUP_PILL_MIN_PX,
   OPENED_GROUP_COOKIE,
@@ -38,13 +39,21 @@ export function useVaultGroups(
   const [creatingGroup, setCreatingGroup] = useState(false);
   const [addingAt, setAddingAt] = useState<number | null>(null);
   const [groupsError, setGroupsError] = useState<string | null>(null);
+  const [missingGroupNotice, setMissingGroupNotice] = useState<string | null>(
+    null,
+  );
   const [draggingGroupId, setDraggingGroupId] = useState<string | null>(null);
 
   const groupInputRef = useRef<HTMLInputElement | null>(null);
   const groupSizerRef = useRef<HTMLSpanElement | null>(null);
   const [groupInputWidth, setGroupInputWidth] = useState(GROUP_PILL_MIN_PX);
 
-  const { data: swrGroups, mutate: mutateGroups } = useSWR(
+  const {
+    data: swrGroups,
+    mutate: mutateGroups,
+    isLoading: groupsLoading,
+    isValidating: groupsValidating,
+  } = useSWR(
     apiUrl("/api/groups"),
     async (url) => {
       setGroupsError(null);
@@ -90,12 +99,40 @@ export function useVaultGroups(
     return mutateGroups();
   }, [mutateGroups]);
 
+  const groupsReady =
+    Boolean(swrGroups) &&
+    !groupsLoading &&
+    !(groupsValidating && swrGroups.length === 0) &&
+    !groupsError;
+
   const selectGroup = useCallback(
     (id: string) => {
+      setMissingGroupNotice(null);
       void setOpenedGroupId(id);
     },
     [setOpenedGroupId],
   );
+
+  useEffect(() => {
+    const next = resolveOpenedGroup({
+      openedGroupId,
+      groupIds: groups.map((group) => group.id),
+      groupsReady,
+      creatingGroup,
+    });
+    if (next === "all" && openedGroupId !== "all") {
+      setMissingGroupNotice(MISSING_GROUP_NOTICE);
+      void setOpenedGroupId("all", { history: "replace" });
+      return;
+    }
+    if (
+      openedGroupId &&
+      openedGroupId !== "all" &&
+      groups.some((group) => group.id === openedGroupId)
+    ) {
+      setMissingGroupNotice((current) => (current ? null : current));
+    }
+  }, [creatingGroup, groups, groupsReady, openedGroupId, setOpenedGroupId]);
 
   const openedGroup = groups.find((g) => g.id === openedGroupId) ?? null;
   const allLinksCount = useMemo(
@@ -265,6 +302,7 @@ export function useVaultGroups(
     addingAt,
     groupsError,
     setGroupsError,
+    missingGroupNotice,
     draggingGroupId,
     setDraggingGroupId,
     groupInputRef,
