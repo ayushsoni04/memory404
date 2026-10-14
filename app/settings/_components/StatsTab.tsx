@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { FolderKanban, TrendingUp } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
+import { buildActivityCells } from "@/lib/activity-grid";
+import { ActivityGrid } from "./ActivityGrid";
 
 type GroupStat = {
   id: string;
@@ -12,77 +14,6 @@ type FrequencyStat = {
   date: string;
   count: number;
 };
-
-function renderContributionGrid(linkFrequency: FrequencyStat[]) {
-  const today = new Date();
-  const columns = 26; // 26 weeks
-  const daysPerWeek = 7;
-  const totalDays = columns * daysPerWeek;
-
-  const startDate = new Date();
-  startDate.setDate(today.getDate() - totalDays + 1);
-
-  // Group frequency array into quick access map
-  const freqMap = new Map<string, number>();
-  linkFrequency.forEach((f) => freqMap.set(f.date, f.count));
-
-  const gridCells = [];
-  const dateCursor = new Date(startDate);
-
-  for (let i = 0; i < totalDays; i++) {
-    const dateStr = dateCursor.toISOString().slice(0, 10);
-    const count = freqMap.get(dateStr) || 0;
-
-    // Determine dot intensity level
-    let colorClass = "bg-neutral-800/40 border border-neutral-900/30"; // 0 links
-    let glowStyle = {};
-
-    if (count === 1) {
-      colorClass = "bg-neutral-700/80 border border-neutral-600/50";
-    } else if (count === 2 || count === 3) {
-      colorClass = "bg-neutral-500 border border-neutral-400/50";
-    } else if (count >= 4) {
-      colorClass = "bg-neutral-100 border border-white";
-      // High density glow effect matching dot matrix style
-      glowStyle = {
-        boxShadow: "0 0 8px rgba(255, 255, 255, 0.6)",
-      };
-    }
-
-    const label = `${count} link${count === 1 ? "" : "s"} added on ${new Date(dateStr).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}`;
-
-    gridCells.push(
-      <div
-        key={dateStr}
-        title={label}
-        style={glowStyle}
-        className={`size-2.5 rounded-sm cursor-pointer ${colorClass}`}
-      />
-    );
-
-    dateCursor.setDate(dateCursor.getDate() + 1);
-  }
-
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="grid grid-flow-col grid-rows-7 gap-1 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {gridCells}
-      </div>
-      <div className="flex items-center justify-between text-[11px] text-subtle font-mono">
-        <span>{startDate.toLocaleDateString(undefined, { month: "short", year: "2-digit" })}</span>
-        <div className="flex items-center gap-1.5">
-          <span>Less</span>
-          <div className="size-2 rounded-sm bg-neutral-800/60" />
-          <div className="size-2 rounded-sm bg-neutral-600/90" />
-          <div className="size-2 rounded-sm bg-neutral-400" />
-          <div className="size-2 rounded-sm bg-neutral-100 shadow-[0_0_4px_rgba(255,255,255,0.7)]" />
-          <span>More</span>
-        </div>
-        <span>Today</span>
-      </div>
-    </div>
-  );
-}
 
 type StatsTabProps = {
   bannerStyle: string;
@@ -186,7 +117,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
               <AppLoader compact label="Loading activity..." />
             </div>
           ) : (
-            renderContributionGrid(linkFrequency)
+            <ActivityGrid cells={buildActivityCells(linkFrequency)} />
           )}
         </div>
       </section>
