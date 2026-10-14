@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { horizontalScrollEdges } from "./pill-scroll-fade";
-import { ChevronDown, Plus, RotateCw, Search, X } from "lucide-react";
+import { Check, ChevronDown, Plus, RotateCw, Search, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
@@ -211,13 +211,18 @@ export function SortPill({
                   buttonRef.current?.focus();
                   playUiSound("tick");
                 }}
-                className={`flex w-full cursor-pointer items-center rounded-lg px-2.5 py-1.5 text-left text-[13px] transition-[background-color,color,transform] duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.98] ${
+                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-[13px] outline-none transition-[background-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] focus-visible:bg-pill-hover focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] ${
                   opt.value === sortBy
-                    ? "bg-pill-hover text-foreground"
+                    ? "text-foreground"
                     : "text-muted hover:bg-pill hover:text-foreground"
                 }`}
               >
-                {opt.label}
+                <span>{opt.label}</span>
+                {opt.value === sortBy ? (
+                  <Check className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
+                ) : (
+                  <span className="size-3.5 shrink-0" aria-hidden />
+                )}
               </button>
             </li>
           ))}

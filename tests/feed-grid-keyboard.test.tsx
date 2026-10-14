@@ -65,10 +65,23 @@ describe("sort menu keyboard", () => {
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
 
+    const newest = screen.getByRole("button", { name: "Newest" });
     const oldest = screen.getByRole("button", { name: "Oldest" });
-    expect(screen.getByRole("button", { name: "Newest" })).toHaveFocus();
+    expect(newest).toHaveFocus();
+    expect(newest.className).toContain("focus-visible:ring-2");
+    expect(newest.querySelector("svg")).toBeTruthy();
+    expect(oldest.querySelector("svg")).toBeNull();
+    expect(screen.getByRole("option", { name: "Newest" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
+
     fireEvent.keyDown(oldest, { key: "ArrowDown" });
     expect(oldest).toHaveFocus();
+    expect(screen.getByRole("option", { name: "Newest" })).toHaveAttribute(
+      "aria-selected",
+      "true",
+    );
 
     fireEvent.click(oldest);
     expect(setSort).toHaveBeenCalledWith("oldest");
