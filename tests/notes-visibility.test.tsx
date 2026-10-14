@@ -75,11 +75,15 @@ function sampleLink(overrides: Partial<LinkApiRow> = {}): LinkApiRow {
 }
 
 describe("saved notes stay visible", () => {
-  it("shows a note under the card title", () => {
-    render(
+  it("shows a note under the card title, inside the card gap", () => {
+    const { container } = render(
       <LinkCard link={sampleLink()} onOpen={() => {}} />,
     );
-    expect(screen.getByText("Remember the pricing section.")).toBeInTheDocument();
+    const card = container.querySelector(".mind-card");
+    const note = screen.getByText("Remember the pricing section.");
+    expect(card).toContainElement(note);
+    expect(card).toContainElement(screen.getByText("A saved article"));
+    expect(card?.className).not.toMatch(/\bmb-3\b/);
   });
 
   it("omits the note line when a link has none", () => {
