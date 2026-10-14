@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
+import { saveHeadline } from "./save-outcome";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
@@ -77,11 +78,22 @@ function applyJobToState(job, setters) {
   const done = typeof job.done === "number" ? job.done : 0;
   const failed = typeof job.failed === "number" ? job.failed : 0;
   const skipped = typeof job.skipped === "number" ? job.skipped : 0;
-  if (total > 1) {
-    setSaveProgress?.({ done, total, failed, skipped });
-  } else {
-    setSaveProgress?.({ done: 0, total: 0, failed: 0, skipped: 0 });
-  }
+  const already = typeof job.already === "number" ? job.already : 0;
+  const saved =
+    typeof job.saved === "number"
+      ? job.saved
+      : Math.max(0, total - already - failed - skipped);
+  const duplicateMessage =
+    typeof job.duplicateMessage === "string" ? job.duplicateMessage : "";
+  setSaveProgress?.({
+    done,
+    total,
+    failed,
+    skipped,
+    saved,
+    already,
+    duplicateMessage,
+  });
 
   if (Array.isArray(job.itemResults) && job.itemResults.length) {
     setSaveItems?.(job.itemResults);
@@ -506,7 +518,9 @@ function App({ onClose }) {
     }
   };
 
-  const canAddNote = phase === "saved" && linkId && linkId !== "multiple";
+  const outcome = saveHeadline(saveProgress);
+  const canAddNote =
+    phase === "saved" && outcome.offerNote && linkId && linkId !== "multiple";
 
   const saveNote = async () => {
     const notes = noteDraft.trim();
@@ -767,11 +781,7 @@ function App({ onClose }) {
               </div>
             ) : phase === "saved" ? (
               <div className="saved-row">
-                <span className="saved-text">
-                  {saveProgress.total > 1
-                    ? `Saved ${Math.max(0, saveProgress.total - (saveProgress.failed || 0) - (saveProgress.skipped || 0))} of ${saveProgress.total}`
-                    : "Saved to memory404"}
-                </span>
+                <span className="saved-text">{outcome.title}</span>
               </div>
             ) : null}
 
@@ -913,11 +923,15 @@ function App({ onClose }) {
                     </button>
                   ) : null}
 
-                  {phase === "saved" && currentGroupName ? (
+                  {phase === "saved" && currentGroupName && outcome.offerNote ? (
                     <p className="current-group">In {currentGroupName}</p>
                   ) : null}
 
-                  {phase === "saved" && linkId ? (
+                  {phase === "saved" && outcome.detail ? (
+                    <p className="assign-note" role="status">
+                      {outcome.detail}
+                    </p>
+                  ) : phase === "saved" && linkId && outcome.offerNote ? (
                     <p className="assign-note">
                       {saveMode === "remember"
                         ? "Link remembered"

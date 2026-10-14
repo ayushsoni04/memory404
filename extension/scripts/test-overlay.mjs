@@ -162,6 +162,9 @@ async function runSaveJob(worker, payload) {
 
     let savedLink = null;
     let resolvedGroupId = payload.groupId;
+    let saved = 0;
+    let already = 0;
+    let duplicateMessage = null;
     try {
       for (let i = 0; i < payload.items.length; i++) {
         const item = payload.items[i];
@@ -176,11 +179,18 @@ async function runSaveJob(worker, payload) {
           body: JSON.stringify(body),
         });
         const data = await res.json().catch(() => ({}));
-        if (
-          !res.ok &&
-          !(res.status === 409 && (data.existingId || data.link?.id))
-        ) {
+        const duplicate = res.status === 409 && (data.existingId || data.link?.id);
+        if (!res.ok && !duplicate) {
           throw new Error(data?.error || `Save failed (${res.status})`);
+        }
+        if (duplicate) {
+          already += 1;
+          duplicateMessage =
+            typeof data.error === "string" && data.error.trim()
+              ? data.error.trim()
+              : "A link with this URL already exists.";
+        } else {
+          saved += 1;
         }
         const link =
           data.link ||
@@ -196,8 +206,11 @@ async function runSaveJob(worker, payload) {
       const doneJob = {
         ...job,
         status: "saved",
-        linkId: savedLink?.id || "multiple",
+        linkId: saved === 0 ? null : savedLink?.id || "multiple",
         groupId: resolvedGroupId,
+        saved,
+        already,
+        duplicateMessage: saved === 0 && already > 0 ? duplicateMessage : null,
         updatedAt: Date.now(),
       };
       await chrome.storage.local.set({ activeSaveJob: doneJob });
@@ -450,8 +463,9 @@ async function main() {
       groupId: general.id,
       groupName: general.name,
     });
-    if (dup?.ok && dup.job?.status === "saved") pass("duplicate-save-ok");
-    else fail("duplicate-save-ok", JSON.stringify(dup));
+    if (dup?.ok && dup.job?.status === "saved" && dup.job?.already === 1) {
+      pass("duplicate-save-ok");
+    } else fail("duplicate-save-ok", JSON.stringify(dup));
 
     // --- Remember mode UI ---
     await injectOverlay(worker, tabId, "https://example.org/remember-me");

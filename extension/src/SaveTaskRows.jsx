@@ -67,6 +67,7 @@ function statusBadge(status, index) {
   if (status === "saving") return <SpinnerRing active>{index + 1}</SpinnerRing>;
   if (status === "saved") return <Badge tone="green">{CheckIcon}</Badge>;
   if (status === "failed") return <Badge tone="red">{XIcon}</Badge>;
+  if (status === "already") return <Badge tone="muted">–</Badge>;
   if (status === "skipped") return <Badge tone="muted">–</Badge>;
   return <SpinnerRing>{index + 1}</SpinnerRing>;
 }
@@ -77,6 +78,9 @@ function statusPill(status) {
   }
   if (status === "failed") {
     return <span className="task-pill task-pill--fail">Failed</span>;
+  }
+  if (status === "already") {
+    return <span className="task-pill task-pill--skip">Already saved</span>;
   }
   if (status === "skipped") {
     return <span className="task-pill task-pill--skip">Skipped</span>;
@@ -173,6 +177,8 @@ export default function SaveTaskRows({ items = [] }) {
                             ? "Saved"
                             : status === "failed"
                               ? row.error || "Failed"
+                              : status === "already"
+                              ? row.error || "Already saved"
                               : status === "skipped"
                                 ? "Skipped"
                                 : "Queued"}
