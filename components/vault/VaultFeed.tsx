@@ -18,6 +18,7 @@ type VaultFeedProps = {
   openedGroup: GroupRow | null;
   allLinksCount: number;
   groupsError: string | null;
+  missingGroupNotice: string | null;
   loadGroups: () => Promise<unknown>;
   loadingLinks: boolean;
   fetchError: string | null;
@@ -45,6 +46,7 @@ export default function VaultFeed({
   openedGroup,
   allLinksCount,
   groupsError,
+  missingGroupNotice,
   loadGroups,
   loadingLinks,
   fetchError,
@@ -195,6 +197,11 @@ export default function VaultFeed({
         className="mt-[var(--layout-gap-control)] min-h-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
       >
         <div className="flex flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
+          {missingGroupNotice ? (
+            <p role="status" className="text-[13px] text-muted">
+              {missingGroupNotice}
+            </p>
+          ) : null}
           {groupToolbar}
           {feedBody}
         </div>
