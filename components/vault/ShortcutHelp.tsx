@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
+import { useDialogContainment } from "@/lib/dialog-focus";
 import {
   SHORTCUT_HELP_EVENT,
   SHORTCUT_ROWS,
@@ -26,8 +27,13 @@ export function openShortcutHelp() {
 export default function ShortcutHelp() {
   const mounted = useIsClient();
   const [open, setOpen] = useState(false);
+  const portalRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const mac =
     typeof navigator !== "undefined" && isMacPlatform(navigator.platform);
+
+  useDialogContainment(open, portalRef, dialogRef, closeRef);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -52,18 +58,16 @@ export default function ShortcutHelp() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!open) return;
-    const close = document.getElementById("shortcut-help-close");
-    close?.focus();
-  }, [open]);
-
   if (!mounted || !open) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-[280] flex items-end justify-center p-4 sm:items-center">
+    <div
+      ref={portalRef}
+      className="fixed inset-0 z-[280] flex items-end justify-center p-4 sm:items-center"
+    >
       <div className="absolute inset-0 bg-black/60" onClick={() => setOpen(false)} />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="shortcut-help-title"
@@ -79,6 +83,7 @@ export default function ShortcutHelp() {
             </p>
           </div>
           <button
+            ref={closeRef}
             id="shortcut-help-close"
             type="button"
             onClick={() => setOpen(false)}

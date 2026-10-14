@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it } from "vitest";
 import ShortcutHelp from "@/components/vault/ShortcutHelp";
 import {
@@ -70,6 +71,25 @@ describe("ShortcutHelp", () => {
     );
     fireEvent.keyDown(screen.getByLabelText("Notes"), { key: "?" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("keeps Tab on Close and returns focus to the trigger", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <button type="button">Library</button>
+        <ShortcutHelp />
+      </>,
+    );
+    const library = screen.getByRole("button", { name: "Library" });
+    library.focus();
+    fireEvent.keyDown(window, { key: "?" });
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close).toHaveFocus();
+    await user.tab();
+    expect(close).toHaveFocus();
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(library).toHaveFocus();
   });
 
   it("opens from the shortcuts event", () => {
