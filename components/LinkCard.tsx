@@ -70,7 +70,7 @@ function LinkCard({
   return (
     <article
       ref={cardRef}
-      className={`mind-card mb-3 break-inside-avoid${entering ? " mind-card-enter" : ""}`}
+      className={`mind-card break-inside-avoid${entering ? " mind-card-enter" : ""}`}
       draggable
       onDragStart={(e) => {
         // Avoid treating a normal click as a drag (which suppresses click).
@@ -156,19 +156,21 @@ function LinkCard({
           </span>
         </div>
       </div>
-      <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
-        {link.displayTitle}
-      </p>
-      {link.notes ? (
-        <p className="mt-0.5 line-clamp-2 px-0.5 text-[12px] leading-snug text-subtle">
-          {link.notes}
+      <div className="mind-card-caption">
+        <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
+          {link.displayTitle}
         </p>
-      ) : null}
-      {showLoader ? (
-        <p className="mt-0.5 px-0.5 text-[11px] text-subtle">
-          Capturing screenshot…
-        </p>
-      ) : null}
+        {link.notes ? (
+          <p className="mt-0.5 line-clamp-2 px-0.5 text-[12px] leading-snug text-subtle">
+            {link.notes}
+          </p>
+        ) : null}
+        {showLoader ? (
+          <p className="mt-0.5 px-0.5 text-[11px] text-subtle">
+            Capturing screenshot…
+          </p>
+        ) : null}
+      </div>
     </article>
   );
 }

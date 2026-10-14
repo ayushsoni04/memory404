@@ -1,9 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Plan, Tab } from "./_components/constants";
+import type { Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
-import { MembershipTab } from "./_components/MembershipTab";
 import { ProfileTab } from "./_components/ProfileTab";
 import { SettingsNav } from "./_components/SettingsNav";
 import { StatsTab } from "./_components/StatsTab";
@@ -15,16 +14,27 @@ type MeUser = {
   username: string | null;
   avatarUrl: string | null;
   bannerStyle: string;
-  plan: string;
 };
 
-function asPlan(value: string): Plan {
-  if (value === "pro" || value === "team") return value;
-  return "free";
-}
+const TAB_COPY: Record<Tab, { title: string; body: string }> = {
+  profile: {
+    title: "Profile settings",
+    body: "Manage your name, username, banner, and avatar. Changes sync to your account.",
+  },
+  statistics: {
+    title: "Usage statistics",
+    body: "Track total saved links, group density distributions, and relative additions timelines.",
+  },
+};
 
-export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
-  const [activeTab, setActiveTab] = useState<Tab>("profile");
+export default function SettingsClient({
+  isOwner,
+  initialTab = "profile",
+}: {
+  isOwner: boolean;
+  initialTab?: Tab;
+}) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialTab);
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileReady, setProfileReady] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -36,7 +46,6 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
   const [bannerStyle, setBannerStyle] = useState("midnight");
   const [isSaved, setIsSaved] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<Plan>("free");
 
   const [showDeactivateModal, setShowDeactivateModal] = useState(false);
   const [deactivateInput, setDeactivateInput] = useState("");
@@ -50,7 +59,6 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
     setEmail(user.email);
     setBannerStyle(user.bannerStyle || "midnight");
     setAvatarPreview(user.avatarUrl);
-    setCurrentPlan(asPlan(user.plan));
   }, []);
 
   useEffect(() => {
@@ -67,6 +75,10 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
     window.addEventListener("keydown", closeOnEscape);
     return () => window.removeEventListener("keydown", closeOnEscape);
   }, [showDeactivateModal]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -193,18 +205,9 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
         <div className="max-w-[720px] space-y-8 pt-4 pb-12">
           <header className="space-y-2 pb-5">
             <h1 className="text-xl font-semibold tracking-tight text-foreground uppercase font-mono">
-              {activeTab === "profile" && "Profile settings"}
-              {activeTab === "membership" && "Membership details"}
-              {activeTab === "statistics" && "Usage statistics"}
+              {TAB_COPY[activeTab].title}
             </h1>
-            <p className="text-sm text-subtle">
-              {activeTab === "profile" &&
-                "Manage your name, username, banner, and avatar. Changes sync to your account."}
-              {activeTab === "membership" &&
-                "Your current plan. Paid upgrades are coming soon."}
-              {activeTab === "statistics" &&
-                "Track total saved links, group density distributions, and relative additions timelines."}
-            </p>
+            <p className="text-sm text-subtle">{TAB_COPY[activeTab].body}</p>
           </header>
 
           {activeTab === "profile" && (
@@ -225,16 +228,11 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
               error={profileError}
               onRetryLoad={() => void loadProfile()}
               onSaveProfile={handleSaveProfile}
-              currentPlan={currentPlan}
               onOpenDeactivateModal={() => {
                 setDeactivateError(null);
                 setShowDeactivateModal(true);
               }}
             />
-          )}
-
-          {activeTab === "membership" && (
-            <MembershipTab currentPlan={currentPlan} />
           )}
 
           {activeTab === "statistics" && <StatsTab bannerStyle={bannerStyle} />}

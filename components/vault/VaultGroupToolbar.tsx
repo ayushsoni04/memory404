@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { horizontalScrollEdges } from "./pill-scroll-fade";
 import { ChevronDown, Plus, RotateCw, Search, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
@@ -257,6 +258,36 @@ export default function VaultGroupToolbar({
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
+  const pillRowRef = useRef<HTMLDivElement>(null);
+  const [pillEdges, setPillEdges] = useState({ start: false, end: false });
+  const pillKey = filteredFolders.map((group) => group.id).join("|");
+
+  useEffect(() => {
+    const el = pillRowRef.current;
+    if (!el) return;
+    const update = () => {
+      const next = horizontalScrollEdges(
+        el.scrollLeft,
+        el.clientWidth,
+        el.scrollWidth,
+      );
+      setPillEdges((prev) =>
+        prev.start === next.start && prev.end === next.end ? prev : next,
+      );
+    };
+    update();
+    el.addEventListener("scroll", update, { passive: true });
+    let observer: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== "undefined") {
+      observer = new ResizeObserver(update);
+      observer.observe(el);
+      for (const child of Array.from(el.children)) observer.observe(child);
+    }
+    return () => {
+      el.removeEventListener("scroll", update);
+      observer?.disconnect();
+    };
+  }, [pillKey, generalGroup?.id, addingAt]);
   const searchShortcut =
     typeof navigator !== "undefined" &&
     /Mac|iPhone|iPad/.test(navigator.platform)
@@ -264,10 +295,15 @@ export default function VaultGroupToolbar({
       : "Ctrl K";
 
   return (
-    <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex flex-col bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
+    <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex min-w-0 flex-col bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
       <div className="flex items-center justify-between gap-[var(--layout-gap-control)]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <div className="relative flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 ps-0.5 pe-1">
+        <div className="relative min-w-0 flex-1">
+        <div
+          ref={pillRowRef}
+          data-pill-row=""
+          className="flex min-w-0 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 ps-0.5 pe-1"
+        >
           {isDragging && (
             <div className="absolute inset-0 flex items-center pointer-events-none z-0 ps-0.5">
               {generalGroup ? (
@@ -398,6 +434,34 @@ export default function VaultGroupToolbar({
               </Reorder.Item>
             ))}
           </Reorder.Group>
+        </div>
+        {/* Background alpha, not a fade toward black, so the edge matches the bar. */}
+        <span
+          aria-hidden
+          data-pill-fade="start"
+          data-side="start"
+          data-visible={pillEdges.start && !isDragging ? "true" : "false"}
+          className={`pointer-events-none absolute inset-y-0 start-0 z-30 w-11 transition-opacity duration-[var(--duration-ui)] ease-[var(--ease-out)] motion-reduce:transition-none ${
+            pillEdges.start && !isDragging ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            background:
+              "linear-gradient(to right, rgb(from var(--background) r g b / 1) 0%, rgb(from var(--background) r g b / 0) 100%)",
+          }}
+        />
+        <span
+          aria-hidden
+          data-pill-fade="end"
+          data-side="end"
+          data-visible={pillEdges.end && !isDragging ? "true" : "false"}
+          className={`pointer-events-none absolute inset-y-0 end-0 z-30 w-11 transition-opacity duration-[var(--duration-ui)] ease-[var(--ease-out)] motion-reduce:transition-none ${
+            pillEdges.end && !isDragging ? "opacity-100" : "opacity-0"
+          }`}
+          style={{
+            background:
+              "linear-gradient(to left, rgb(from var(--background) r g b / 1) 0%, rgb(from var(--background) r g b / 0) 100%)",
+          }}
+        />
         </div>
 
         {addingAt !== null ? (

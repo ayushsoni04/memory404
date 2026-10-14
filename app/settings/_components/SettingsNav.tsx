@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, CreditCard, LogOut, TrendingUp, User } from "lucide-react";
+import { ArrowLeft, LogOut, TrendingUp, User } from "lucide-react";
 import GlitchText from "@/components/GlitchText";
 import type { Tab } from "./constants";
 
@@ -56,15 +56,6 @@ export function SettingsNav({
           >
             <User className="size-4" />
             Profile
-          </button>
-          <button
-            onClick={() => onTabChange("membership")}
-            className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium transition-colors duration-150 ${
-              activeTab === "membership" ? "bg-pill text-foreground shadow-sm" : "text-muted hover:text-foreground hover:bg-neutral-900/40"
-            }`}
-          >
-            <CreditCard className="size-4" />
-            Plan & billing
           </button>
           <button
             onClick={() => onTabChange("statistics")}

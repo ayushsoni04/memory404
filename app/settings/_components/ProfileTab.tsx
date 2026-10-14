@@ -8,7 +8,6 @@ import {
   Camera,
   CheckCircle2,
   Download,
-  Sparkles,
   Volume2,
   VolumeX,
 } from "lucide-react";
@@ -17,7 +16,7 @@ import {
   playUiSound,
   setSoundsEnabled,
 } from "@/lib/ui-sound";
-import { BANNER_GRADIENTS, type Plan } from "./constants";
+import { BANNER_GRADIENTS } from "./constants";
 
 type ProfileTabProps = {
   name: string;
@@ -37,7 +36,6 @@ type ProfileTabProps = {
   error?: string | null;
   onRetryLoad?: () => void;
   onSaveProfile: (e: React.FormEvent) => void;
-  currentPlan: Plan;
   onOpenDeactivateModal: () => void;
 };
 
@@ -58,7 +56,6 @@ export function ProfileTab({
   error = null,
   onRetryLoad,
   onSaveProfile,
-  currentPlan,
   onOpenDeactivateModal,
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
@@ -181,10 +178,6 @@ export function ProfileTab({
             <p className="text-xs text-subtle font-mono mt-0.5">
               {username ? `@${username}` : "Set a username"}
             </p>
-          </div>
-          <div className="text-[11px] text-muted font-mono border border-border rounded px-2.5 py-1 bg-surface-elevated self-start sm:self-auto uppercase tracking-wide flex items-center gap-1.5">
-            <Sparkles className="size-3 text-yellow-500 animate-pulse" />
-            {currentPlan} membership
           </div>
         </div>
       </div>
@@ -356,7 +349,7 @@ export function ProfileTab({
               <AlertTriangle className="size-3.5" />
               Permanently delete account
             </h4>
-            <p className="text-[11px] text-subtle mt-0.5">This deletes your profile configuration, billing methods, and clean sweeps all database links.</p>
+            <p className="text-[11px] text-subtle mt-0.5">This deletes your profile and every saved link.</p>
           </div>
           <button
             type="button"
