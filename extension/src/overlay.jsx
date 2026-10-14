@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
+import { groupPickerKeyAction } from "./group-picker";
 import { saveHeadline } from "./save-outcome";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
@@ -148,6 +149,7 @@ function App({ onClose }) {
   const [groupsLoading, setGroupsLoading] = useState(true);
   const [groupQuery, setGroupQuery] = useState("");
   const [dropdownOpen, setDropdownOpen] = useState(true);
+  const [highlight, setHighlight] = useState(-1);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
   const [error, setError] = useState("");
   const [highlightedTabs, setHighlightedTabs] = useState([]);
@@ -548,18 +550,48 @@ function App({ onClose }) {
   };
 
   const onGroupKeyDown = (e) => {
-    if (e.key === "Enter") {
+    const action = groupPickerKeyAction({
+      key: e.key,
+      highlight,
+      count: filteredGroups.length,
+      hasExactMatch: Boolean(exactMatch),
+      hasQuery: Boolean(groupQuery.trim()),
+    });
+    if (action.type === "highlight") {
       e.preventDefault();
-      if (exactMatch) {
-        pickGroup(exactMatch);
-      } else if (groupQuery.trim()) {
-        setSelectedGroupId(null);
-        setDropdownOpen(false);
+      setDropdownOpen(true);
+      setHighlight(action.index);
+      const id = filteredGroups[action.index]?.id;
+      if (id) {
+        requestAnimationFrame(() => {
+          document.getElementById(`m404-group-${id}`)?.scrollIntoView({ block: "nearest" });
+        });
       }
       return;
     }
-    if (e.key === "Escape") {
+    if (action.type === "pick") {
+      e.preventDefault();
+      const group = filteredGroups[action.index];
+      if (group) pickGroup(group);
+      setHighlight(-1);
+      return;
+    }
+    if (action.type === "pick-exact") {
+      e.preventDefault();
+      if (exactMatch) pickGroup(exactMatch);
+      setHighlight(-1);
+      return;
+    }
+    if (action.type === "create") {
+      e.preventDefault();
+      setSelectedGroupId(null);
       setDropdownOpen(false);
+      setHighlight(-1);
+      return;
+    }
+    if (action.type === "close") {
+      setDropdownOpen(false);
+      setHighlight(-1);
     }
   };
 
@@ -842,6 +874,7 @@ function App({ onClose }) {
                         setGroupQuery(e.target.value);
                         setSelectedGroupId(null);
                         setDropdownOpen(true);
+                        setHighlight(-1);
                         setError("");
                       }}
                       onFocus={() => setDropdownOpen(true)}
@@ -853,6 +886,16 @@ function App({ onClose }) {
                       disabled={phase === "saved"}
                       autoComplete="off"
                       spellCheck={false}
+                      role="combobox"
+                      aria-label="Group"
+                      aria-autocomplete="list"
+                      aria-expanded={dropdownOpen}
+                      aria-controls="m404-group-list"
+                      aria-activedescendant={
+                        dropdownOpen && highlight >= 0 && filteredGroups[highlight]
+                          ? `m404-group-${filteredGroups[highlight].id}`
+                          : undefined
+                      }
                     />
                     <button
                       type="button"
@@ -870,14 +913,29 @@ function App({ onClose }) {
                   </div>
 
                   {phase === "pick" && dropdownOpen && filteredGroups.length ? (
-                    <ul className="group-list" role="listbox">
-                      {filteredGroups.map((g) => (
-                        <li key={g.id}>
+                    <ul
+                      id="m404-group-list"
+                      className="group-list"
+                      role="listbox"
+                      aria-label="Groups"
+                    >
+                      {filteredGroups.map((g, index) => (
+                        <li key={g.id} role="presentation">
                           <button
+                            id={`m404-group-${g.id}`}
                             type="button"
-                            className={`group-option ${g.id === selectedGroupId ? "active" : ""}`}
+                            role="option"
+                            tabIndex={-1}
+                            aria-selected={g.id === selectedGroupId}
+                            className={`group-option ${g.id === selectedGroupId ? "active" : ""} ${
+                              index === highlight ? "highlighted" : ""
+                            }`}
                             onMouseDown={(e) => e.preventDefault()}
-                            onClick={() => pickGroup(g)}
+                            onMouseEnter={() => setHighlight(index)}
+                            onClick={() => {
+                              pickGroup(g);
+                              setHighlight(-1);
+                            }}
                           >
                             {g.name}
                             {g.id === selectedGroupId ? (
@@ -896,6 +954,7 @@ function App({ onClose }) {
                     <button
                       type="button"
                       className="create-option"
+                      tabIndex={-1}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         setSelectedGroupId(null);
