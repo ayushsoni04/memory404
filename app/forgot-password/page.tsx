@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
 import MorphText from "@/components/MorphText";
+import { authFieldClass, authLinkClass, authSubmitClass } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
 
 export default function ForgotPasswordPage() {
@@ -62,7 +63,7 @@ export default function ForgotPasswordPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 autoComplete="email"
-                className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 transition"
+                className={authFieldClass}
                 required
               />
             </label>
@@ -76,7 +77,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
+              className={authSubmitClass}
             >
               <MorphText duration={220}>
                 {isSubmitting ? "Sending…" : "Send reset link"}
@@ -86,7 +87,7 @@ export default function ForgotPasswordPage() {
         )}
 
         <p className="text-center text-xs text-subtle">
-          <Link href="/login" className="text-foreground hover:underline">
+          <Link href="/login" className={authLinkClass}>
             Back to sign in
           </Link>
         </p>
