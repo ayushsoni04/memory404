@@ -5,6 +5,14 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
+import {
+  authFieldClass,
+  authLinkClass,
+  authPasswordFieldClass,
+  authQuietControlClass,
+  authRevealClass,
+  authSubmitClass,
+} from "@/components/auth/auth-field";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
@@ -95,7 +103,7 @@ export function SignupForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
-            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 transition"
+            className={authFieldClass}
             required
           />
         </label>
@@ -113,14 +121,14 @@ export function SignupForm() {
               placeholder="••••••••"
               autoComplete="new-password"
               aria-describedby="signup-password-hint"
-              className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 pr-10 text-sm text-foreground outline-none focus:border-foreground/30 transition"
+              className={authPasswordFieldClass}
               required
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
-              className="absolute right-3 top-2.5 text-subtle hover:text-foreground cursor-pointer"
+              className={authRevealClass}
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
             </button>
@@ -135,7 +143,7 @@ export function SignupForm() {
           <select
             value={leadSource}
             onChange={(e) => setLeadSource(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none focus:border-foreground/30 transition"
+            className={authFieldClass}
           >
             <option value="">Select an option</option>
             {LEAD_SOURCE_OPTIONS.map((option) => (
@@ -151,7 +159,7 @@ export function SignupForm() {
         <button
           type="submit"
           disabled={isSubmitting || isSkipping}
-          className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
+          className={authSubmitClass}
         >
           <MorphText duration={220}>
             {isSubmitting ? "Creating account…" : "Create account"}
@@ -161,7 +169,7 @@ export function SignupForm() {
 
       <p className="text-center text-xs text-subtle">
         Already have an account?{" "}
-        <Link href="/login" className="text-foreground hover:underline">
+        <Link href="/login" className={authLinkClass}>
           Sign in
         </Link>
       </p>
@@ -171,7 +179,7 @@ export function SignupForm() {
         <a
           href="/downloads/memory404-extension.zip"
           download="memory404-extension.zip"
-          className="text-foreground hover:underline"
+          className={authLinkClass}
         >
           Download the Chrome extension
         </a>{" "}
@@ -183,7 +191,7 @@ export function SignupForm() {
           type="button"
           onClick={handleSkip}
           disabled={isSubmitting || isSkipping}
-          className="w-full text-center text-[11px] text-subtle hover:text-foreground transition cursor-pointer disabled:opacity-50"
+          className={`w-full text-center ${authQuietControlClass}`}
         >
           {isSkipping ? "Skipping…" : "Skip for now"}
         </button>

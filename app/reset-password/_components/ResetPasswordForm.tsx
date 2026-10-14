@@ -4,6 +4,11 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
+import {
+  authPasswordFieldClass,
+  authRevealClass,
+  authSubmitClass,
+} from "@/components/auth/auth-field";
 import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
 
 export function ResetPasswordForm() {
@@ -78,14 +83,14 @@ export function ResetPasswordForm() {
                 placeholder="••••••••"
                 autoComplete="new-password"
                 aria-describedby="reset-password-hint"
-                className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 pr-10 text-sm text-foreground outline-none focus:border-foreground/30 transition"
+                className={authPasswordFieldClass}
                 required
               />
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
                 aria-label={showPassword ? "Hide password" : "Show password"}
-                className="absolute right-3 top-2.5 text-subtle hover:text-foreground cursor-pointer"
+                className={authRevealClass}
               >
                 {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
               </button>
@@ -100,7 +105,7 @@ export function ResetPasswordForm() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="w-full h-9 bg-pill-active text-pill-active-fg text-xs font-bold rounded-lg hover:opacity-90 transition disabled:opacity-50 cursor-pointer"
+            className={authSubmitClass}
           >
             <MorphText duration={220}>
               {isSubmitting ? "Updating…" : "Update password"}
