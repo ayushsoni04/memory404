@@ -276,11 +276,24 @@ export default function TrashPage() {
             Loading trash…
           </div>
         )}
-        {error && (
-          <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3 text-sm text-red-400">
-            {error}
+        {error && !pendingDelete ? (
+          <div
+            className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
+            role="alert"
+          >
+            <p className="text-sm text-danger">{error}</p>
+            <p className="text-[13px] text-subtle">
+              Check your connection, then try again.
+            </p>
+            <button
+              type="button"
+              onClick={() => void loadTrash()}
+              className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+            >
+              Retry
+            </button>
           </div>
-        )}
+        ) : null}
         {!loading && !error && items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
             <svg viewBox="0 0 48 48" fill="none" className="size-12 text-border">
