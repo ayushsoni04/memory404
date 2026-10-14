@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
 import { permanentDeleteCopy } from "@/app/trash/permanent-delete";
@@ -24,7 +25,7 @@ describe("permanentDeleteCopy", () => {
 });
 
 describe("PermanentDeleteConfirm", () => {
-  it("cancels from Escape and from Cancel", () => {
+  it("cancels from Escape and from Cancel", async () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
     render(
@@ -40,7 +41,14 @@ describe("PermanentDeleteConfirm", () => {
     expect(
       screen.getByRole("dialog", { name: "Delete “Pricing page” forever?" }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveFocus();
+    expect(cancel.className).toContain("focus-visible:ring-2");
+    const user = userEvent.setup();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Delete forever" })).toHaveFocus();
+    await user.tab();
+    expect(cancel).toHaveFocus();
     fireEvent.keyDown(window, { key: "Escape" });
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
     expect(onCancel).toHaveBeenCalledTimes(2);

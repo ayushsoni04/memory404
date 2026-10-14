@@ -2,6 +2,8 @@
 
 import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
+import { useDialogContainment } from "@/lib/dialog-focus";
+import { controlPress } from "@/components/vault/types";
 import { permanentDeleteCopy, type PermanentDelete } from "./permanent-delete";
 
 type Props = {
@@ -19,11 +21,13 @@ export default function PermanentDeleteConfirm({
   onConfirm,
   onCancel,
 }: Props) {
+  const portalRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const copy = permanentDeleteCopy(pending);
+  useDialogContainment(true, portalRef, dialogRef, cancelRef);
 
   useEffect(() => {
-    cancelRef.current?.focus();
     const onKey = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || busy) return;
       event.preventDefault();
@@ -34,9 +38,13 @@ export default function PermanentDeleteConfirm({
   }, [busy, onCancel]);
 
   const dialog = (
-    <div className="fixed inset-0 z-[260] flex items-end justify-center p-4 sm:items-center">
+    <div
+      ref={portalRef}
+      className="fixed inset-0 z-[260] flex items-end justify-center p-4 sm:items-center"
+    >
       <div className="absolute inset-0 bg-black/60" onClick={() => !busy && onCancel()} />
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="permanent-delete-title"
@@ -57,7 +65,7 @@ export default function PermanentDeleteConfirm({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className="inline-flex h-8 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+            className={`inline-flex h-8 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground disabled:opacity-50 ${controlPress}`}
           >
             Cancel
           </button>
@@ -65,7 +73,7 @@ export default function PermanentDeleteConfirm({
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className="inline-flex h-8 items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 text-[13px] font-medium text-red-400 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] hover:bg-red-500/20 active:scale-[0.97] disabled:opacity-50"
+            className={`inline-flex h-8 items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 text-[13px] font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 ${controlPress}`}
           >
             {busy ? "Deleting…" : copy.action}
           </button>

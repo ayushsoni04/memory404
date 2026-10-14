@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
+import { useState } from "react";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import GroupTrashConfirm, {
   groupTrashDetail,
@@ -68,6 +70,40 @@ describe("GroupTrashConfirm", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onCancel).toHaveBeenCalledOnce();
     expect(onConfirm).not.toHaveBeenCalled();
+  });
+
+  it("wraps Tab inside the dialog and restores the trigger", async () => {
+    const user = userEvent.setup();
+    function Harness() {
+      const [open, setOpen] = useState(false);
+      return (
+        <>
+          <button type="button" onClick={() => setOpen(true)}>
+            Trash Reading
+          </button>
+          {open ? (
+            <GroupTrashConfirm
+              name="Reading"
+              linksCount={1}
+              onConfirm={() => {}}
+              onCancel={() => setOpen(false)}
+            />
+          ) : null}
+        </>
+      );
+    }
+    render(<Harness />);
+    const trigger = screen.getByRole("button", { name: "Trash Reading" });
+    await user.click(trigger);
+    const cancel = screen.getByRole("button", { name: "Cancel" });
+    expect(cancel).toHaveFocus();
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Move to Trash" })).toHaveFocus();
+    await user.tab();
+    expect(cancel).toHaveFocus();
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("confirms only from Move to Trash", () => {

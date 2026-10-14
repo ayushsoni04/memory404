@@ -1,126 +1,12 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/trash/route";
 import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
+import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
 import type { PermanentDelete } from "@/app/trash/permanent-delete";
 import { apiUrl } from "@/lib/api-base";
-import { linkHostname } from "@/lib/links";
-
-function DaysLeft({ days }: { days: number }) {
-  const color =
-    days <= 3 ? "text-red-400" : days <= 7 ? "text-amber-400" : "text-muted";
-  return (
-    <span className={`text-[11px] tabular-nums ${color}`}>
-      {days === 0 ? "Expires today" : `${days}d left`}
-    </span>
-  );
-}
-
-function GroupCard({
-  item,
-  exiting,
-  onRestore,
-  onDelete,
-}: {
-  item: TrashGroupItem;
-  exiting: boolean;
-  onRestore: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div
-      className="trash-row group/card flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 hover:border-border/80"
-      data-exiting={exiting}
-    >
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted">
-        <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
-          <path d="M2 6a2 2 0 0 1 2-2h4l2 2h6a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6Z" />
-        </svg>
-      </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{item.name}</p>
-        <p className="text-[12px] text-muted">
-          {item.linksCount} {item.linksCount === 1 ? "link" : "links"} inside
-        </p>
-      </div>
-      <DaysLeft days={item.daysLeft} />
-      <div className="trash-card-actions ml-2 flex items-center gap-1.5 opacity-0">
-        <button
-          type="button"
-          onClick={onRestore}
-          className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
-        >
-          Restore
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
-        >
-          Delete Now
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function LinkCard({
-  item,
-  exiting,
-  onRestore,
-  onDelete,
-}: {
-  item: TrashLinkItem;
-  exiting: boolean;
-  onRestore: () => void;
-  onDelete: () => void;
-}) {
-  return (
-    <div
-      className="trash-row group/card flex items-center gap-3 rounded-xl border border-border bg-surface px-4 py-3 hover:border-border/80"
-      data-exiting={exiting}
-    >
-      <Image
-        src={item.faviconUrl}
-        alt=""
-        width={32}
-        height={32}
-        unoptimized
-        className="size-8 shrink-0 rounded-lg object-cover"
-        onError={(e) => {
-          (e.target as HTMLImageElement).src = "/placeholder-unicorn.jpg";
-        }}
-      />
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-foreground">{item.displayTitle}</p>
-        <p className="truncate text-[12px] text-muted">
-          {item.groupName ? `in ${item.groupName}` : "in deleted group"} ·{" "}
-          {linkHostname(item.url)}
-        </p>
-      </div>
-      <DaysLeft days={item.daysLeft} />
-      <div className="trash-card-actions ml-2 flex items-center gap-1.5 opacity-0">
-        <button
-          type="button"
-          onClick={onRestore}
-          className="rounded-lg bg-surface border border-border px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
-        >
-          Restore
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-lg bg-red-500/10 border border-red-500/20 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 transition-[transform,background-color] duration-[160ms] ease-[var(--ease-out)] active:scale-[0.97]"
-        >
-          Delete Now
-        </button>
-      </div>
-    </div>
-  );
-}
 
 export default function TrashPage() {
   const [items, setItems] = useState<TrashApiItem[]>([]);
@@ -241,7 +127,7 @@ export default function TrashPage() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
-        <div className="mx-auto max-w-3xl px-6 py-4 flex items-center justify-between gap-4">
+        <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4">
           <div className="flex items-center gap-3">
             <Link href="/" aria-label="Back to vault" className="flex items-center justify-center size-8 rounded-lg hover:bg-surface transition-colors text-muted hover:text-foreground">
               <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
@@ -339,7 +225,7 @@ export default function TrashPage() {
             </h2>
             <div className="space-y-1.5">
               {groups.map((g) => (
-                <GroupCard
+                <TrashGroupRow
                   key={g.id}
                   item={g}
                   exiting={exitingIds.has(g.id)}
@@ -361,7 +247,7 @@ export default function TrashPage() {
             </h2>
             <div className="space-y-1.5">
               {links.map((l) => (
-                <LinkCard
+                <TrashLinkRow
                   key={l.id}
                   item={l}
                   exiting={exitingIds.has(l.id)}
