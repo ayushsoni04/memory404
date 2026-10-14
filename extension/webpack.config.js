@@ -1,5 +1,14 @@
+const fs = require("fs");
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
+
+function withSaveOutcome(content, absoluteFrom) {
+  if (!absoluteFrom.endsWith(`${path.sep}background.js`)) return content;
+  const helper = fs
+    .readFileSync(path.resolve(__dirname, "src/save-outcome.js"), "utf8")
+    .replace(/^export /gm, "");
+  return Buffer.from(`${helper}\n${content.toString()}`);
+}
 
 module.exports = {
   entry: {
@@ -36,7 +45,15 @@ module.exports = {
   },
   plugins: [
     new CopyPlugin({
-      patterns: [{ from: "./public/static", to: "." }],
+      patterns: [
+        {
+          from: "./public/static",
+          to: ".",
+          transform(content, absoluteFrom) {
+            return withSaveOutcome(content, absoluteFrom);
+          },
+        },
+      ],
     }),
   ],
 };
