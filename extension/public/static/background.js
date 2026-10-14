@@ -189,19 +189,23 @@ async function saveUrlToApp(url, options = {}) {
     throw new Error("Session expired — sign in again");
   }
 
-  if (res.ok) {
-    return { apiBase, link: data?.link };
+  // classifyLinkSave is prepended from extension/src/save-outcome.js at build time.
+  const outcome = classifyLinkSave(res.status, data);
+  if (outcome.kind === "error") {
+    throw new Error(outcome.message);
   }
-  if (res.status === 409 && (data.existingId || data.link?.id)) {
-    return {
-      apiBase,
-      link: data.link ?? {
-        id: data.existingId,
-        groupId: data.link?.groupId ?? options.groupId,
-      },
-    };
-  }
-  throw new Error(data?.error || `Save failed (${res.status})`);
+  const link = outcome.link
+    ? {
+        ...outcome.link,
+        groupId: outcome.link.groupId ?? options.groupId,
+      }
+    : null;
+  return {
+    apiBase,
+    link,
+    outcome: outcome.kind,
+    message: outcome.message,
+  };
 }
 
 async function fetchGroupsFromApi() {
@@ -537,7 +541,16 @@ async function executeSaveJob(job, opts) {
   let savedLink = null;
   let failed = opts.failed || 0;
   let skipped = opts.skipped || 0;
+  let saved = 0;
+  let already = 0;
   const startIndex = Math.max(0, Math.min(items.length, opts.startIndex || 0));
+  const prior = Array.isArray(job.itemResults)
+    ? job.itemResults.slice(0, startIndex)
+    : [];
+  for (const row of prior) {
+    if (row?.status === "saved") saved += 1;
+    else if (row?.status === "already") already += 1;
+  }
 
   if (activeRunnerId && activeRunnerId !== job.id) {
     // Another job is in flight in this worker.
@@ -615,16 +628,31 @@ async function executeSaveJob(job, opts) {
           options.newGroupName = newGroupName;
         }
 
-        const { link } = await saveUrlToApp(url, options);
+        const result = await saveUrlToApp(url, options);
+        const link = result.link;
         if (link?.groupId) resolvedGroupId = link.groupId;
         if (!savedLink || item.active) savedLink = link;
-        if (results[i]) {
+        if (result.outcome === "duplicate") {
+          already += 1;
+          job.duplicateMessage = result.message;
+          if (results[i]) {
+            results[i] = {
+              ...results[i],
+              title: title || results[i].title,
+              status: "already",
+              error: result.message,
+            };
+          }
+        } else if (results[i]) {
+          saved += 1;
           results[i] = {
             ...results[i],
             title: title || results[i].title,
             status: "saved",
             error: null,
           };
+        } else {
+          saved += 1;
         }
       } catch (itemErr) {
         failed += 1;
@@ -653,8 +681,10 @@ async function executeSaveJob(job, opts) {
       await storageSet({ lastSavedGroupId: resolvedGroupId });
     }
 
-    const savedCount = job.total - failed - skipped;
-    if (savedCount <= 0 && failed > 0) {
+    job.saved = saved;
+    job.already = already;
+    const savedCount = saved;
+    if (savedCount <= 0 && already <= 0 && failed > 0) {
       const failedJob = {
         ...job,
         status: "error",
@@ -674,6 +704,10 @@ async function executeSaveJob(job, opts) {
       groupName,
       failed,
       skipped,
+      saved,
+      already,
+      duplicateMessage:
+        saved === 0 && already > 0 ? job.duplicateMessage : null,
       updatedAt: Date.now(),
     };
     await setActiveSaveJob(doneJob);
