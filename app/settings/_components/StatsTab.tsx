@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { FolderKanban, TrendingUp } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
 
@@ -94,29 +94,56 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
   const [linksByGroup, setLinksByGroup] = useState<GroupStat[]>([]);
   const [linkFrequency, setLinkFrequency] = useState<FrequencyStat[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [statsError, setStatsError] = useState<string | null>(null);
 
-  // Fetch dynamic stats from database API
-  useEffect(() => {
-    async function fetchStats() {
-      try {
-        const res = await fetch("/api/stats");
-        if (res.ok) {
-          const data = await res.json();
-          if (data.success) {
-            setTotalLinks(data.totalLinks);
-            setTotalGroups(data.totalGroups);
-            setLinksByGroup(data.linksByGroup);
-            setLinkFrequency(data.linkFrequency);
-          }
-        }
-      } catch (err) {
-        console.error("Failed to load statistics", err);
-      } finally {
-        setLoadingStats(false);
+  const loadStats = useCallback(async () => {
+    setLoadingStats(true);
+    setStatsError(null);
+    try {
+      const res = await fetch("/api/stats");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data.success) {
+        const message =
+          typeof data.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : "Could not load statistics";
+        throw new Error(message);
       }
+      setTotalLinks(typeof data.totalLinks === "number" ? data.totalLinks : 0);
+      setTotalGroups(typeof data.totalGroups === "number" ? data.totalGroups : 0);
+      setLinksByGroup(Array.isArray(data.linksByGroup) ? data.linksByGroup : []);
+      setLinkFrequency(Array.isArray(data.linkFrequency) ? data.linkFrequency : []);
+    } catch (err) {
+      setStatsError(err instanceof Error ? err.message : "Could not load statistics");
+    } finally {
+      setLoadingStats(false);
     }
-    void fetchStats();
   }, []);
+
+  useEffect(() => {
+    void loadStats();
+  }, [loadStats]);
+
+  if (!loadingStats && statsError) {
+    return (
+      <div
+        className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
+        role="alert"
+      >
+        <p className="text-sm text-danger">{statsError}</p>
+        <p className="text-[13px] text-subtle">
+          Your saved links are still in the library.
+        </p>
+        <button
+          type="button"
+          onClick={() => void loadStats()}
+          className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

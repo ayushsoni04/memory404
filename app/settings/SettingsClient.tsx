@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Plan, Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
 import { MembershipTab } from "./_components/MembershipTab";
@@ -26,6 +26,7 @@ function asPlan(value: string): Plan {
 export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
   const [activeTab, setActiveTab] = useState<Tab>("profile");
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileReady, setProfileReady] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -80,29 +81,40 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
     return () => window.clearTimeout(timer);
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/me");
-        if (!res.ok) {
-          const data = await res.json().catch(() => ({}));
-          throw new Error(data.error || "Failed to load profile");
-        }
-        const data = await res.json();
-        if (!cancelled && data.user) applyUser(data.user as MeUser);
-      } catch (e) {
-        if (!cancelled) {
-          setProfileError(e instanceof Error ? e.message : "Failed to load profile");
-        }
-      } finally {
-        if (!cancelled) setProfileLoading(false);
+  const loadRequest = useRef(0);
+
+  const loadProfile = useCallback(async () => {
+    const requestId = ++loadRequest.current;
+    setProfileLoading(true);
+    setProfileError(null);
+    try {
+      const res = await fetch("/api/me");
+      const data = await res.json().catch(() => ({}));
+      if (requestId !== loadRequest.current) return;
+      if (!res.ok || !data.user) {
+        const message =
+          typeof data.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : "Failed to load profile";
+        throw new Error(message);
       }
-    })();
-    return () => {
-      cancelled = true;
-    };
+      applyUser(data.user as MeUser);
+      setProfileReady(true);
+    } catch (e) {
+      if (requestId !== loadRequest.current) return;
+      setProfileReady(false);
+      setProfileError(e instanceof Error ? e.message : "Failed to load profile");
+    } finally {
+      if (requestId === loadRequest.current) setProfileLoading(false);
+    }
   }, [applyUser]);
+
+  useEffect(() => {
+    void loadProfile();
+    return () => {
+      loadRequest.current += 1;
+    };
+  }, [loadProfile]);
 
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -209,7 +221,9 @@ export default function SettingsClient({ isOwner }: { isOwner: boolean }) {
               isSaved={isSaved}
               isSaving={isSaving}
               isLoading={profileLoading}
+              profileReady={profileReady}
               error={profileError}
+              onRetryLoad={() => void loadProfile()}
               onSaveProfile={handleSaveProfile}
               currentPlan={currentPlan}
               onOpenDeactivateModal={() => {
