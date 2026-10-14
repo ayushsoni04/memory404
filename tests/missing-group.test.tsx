@@ -93,6 +93,8 @@ describe("VaultFeed missing group notice", () => {
         loadGroups={async () => undefined}
         loadingLinks={false}
         fetchError={null}
+        loadMoreError={null}
+        retryLoadMore={async () => undefined}
         loadLinks={async () => undefined}
         gridSize="default"
         generalGroup={null}

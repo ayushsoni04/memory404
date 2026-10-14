@@ -61,6 +61,7 @@ function renderFeed(
       openedGroup={null}
       allLinksCount={1}
       groupsError={null}
+      missingGroupNotice={null}
       loadGroups={async () => undefined}
       loadingLinks={false}
       fetchError={null}
