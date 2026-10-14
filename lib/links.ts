@@ -180,6 +180,19 @@ export function duplicateLinkMessage(inTrash: boolean): string {
     : "A link with this URL already exists.";
 }
 
+/**
+ * A 409 is an existing URL, including one sitting in Trash.
+ * It is not a newly saved link.
+ */
+export function duplicateSaveError(status: number, data: unknown): string | null {
+  if (status !== 409) return null;
+  if (data && typeof data === "object") {
+    const error = (data as { error?: unknown }).error;
+    if (typeof error === "string" && error.trim()) return error.trim();
+  }
+  return duplicateLinkMessage(false);
+}
+
 export function isValidHttpUrl(urlString: string): boolean {
   try {
     const u = new URL(urlString.trim());
