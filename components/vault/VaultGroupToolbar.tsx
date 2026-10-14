@@ -37,6 +37,8 @@ type VaultGroupToolbarProps = {
   createGroupName: string;
   setCreateGroupName: (value: string) => void;
   creatingGroup: boolean;
+  createGroupError: string | null;
+  setCreateGroupError: (value: string | null) => void;
   createGroup: () => Promise<void>;
   openAddGroup: (at: number) => void;
   cancelAddGroup: () => void;
@@ -238,6 +240,8 @@ export default function VaultGroupToolbar({
   createGroupName,
   setCreateGroupName,
   creatingGroup,
+  createGroupError,
+  setCreateGroupError,
   createGroup,
   openAddGroup,
   cancelAddGroup,
@@ -260,7 +264,8 @@ export default function VaultGroupToolbar({
       : "Ctrl K";
 
   return (
-    <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex items-center justify-between gap-[var(--layout-gap-control)] bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
+    <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex flex-col bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
+      <div className="flex items-center justify-between gap-[var(--layout-gap-control)]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="relative flex min-w-0 flex-1 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 ps-0.5 pe-1">
           {isDragging && (
@@ -414,7 +419,13 @@ export default function VaultGroupToolbar({
               ref={groupInputRef}
               type="text"
               value={createGroupName}
-              onChange={(e) => setCreateGroupName(e.target.value)}
+              aria-label="Group name"
+              aria-invalid={createGroupError ? true : undefined}
+              aria-describedby={createGroupError ? "create-group-error" : undefined}
+              onChange={(e) => {
+                setCreateGroupName(e.target.value);
+                if (createGroupError) setCreateGroupError(null);
+              }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
                   e.preventDefault();
@@ -488,6 +499,12 @@ export default function VaultGroupToolbar({
           />
         </button>
       </div>
+      </div>
+      {createGroupError ? (
+        <p id="create-group-error" role="alert" className="pt-1 text-[12px] text-danger">
+          {createGroupError}
+        </p>
+      ) : null}
     </div>
   );
 }
