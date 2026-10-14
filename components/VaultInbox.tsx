@@ -11,6 +11,9 @@ import { useLinkActions } from "./vault/useLinkActions";
 import { useVaultGroups } from "./vault/useVaultGroups";
 import { useVaultLinks } from "./vault/useVaultLinks";
 import { useVaultPreferences } from "./vault/useVaultPreferences";
+import GroupTrashConfirm, {
+  groupTrashTarget,
+} from "./vault/GroupTrashConfirm";
 import UndoNotice from "./vault/UndoNotice";
 import VaultFeed from "./vault/VaultFeed";
 import VaultSidebar from "./vault/VaultSidebar";
@@ -31,6 +34,9 @@ export default function VaultInbox({
   const pageRef = useRef<HTMLDivElement | null>(null);
   const [newCardId, setNewCardId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [groupPendingTrashId, setGroupPendingTrashId] = useState<string | null>(
+    null,
+  );
 
   const {
     sortBy,
@@ -181,6 +187,19 @@ export default function VaultInbox({
     [groups],
   );
 
+  const askDeleteGroup = useCallback(
+    (groupId: string) => {
+      const target = groupTrashTarget(groups, groupId);
+      if (!target) return;
+      setGroupPendingTrashId(target.id);
+    },
+    [groups],
+  );
+
+  const groupPendingTrash = groupPendingTrashId
+    ? groupTrashTarget(groups, groupPendingTrashId)
+    : null;
+
   const handleFeedLinkSaved = useCallback(
     (row: (typeof sortedLinks)[number]) => {
       setNewCardId(row.id);
@@ -235,7 +254,7 @@ export default function VaultInbox({
         groupsError={groupsError}
         loadGroups={loadGroups}
         onDeleteLink={handleDelete}
-        onDeleteGroup={handleDeleteGroup}
+        onDeleteGroup={askDeleteGroup}
         isOwner={isOwner}
         groupSearch={groupSearch}
         setGroupSearch={setGroupSearch}
@@ -255,7 +274,7 @@ export default function VaultInbox({
               setDraggingGroupId={setDraggingGroupId}
               persistFolderOrder={persistFolderOrder}
               canReorderPills={canReorderPills}
-              handleDeleteGroup={handleDeleteGroup}
+              handleDeleteGroup={askDeleteGroup}
               addingAt={addingAt}
               createGroupName={createGroupName}
               setCreateGroupName={setCreateGroupName}
@@ -335,6 +354,19 @@ export default function VaultInbox({
               : null
           }
           onNotesSaved={updateSavedLink}
+        />
+      ) : null}
+
+      {groupPendingTrash ? (
+        <GroupTrashConfirm
+          name={groupPendingTrash.name}
+          linksCount={groupPendingTrash.linksCount}
+          onCancel={() => setGroupPendingTrashId(null)}
+          onConfirm={() => {
+            const id = groupPendingTrash.id;
+            setGroupPendingTrashId(null);
+            void handleDeleteGroup(id);
+          }}
         />
       ) : null}
 
