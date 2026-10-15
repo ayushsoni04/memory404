@@ -18,6 +18,7 @@ import SearchResultText from "@/components/vault/SearchResultText";
 import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { saveOfferUrl } from "@/lib/save-query";
+import { searchResultGroupLabel } from "@/lib/search-group";
 
 type PaletteGroup = { id: string; name: string };
 
@@ -374,7 +375,10 @@ export default function CommandPalette({
                 }}
                 className="flex cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
               >
-                <SearchResultText link={link} />
+                <SearchResultText
+                  link={link}
+                  groupLabel={searchResultGroupLabel(link.groupId, groups)}
+                />
               </CommandItem>
             ))}
           </CommandGroup>
