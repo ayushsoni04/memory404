@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
 import { groupPickerKeyAction } from "./group-picker";
+import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { saveHeadline } from "./save-outcome";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
@@ -170,6 +171,7 @@ function App({ onClose }) {
   });
   const [saveItems, setSaveItems] = useState([]);
   const inputRef = useRef(null);
+  const panelRef = useRef(null);
   const phaseRef = useRef(phase);
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
@@ -344,6 +346,38 @@ function App({ onClose }) {
       chrome.storage.onChanged.removeListener(onStorage);
     };
   }, [jobSetters]);
+
+  useEffect(() => {
+    const onKey = (event) => {
+      const host = document.getElementById(ROOT_ID);
+      if (!host || host.style.display === "none") return;
+      const root = panelRef.current;
+      if (!root) return;
+      const action = panelEscapeAction({
+        key: event.key,
+        groupListOpen: dropdownOpen && phase === "pick" && !showSettings,
+        settingsOpen: showSettings,
+      });
+      if (action !== "ignore") {
+        event.preventDefault();
+        event.stopPropagation();
+        if (action === "close-list") {
+          setDropdownOpen(false);
+          setHighlight(-1);
+          return;
+        }
+        if (action === "close-settings") {
+          setShowSettings(false);
+          return;
+        }
+        onClose?.();
+        return;
+      }
+      containPanelTab(event, root);
+    };
+    window.addEventListener("keydown", onKey, true);
+    return () => window.removeEventListener("keydown", onKey, true);
+  }, [dropdownOpen, onClose, phase, showSettings]);
 
   useEffect(() => {
     setNoteDraft("");
@@ -624,7 +658,7 @@ function App({ onClose }) {
 
   if (showSettings) {
     return (
-      <div className="wrap">
+      <div className="wrap" ref={panelRef}>
         <div className="panel">
           <button
             type="button"
@@ -662,7 +696,7 @@ function App({ onClose }) {
   }
 
   return (
-    <div className="wrap">
+    <div className="wrap" ref={panelRef}>
       <div className="panel">
         <button
           type="button"
