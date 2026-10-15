@@ -202,6 +202,34 @@ export function isValidHttpUrl(urlString: string): boolean {
   }
 }
 
+const EXPLICIT_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+
+/**
+ * Turn a pasted link into an http(s) URL.
+ * `linear.app/docs` becomes `https://linear.app/docs`.
+ * A URL that is already http(s) is kept as typed.
+ * Sentences, `javascript:`, and hosts with no dot return null.
+ */
+export function coerceHttpUrl(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed || /\s/.test(trimmed)) return null;
+  if (isValidHttpUrl(trimmed)) return trimmed;
+  if (EXPLICIT_SCHEME.test(trimmed)) return null;
+
+  let url: URL;
+  try {
+    url = new URL(`https://${trimmed}`);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  if (!url.hostname.includes(".")) return null;
+  if (url.username || url.password) return null;
+  // A bare host gets a slash from the URL parser. Store it without one.
+  if (url.pathname === "/" && !url.search && !url.hash) return url.origin;
+  return url.href;
+}
+
 export function truncateUrl(url: string, max = 48): string {
   const t = url.trim();
   if (t.length <= max) return t;

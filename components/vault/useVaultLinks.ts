@@ -6,7 +6,7 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { apiUrl } from "@/lib/api-base";
 import { clearCardRectsCache } from "@/lib/card-vicinity-stroke";
-import { duplicateSaveError, type LinkApiRow } from "@/lib/links";
+import { coerceHttpUrl, duplicateSaveError, type LinkApiRow } from "@/lib/links";
 import { isLaterLinksPage } from "./feed-load";
 import { sortLinks } from "./link-utils";
 import {
@@ -454,7 +454,15 @@ export function useVaultLinks(
     ): Promise<
       { ok: true; link: LinkApiRow } | { ok: false; error: string }
     > => {
-      const payload: Record<string, string> = { url };
+      const normalized = coerceHttpUrl(url);
+      if (!normalized) {
+        playUiSound("error");
+        return {
+          ok: false,
+          error: "Enter a link, like example.com/page",
+        };
+      }
+      const payload: Record<string, string> = { url: normalized };
       if (options?.newGroupName?.trim()) {
         payload.newGroupName = options.newGroupName.trim();
       } else {

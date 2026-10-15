@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { LinkApiRow } from "@/lib/links";
+import { coerceHttpUrl, type LinkApiRow } from "@/lib/links";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { writeLinksCacheToStorage } from "./storage";
 import type { GroupRow } from "./types";
@@ -350,9 +350,10 @@ export function useAddLinkFlow({
         return;
       }
       const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
-      if (!/^https?:\/\/\S+$/i.test(text)) return;
+      const link = coerceHttpUrl(text);
+      if (!link) return;
       event.preventDefault();
-      pasteActionRef.current(text);
+      pasteActionRef.current(link);
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);
