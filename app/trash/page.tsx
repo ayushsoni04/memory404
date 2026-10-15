@@ -7,6 +7,7 @@ import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
 import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
 import type { PermanentDelete } from "@/app/trash/permanent-delete";
 import { apiUrl } from "@/lib/api-base";
+import { explainLoadError } from "@/lib/load-error";
 
 export default function TrashPage() {
   const [items, setItems] = useState<TrashApiItem[]>([]);
@@ -168,7 +169,7 @@ export default function TrashPage() {
             className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
             role="alert"
           >
-            <p className="text-sm text-danger">{loadError}</p>
+            <p className="text-sm text-danger">{explainLoadError(loadError)}</p>
             <p className="text-[13px] text-subtle">
               Check your connection, then try again.
             </p>

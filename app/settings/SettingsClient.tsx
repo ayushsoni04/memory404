@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { explainLoadError } from "@/lib/load-error";
 import type { Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
 import { ProfileTab } from "./_components/ProfileTab";
@@ -100,7 +101,10 @@ export default function SettingsClient({
     } catch (e) {
       if (requestId !== loadRequest.current) return;
       setProfileReady(false);
-      setProfileError(e instanceof Error ? e.message : "Failed to load profile");
+      setProfileError(
+        explainLoadError(e instanceof Error ? e.message : "Failed to load profile") ??
+          "Failed to load profile",
+      );
     } finally {
       if (requestId === loadRequest.current) setProfileLoading(false);
     }

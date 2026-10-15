@@ -8,6 +8,7 @@ import {
   EMPTY_LIBRARY_STATS,
   isEmptyLibraryStats,
 } from "@/lib/stats-empty";
+import { explainLoadError } from "@/lib/load-error";
 import { ActivityGrid } from "./ActivityGrid";
 
 type GroupStat = {
@@ -67,7 +68,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
         className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
         role="alert"
       >
-        <p className="text-sm text-danger">{statsError}</p>
+        <p className="text-sm text-danger">{explainLoadError(statsError)}</p>
         <p className="text-[13px] text-subtle">
           Your saved links are still in the library.
         </p>
