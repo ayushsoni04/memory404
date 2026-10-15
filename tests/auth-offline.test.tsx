@@ -87,6 +87,7 @@ describe("auth forms when the request never returns", () => {
     render(<SignupForm />);
     await user.type(screen.getByLabelText("Email address"), "person@example.com");
     await user.type(screen.getByLabelText("Password"), "Memory404");
+    await user.type(screen.getByLabelText("Confirm password"), "Memory404");
     await expectOffline("Create account");
   });
 
