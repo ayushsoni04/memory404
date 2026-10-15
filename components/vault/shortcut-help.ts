@@ -12,6 +12,7 @@ export type ShortcutRow = {
 export const SHORTCUT_ROWS: ShortcutRow[] = [
   { id: "search", label: "Search links, groups, and pages", keys: ["mod", "K"] },
   { id: "move", label: "Move through saved links", keys: ["↑", "↓", "←", "→"] },
+  { id: "groups", label: "Move through groups", keys: ["←", "→"] },
   { id: "ends", label: "Jump to the first or last link", keys: ["Home", "End"] },
   { id: "open", label: "Open the focused link", keys: ["Enter"] },
   { id: "close", label: "Close a link, a menu, or this list", keys: ["Esc"] },
