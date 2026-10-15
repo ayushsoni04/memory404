@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { GROUP_NAME_MAX, groupNameIssue } from "@/lib/group-name";
+import {
+  GROUP_NAME_IN_TRASH,
+  GROUP_NAME_MAX,
+  GROUP_NAME_TAKEN,
+  groupNameConflict,
+  groupNameConflictMessage,
+  groupNameIssue,
+} from "@/lib/group-name";
 
 describe("groupNameIssue", () => {
   it("accepts a normal collection name", () => {
@@ -23,5 +30,30 @@ describe("groupNameIssue", () => {
     expect(groupNameIssue("Reading\nlist")).toBe(
       "Group names can't include line breaks.",
     );
+  });
+});
+
+describe("groupNameConflict", () => {
+  const reading = { name: "Reading", deletedAt: null };
+  const trashed = { name: "Reading", deletedAt: "2026-10-01T00:00:00.000Z" };
+
+  it("blocks a name that is already in the library, in any letter case", () => {
+    expect(groupNameConflict("reading", [reading])).toBe("active");
+    expect(groupNameConflictMessage("active")).toBe(GROUP_NAME_TAKEN);
+  });
+
+  it("points at Trash when the only match was deleted", () => {
+    expect(groupNameConflict("Reading", [trashed])).toBe("trash");
+    expect(groupNameConflict(" READING ", [trashed])).toBe("trash");
+    expect(groupNameConflictMessage("trash")).toBe(GROUP_NAME_IN_TRASH);
+  });
+
+  it("prefers the library when both a live group and a trashed one match", () => {
+    expect(groupNameConflict("Reading", [trashed, reading])).toBe("active");
+  });
+
+  it("allows a name nobody is using", () => {
+    expect(groupNameConflict("Design", [reading, trashed])).toBeNull();
+    expect(groupNameConflictMessage(null)).toBeNull();
   });
 });

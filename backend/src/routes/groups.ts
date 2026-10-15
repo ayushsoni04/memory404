@@ -1,16 +1,14 @@
 import { Router, type RequestHandler } from "express";
 import { getRequestUserId, requireBearerAuth } from "../auth.js";
-import {
-  getMongoEnvError,
-  isDuplicateKeyError,
-} from "@/lib/db/mongodb";
+import { getMongoEnvError, isDuplicateKeyError } from "@/lib/db/mongodb";
 import {
   createGroup,
   getOrCreateGeneralGroup,
   listGroupsWithPreviews,
   reorderGroups,
 } from "@/lib/db/repositories";
-import { groupNameIssue } from "@/lib/group-name";
+import { GROUP_NAME_TAKEN, groupNameIssue } from "@/lib/group-name";
+import { groupNameTakenMessage } from "@/lib/group-name-lookup";
 
 export const groupsRouter = Router();
 
@@ -94,6 +92,11 @@ groupsRouter.post("/", async (req, res) => {
       res.status(400).json({ error: nameIssue });
       return;
     }
+    const taken = await groupNameTakenMessage(userId, name);
+    if (taken) {
+      res.status(409).json({ error: taken });
+      return;
+    }
 
     let parentGroupId: string | null = null;
     if ("parentGroupId" in body && body.parentGroupId != null) {
@@ -135,7 +138,7 @@ groupsRouter.post("/", async (req, res) => {
       return;
     }
     if (isDuplicateKeyError(e)) {
-      res.status(409).json({ error: "A group with this name already exists." });
+      res.status(409).json({ error: GROUP_NAME_TAKEN });
       return;
     }
     console.error("POST /api/groups:", e);
