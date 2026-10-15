@@ -369,6 +369,10 @@ linksRouter.patch("/:id", async (req, res) => {
         updateData.customTitle = null;
       } else if (typeof raw === "string") {
         const t = raw.trim();
+        if (t.length > 200) {
+          res.status(400).json({ error: "Names must be 200 characters or fewer." });
+          return;
+        }
         updateData.customTitle = t.length ? t : null;
       } else {
         res.status(400).json({ error: "customTitle must be a string or null" });
