@@ -23,6 +23,7 @@ import {
   getNameIssues,
   getUsernameIssues,
 } from "@/lib/profile";
+import { PasswordSection } from "./PasswordSection";
 
 const profileField =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
@@ -151,6 +152,7 @@ export function ProfileTab({
   }
 
   return (
+    <div className="space-y-8">
     <form
       onSubmit={(event: FormEvent) => {
         if (fieldError || photoError) {
@@ -348,6 +350,9 @@ export function ProfileTab({
           </span>
         )}
       </div>
+    </form>
+
+      <PasswordSection />
 
       <ExtensionInstallCard variant="settings" />
 
@@ -454,6 +459,6 @@ export function ProfileTab({
         </div>
       </section>
 
-    </form>
+    </div>
   );
 }

@@ -16,8 +16,10 @@ import type { LinkApiRow } from "@/lib/links";
 import MorphText from "@/components/MorphText";
 import SearchResultText from "@/components/vault/SearchResultText";
 import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
+import { matchingPalettePages, palettePagesForUser } from "@/lib/palette-pages";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { saveOfferUrl } from "@/lib/save-query";
+import { searchResultGroupLabel } from "@/lib/search-group";
 
 type PaletteGroup = { id: string; name: string };
 
@@ -161,6 +163,11 @@ export default function CommandPalette({
     return groups.filter((g) => g.name.toLowerCase().includes(q));
   }, [groups, search]);
 
+  const pages = useMemo(
+    () => matchingPalettePages(search, palettePagesForUser(isOwner)),
+    [isOwner, search],
+  );
+
   const openLink = useCallback((url: string) => {
     window.open(url, "_blank", "noopener,noreferrer");
   }, []);
@@ -301,6 +308,7 @@ export default function CommandPalette({
         !searchError &&
         !filteredGroups.length &&
         !linkResults.length &&
+        !pages.length &&
         !offerUrl ? (
           <p className="px-2 py-3 text-[13px] text-subtle">
             No matches for “{search.trim()}”. Try a title, a note, or a full URL.
@@ -374,52 +382,44 @@ export default function CommandPalette({
                 }}
                 className="flex cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
               >
-                <SearchResultText link={link} />
+                <SearchResultText
+                  link={link}
+                  groupLabel={searchResultGroupLabel(link.groupId, groups)}
+                />
               </CommandItem>
             ))}
           </CommandGroup>
         ) : null}
 
-        <CommandGroup
-          heading="Go to"
-          className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
-        >
-          {isOwner ? (
-            <CommandItem
-              value="page-workspace"
-              onSelect={() => {
-                router.push("/workspace");
-                closePalette();
-              }}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
-            >
-              <LayoutGrid className="size-3.5 text-muted" strokeWidth={2} />
-              Workspace
-            </CommandItem>
-          ) : null}
-          <CommandItem
-            value="page-settings"
-            onSelect={() => {
-              router.push("/settings");
-              closePalette();
-            }}
-            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+        {pages.length ? (
+          <CommandGroup
+            heading="Go to"
+            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
           >
-            <Settings className="size-3.5 text-muted" strokeWidth={2} />
-            Settings
-          </CommandItem>
-          <CommandItem
-            value="page-trash"
-            onSelect={() => {
-              router.push("/trash");
-              closePalette();
-            }}
-            className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
-          >
-            <Trash2 className="size-3.5 text-muted" strokeWidth={2} />
-            Trash
-          </CommandItem>
-        </CommandGroup>
+            {pages.map((page) => {
+              const Icon =
+                page.id === "workspace"
+                  ? LayoutGrid
+                  : page.id === "settings"
+                    ? Settings
+                    : Trash2;
+              return (
+                <CommandItem
+                  key={page.id}
+                  value={`page-${page.id}`}
+                  onSelect={() => {
+                    router.push(page.href);
+                    closePalette();
+                  }}
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+                >
+                  <Icon className="size-3.5 text-muted" strokeWidth={2} />
+                  {page.label}
+                </CommandItem>
+              );
+            })}
+          </CommandGroup>
+        ) : null}
       </CommandList>
       )}
       {savedLink ? null : (
