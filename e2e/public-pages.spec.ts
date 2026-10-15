@@ -42,6 +42,8 @@ test("forgot password stays on a generic confirmation", async ({ page }) => {
   await page.getByLabel("Email address").fill("person@example.com");
   await page.getByRole("button", { name: "Send reset link" }).click();
   await expect(page.getByText(/If an account exists/)).toBeVisible();
+  await page.getByRole("button", { name: "Use a different email" }).click();
+  await expect(page.getByLabel("Email address")).toHaveValue("person@example.com");
 });
 
 test("reset password rejects a missing token before calling the network", async ({ page }) => {

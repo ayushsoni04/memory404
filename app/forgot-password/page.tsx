@@ -4,7 +4,12 @@ import Link from "next/link";
 import { useState } from "react";
 import AuthShell from "@/components/auth/AuthShell";
 import MorphText from "@/components/MorphText";
-import { authFieldClass, authLinkClass, authSubmitClass } from "@/components/auth/auth-field";
+import {
+  authFieldClass,
+  authLinkClass,
+  authQuietControlClass,
+  authSubmitClass,
+} from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
 
 export default function ForgotPasswordPage() {
@@ -50,9 +55,21 @@ export default function ForgotPasswordPage() {
         </div>
 
         {sent ? (
-          <p className="text-sm text-success">
-            If an account exists for {email}, a reset link is on its way.
-          </p>
+          <div className="space-y-3">
+            <p className="text-sm text-success" role="status">
+              If an account exists for {email}, a reset link is on its way.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setSent(false);
+                setError(null);
+              }}
+              className={authQuietControlClass}
+            >
+              Use a different email
+            </button>
+          </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             <label className="block space-y-1.5">
