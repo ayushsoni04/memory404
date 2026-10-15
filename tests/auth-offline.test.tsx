@@ -101,6 +101,7 @@ describe("auth forms when the request never returns", () => {
     const user = userEvent.setup();
     render(<ResetPasswordForm />);
     await user.type(screen.getByLabelText("New password"), "Memory404");
+    await user.type(screen.getByLabelText("Confirm new password"), "Memory404");
     await expectOffline("Update password");
   });
 });

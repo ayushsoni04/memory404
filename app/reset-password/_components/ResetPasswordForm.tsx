@@ -10,7 +10,8 @@ import {
   authSubmitClass,
 } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
-import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
+import { PASSWORD_HINT } from "@/lib/password-policy";
+import { resetPasswordErrors } from "@/lib/reset-password";
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -18,10 +19,23 @@ export function ResetPasswordForm() {
   const token = searchParams.get("token") || "";
 
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+
+  const fieldErrors = resetPasswordErrors(password, confirm);
+  const passwordError =
+    fieldErrors.password && (attempted || password.length > 0)
+      ? fieldErrors.password
+      : null;
+  const confirmError =
+    fieldErrors.confirm && (attempted || confirm.length > 0)
+      ? fieldErrors.confirm
+      : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,11 +46,8 @@ export function ResetPasswordForm() {
       return;
     }
 
-    const issues = getPasswordRequirementIssues(password);
-    if (issues.length > 0) {
-      setError(PASSWORD_HINT);
-      return;
-    }
+    setAttempted(true);
+    if (fieldErrors.password || fieldErrors.confirm) return;
 
     setIsSubmitting(true);
     try {
@@ -88,7 +99,10 @@ export function ResetPasswordForm() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 autoComplete="new-password"
-                aria-describedby="reset-password-hint"
+                aria-invalid={passwordError ? true : undefined}
+                aria-describedby={
+                  passwordError ? "reset-password-hint reset-password-error" : "reset-password-hint"
+                }
                 className={authPasswordFieldClass}
                 required
               />
@@ -104,6 +118,43 @@ export function ResetPasswordForm() {
             <p id="reset-password-hint" className="text-[10px] text-subtle">
               {PASSWORD_HINT}
             </p>
+            {passwordError ? (
+              <p id="reset-password-error" className="text-xs text-danger" role="alert">
+                {passwordError}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="space-y-1.5">
+            <label htmlFor="reset-password-confirm" className="block text-[11px] font-medium text-muted">
+              Confirm new password
+            </label>
+            <div className="relative">
+              <input
+                id="reset-password-confirm"
+                type={showConfirm ? "text" : "password"}
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                placeholder="••••••••"
+                autoComplete="new-password"
+                aria-invalid={confirmError ? true : undefined}
+                aria-describedby={confirmError ? "reset-password-confirm-error" : undefined}
+                className={authPasswordFieldClass}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(!showConfirm)}
+                aria-label={showConfirm ? "Hide confirmed password" : "Show confirmed password"}
+                className={authRevealClass}
+              >
+                {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+              </button>
+            </div>
+            {confirmError ? (
+              <p id="reset-password-confirm-error" className="text-xs text-danger" role="alert">
+                {confirmError}
+              </p>
+            ) : null}
           </div>
 
           {error ? (
