@@ -776,8 +776,11 @@ export default function LinkDetailOverlay({
                   }}
                   className={`rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 ${overlayFocus}`}
                 >
-                  Delete
+                  Move to Trash
                 </button>
+                <p className="text-[11px] leading-snug text-subtle">
+                  You can restore it from Trash for 30 days.
+                </p>
               </div>
             </div>
           </div>

@@ -206,7 +206,7 @@ export default function TrashPage() {
             <div className="space-y-2 text-center">
               <p className="text-sm text-foreground">Trash is empty</p>
               <p className="max-w-sm text-[13px] text-muted">
-                Delete a link or a group from the vault and it will show up here for 30 days.
+                Move a link or a group to Trash and it will show up here for 30 days.
               </p>
             </div>
             <Link
