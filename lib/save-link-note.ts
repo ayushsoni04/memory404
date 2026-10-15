@@ -1,5 +1,6 @@
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
+import { noteIssue } from "@/lib/note-limit";
 
 export type SaveLinkNoteResult =
   | { ok: true; link: LinkApiRow }
@@ -10,6 +11,8 @@ export async function saveLinkNote(
   linkId: string,
   notes: string,
 ): Promise<SaveLinkNoteResult> {
+  const issue = noteIssue(notes);
+  if (issue) return { ok: false, error: issue };
   try {
     const res = await fetch(apiUrl(`/api/links/${linkId}`), {
       method: "PATCH",

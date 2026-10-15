@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { NOTE_MAX } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 
 afterEach(() => {
@@ -56,6 +57,17 @@ describe("saveLinkNote", () => {
       ok: false,
       error: "Could not save the note",
     });
+  });
+
+  it("does not send a note that is too long", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(saveLinkNote("link-1", "n".repeat(NOTE_MAX + 1))).resolves.toEqual({
+      ok: false,
+      error: "Notes must be 2,000 characters or fewer.",
+    });
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("returns a network message when fetch rejects", async () => {
