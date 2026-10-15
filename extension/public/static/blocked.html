@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Can't save this page</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --background: #0c0c0c;
+        --foreground: #f5f5f5;
+        --muted: #a3a3a3;
+        --subtle: #737373;
+        --surface: #141414;
+        --border: rgba(255, 255, 255, 0.08);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: var(--background);
+        color: var(--foreground);
+        font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      main {
+        width: min(100%, 28rem);
+        padding: 28px 24px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        background: var(--surface);
+      }
+      p { margin: 0; }
+      .mark {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--subtle);
+      }
+      h1 {
+        margin: 12px 0 0;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .body {
+        margin-top: 12px;
+        font-size: 14px;
+        line-height: 1.5;
+        color: var(--muted);
+      }
+      .hint {
+        margin-top: 8px;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--subtle);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <p class="mark">memory404</p>
+      <h1>Can't save this page</h1>
+      <p class="body">This page can't be saved. Open a normal website and try again.</p>
+      <p class="hint">Chrome settings, the new tab page, and the Chrome Web Store stay in the browser.</p>
+    </main>
+  </body>
+</html>
