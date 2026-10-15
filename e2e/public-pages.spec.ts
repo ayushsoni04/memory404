@@ -46,7 +46,7 @@ test("forgot password stays on a generic confirmation", async ({ page }) => {
 
 test("reset password rejects a missing token before calling the network", async ({ page }) => {
   await page.goto("/reset-password");
-  await page.getByLabel("New password").fill("Memory404");
+  await page.getByLabel("New password", { exact: true }).fill("Memory404");
   await page.getByRole("button", { name: "Update password" }).click();
   await expect(page.getByText("This reset link is invalid or expired.")).toBeVisible();
 });
