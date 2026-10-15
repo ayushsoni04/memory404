@@ -22,11 +22,40 @@ describe("explainLoadError", () => {
     expect(explainLoadError(null)).toBeNull();
   });
 
+  it("tells someone to sign in again when the session is gone", () => {
+    expect(explainLoadError("Unauthorized")).toBe(
+      "Your session expired. Sign in again.",
+    );
+    expect(explainLoadError(" unauthorized ")).toBe(
+      "Your session expired. Sign in again.",
+    );
+    expect(explainLoadError("Failed to load links")).toBe("Failed to load links");
+  });
+
   it("does not add a second period", () => {
     expect(asSentence("Search failed")).toBe("Search failed.");
     expect(asSentence("Couldn't reach memory404. Check your connection and try again.")).toBe(
       "Couldn't reach memory404. Check your connection and try again.",
     );
+  });
+});
+
+describe("statistics when the session is gone", () => {
+  it("says to sign in again instead of Unauthorized", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ success: false, error: "Unauthorized" }),
+      })),
+    );
+
+    render(<StatsTab bannerStyle="midnight" />);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your session expired. Sign in again.",
+    );
+    expect(screen.queryByText("Unauthorized")).not.toBeInTheDocument();
   });
 });
 
