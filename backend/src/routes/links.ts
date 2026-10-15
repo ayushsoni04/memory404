@@ -16,6 +16,7 @@ import {
   updateLink,
 } from "@/lib/db/repositories";
 import type { LinkDocument } from "@/lib/db/types";
+import { groupNameIssue } from "@/lib/group-name";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { isGeneralName } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
@@ -83,6 +84,10 @@ async function resolveTargetGroupIdForCreate(
     typeof rawNew === "string" && rawNew.trim() ? rawNew.trim() : null;
 
   if (newName) {
+    const nameIssue = groupNameIssue(newName);
+    if (nameIssue) {
+      return { ok: false, status: 400, error: nameIssue };
+    }
     if (isGeneralName(newName)) {
       const id = await getOrCreateGeneralGroup(userId);
       return { ok: true, groupId: id };

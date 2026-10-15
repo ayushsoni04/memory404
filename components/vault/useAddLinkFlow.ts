@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { groupNameIssue } from "@/lib/group-name";
 import { coerceHttpUrl, type LinkApiRow } from "@/lib/links";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { writeLinksCacheToStorage } from "./storage";
@@ -214,6 +215,13 @@ export function useAddLinkFlow({
     }
 
     const trimmedNew = creatingNewGroup ? newGroupNameDraft.trim() : "";
+    if (trimmedNew) {
+      const issue = groupNameIssue(trimmedNew);
+      if (issue) {
+        setSaveError(issue);
+        return;
+      }
+    }
     const rawGroupId = placeGroupId ?? openedGroupId;
     const groupId =
       rawGroupId === "all" ? (generalGroup?.id ?? null) : rawGroupId;

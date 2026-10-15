@@ -10,6 +10,7 @@ import {
   listGroupsWithPreviews,
   reorderGroups,
 } from "@/lib/db/repositories";
+import { groupNameIssue } from "@/lib/group-name";
 
 export const runtime = "nodejs";
 
@@ -89,6 +90,10 @@ export async function POST(request: Request) {
         { error: "name cannot be empty" },
         { status: 400 },
       );
+    }
+    const nameIssue = groupNameIssue(name);
+    if (nameIssue) {
+      return NextResponse.json({ error: nameIssue }, { status: 400 });
     }
 
     let parentGroupId: string | null = null;
