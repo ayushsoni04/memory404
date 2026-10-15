@@ -20,6 +20,7 @@ import {
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
 import { apiUrl } from "@/lib/api-base";
+import LinkTitleEditor from "@/components/vault/LinkTitleEditor";
 import MindCardActions from "@/components/vault/MindCardActions";
 import { isTextEntryTarget } from "@/components/vault/feed-keyboard";
 
@@ -42,6 +43,7 @@ type Props = {
   hasNext: boolean;
   actionError?: string | null;
   onNotesSaved?: (link: LinkApiRow) => void;
+  onTitleSaved?: (link: LinkApiRow) => void;
 };
 
 type Rect = {
@@ -209,6 +211,7 @@ export default function LinkDetailOverlay({
   hasNext,
   actionError = null,
   onNotesSaved,
+  onTitleSaved,
 }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const backdropRef = useRef<HTMLDivElement | null>(null);
@@ -679,12 +682,7 @@ export default function LinkDetailOverlay({
           >
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-8">
               <div className="min-w-0 flex-1">
-                <h2
-                  id="link-detail-title"
-                  className="font-departure text-[22px] leading-tight font-semibold tracking-wide text-foreground uppercase"
-                >
-                  {link.displayTitle}
-                </h2>
+                <LinkTitleEditor key={`title-${link.id}`} link={link} onSaved={onTitleSaved} />
                 {actionError ? (
                   <p className="mt-2 text-[13px] text-danger" role="alert">
                     {actionError}

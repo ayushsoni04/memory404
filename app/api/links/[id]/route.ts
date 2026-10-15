@@ -99,6 +99,12 @@ export async function PATCH(request: Request, context: RouteContext) {
         updateData.customTitle = null;
       } else if (typeof raw === "string") {
         const t = raw.trim();
+        if (t.length > 200) {
+          return NextResponse.json(
+            { error: "Names must be 200 characters or fewer." },
+            { status: 400 },
+          );
+        }
         updateData.customTitle = t.length ? t : null;
       } else {
         return NextResponse.json(
