@@ -5,6 +5,22 @@ export const BANNER_GRADIENTS = [
   { id: "ocean", label: "Deep Ocean", class: "bg-gradient-to-r from-sky-950 via-blue-900 to-sky-950 border-b border-blue-900/30" },
 ];
 
+const BANNER_IDS = BANNER_GRADIENTS.map((banner) => banner.id);
+
+/** Next profile banner. Stops at the ends. */
+export function nextBannerStyle(current: string, key: string): string | null {
+  const index = BANNER_IDS.indexOf(current);
+  if (index < 0) return null;
+  let next = index;
+  if (key === "Home") next = 0;
+  else if (key === "End") next = BANNER_IDS.length - 1;
+  else if (key === "ArrowRight" || key === "ArrowDown") next = index + 1;
+  else if (key === "ArrowLeft" || key === "ArrowUp") next = index - 1;
+  else return null;
+  if (next < 0 || next >= BANNER_IDS.length || next === index) return null;
+  return BANNER_IDS[next] ?? null;
+}
+
 export type Tab = "profile" | "statistics";
 
 export const SETTINGS_TABS: readonly Tab[] = ["profile", "statistics"];

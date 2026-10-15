@@ -16,7 +16,11 @@ import {
   playUiSound,
   setSoundsEnabled,
 } from "@/lib/ui-sound";
-import { BANNER_GRADIENTS } from "./constants";
+import { controlPress } from "@/components/vault/types";
+import { BANNER_GRADIENTS, nextBannerStyle } from "./constants";
+
+const profileField =
+  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
 
 type ProfileTabProps = {
   name: string;
@@ -146,12 +150,13 @@ export function ProfileTab({
         {/* User info overlapping banner */}
         <div className="relative px-6 pb-6 pt-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           {/* Interactive Avatar Upload Container */}
-          <label className="absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center rounded-full bg-neutral-900 border-2 border-surface shadow-xl select-none overflow-hidden group/avatar transition-colors duration-150 hover:border-muted">
+          <label className="group/avatar absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-neutral-900 shadow-xl select-none transition-colors duration-150 hover:border-muted focus-within:ring-2 focus-within:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] focus-within:ring-offset-2 focus-within:ring-offset-surface">
             <input
               type="file"
               accept="image/*"
               onChange={onAvatarChange}
-              className="hidden"
+              aria-label="Change profile photo"
+              className="absolute inset-0 z-10 cursor-pointer opacity-0"
             />
             {avatarPreview ? (
               <Image
@@ -166,8 +171,8 @@ export function ProfileTab({
                 {name ? name.split(" ").map((w) => w[0]).join("") : "M"}
               </span>
             )}
-            <div className="absolute inset-0 flex items-center justify-center opacity-0 transition duration-300 group-hover/avatar:opacity-100 bg-black/40">
-              <Camera className="size-5 text-white" />
+            <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition duration-300 group-hover/avatar:opacity-100 group-focus-within/avatar:opacity-100">
+              <Camera className="size-5 text-white" aria-hidden />
             </div>
           </label>
 
@@ -187,23 +192,46 @@ export function ProfileTab({
         <h3 className="text-xs font-mono tracking-wider text-subtle uppercase flex items-center gap-1.5">
           Profile banner theme
         </h3>
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {BANNER_GRADIENTS.map((b) => (
-            <button
-              key={b.id}
-              type="button"
-              onClick={() => setBannerStyle(b.id)}
-              className={`relative flex flex-col gap-2 rounded-lg border p-2.5 text-left transition-[transform,background-color,border-color] duration-[160ms] ease-[var(--ease-out)] ${
-                bannerStyle === b.id ? "border-foreground bg-surface-elevated shadow-md scale-[1.02]" : "border-border bg-surface hover:border-neutral-700 hover:bg-surface-elevated/40"
-              }`}
-            >
-              <div className={`h-8 w-full rounded-md ${b.class}`} />
-              <span className="text-[11px] font-medium text-muted truncate mt-0.5">{b.label}</span>
-              {bannerStyle === b.id && (
-                <span className="absolute top-2 right-2 size-2 rounded-full bg-foreground shadow-[0_0_8px_rgba(255,255,255,0.8)]" />
-              )}
-            </button>
-          ))}
+        <div
+          role="radiogroup"
+          aria-label="Profile banner theme"
+          className="grid grid-cols-2 gap-3 sm:grid-cols-4"
+        >
+          {BANNER_GRADIENTS.map((b) => {
+            const selected = bannerStyle === b.id;
+            return (
+              <button
+                key={b.id}
+                id={`banner-${b.id}`}
+                type="button"
+                role="radio"
+                aria-checked={selected}
+                tabIndex={selected ? 0 : -1}
+                onClick={() => setBannerStyle(b.id)}
+                onKeyDown={(event) => {
+                  const next = nextBannerStyle(bannerStyle, event.key);
+                  if (!next) return;
+                  event.preventDefault();
+                  setBannerStyle(next);
+                  document.getElementById(`banner-${next}`)?.focus();
+                }}
+                className={`relative flex flex-col gap-2 rounded-lg border p-2.5 text-left ${controlPress} ${
+                  selected
+                    ? "border-foreground bg-surface-elevated shadow-md scale-[1.02]"
+                    : "border-border bg-surface hover:border-neutral-700 hover:bg-surface-elevated/40"
+                }`}
+              >
+                <div className={`h-8 w-full rounded-md ${b.class}`} aria-hidden />
+                <span className="mt-0.5 truncate text-[11px] font-medium text-muted">{b.label}</span>
+                {selected ? (
+                  <span
+                    className="absolute top-2 right-2 size-2 rounded-full bg-foreground shadow-[0_0_8px_rgba(255,255,255,0.8)]"
+                    aria-hidden
+                  />
+                ) : null}
+              </button>
+            );
+          })}
         </div>
       </section>
 
@@ -215,8 +243,9 @@ export function ProfileTab({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5"
+            className={profileField}
             placeholder="Your name"
+            autoComplete="name"
           />
         </label>
         <label className="block space-y-1.5 group">
@@ -225,7 +254,7 @@ export function ProfileTab({
             type="text"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus:border-foreground/40 focus:ring-2 focus:ring-foreground/5 font-mono"
+            className={`${profileField} font-mono`}
             placeholder="your_handle"
             autoComplete="username"
           />
@@ -247,7 +276,7 @@ export function ProfileTab({
         <button
           type="submit"
           disabled={isSaving}
-          className="inline-flex h-9 items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] cursor-pointer shadow-md disabled:opacity-50"
+          className={`inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg shadow-md hover:opacity-90 disabled:opacity-50 ${controlPress}`}
         >
           <MorphText>
             {isSaving ? "Saving…" : isSaved ? "Saved!" : "Save profile changes"}
@@ -282,7 +311,7 @@ export function ProfileTab({
             setSoundsEnabled(next);
             if (next) playUiSound("toggle");
           }}
-          className={`flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 text-left transition-[transform,background-color,border-color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:border-border-strong hover:bg-surface-elevated active:scale-[0.99]`}
+          className={`flex w-full items-center justify-between gap-4 rounded-xl border border-border bg-surface p-4 text-left hover:border-border-strong hover:bg-surface-elevated active:scale-[0.99] ${controlPress}`}
         >
           <span className="flex items-center gap-3">
             {soundsOn ? (
@@ -323,7 +352,7 @@ export function ProfileTab({
             type="button"
             onClick={handleExportData}
             disabled={isExporting}
-            className="inline-flex h-8 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted hover:bg-pill hover:text-foreground transition-colors disabled:opacity-50 cursor-pointer"
+            className={`inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted hover:bg-pill hover:text-foreground disabled:opacity-50 ${controlPress}`}
           >
             {isExporting ? <AppLoader compact progressive label="exporting" /> : (
               <>
@@ -354,7 +383,7 @@ export function ProfileTab({
           <button
             type="button"
             onClick={onOpenDeactivateModal}
-            className="inline-flex h-8 items-center justify-center rounded-lg bg-danger/10 border border-danger/25 hover:bg-danger/20 hover:border-danger/45 text-danger px-3 text-xs font-semibold transition cursor-pointer"
+            className={`inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border border-danger/25 bg-danger/10 px-3 text-xs font-semibold text-danger hover:border-danger/45 hover:bg-danger/20 ${controlPress}`}
           >
             Delete account & data
           </button>
