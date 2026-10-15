@@ -1,10 +1,10 @@
 import type { LinkApiRow } from "@/lib/links";
 import type { SortBy } from "./types";
 
+/** Host used for site sort and type, without a leading www and without letter case. */
 export const getLinkDomain = (url: string): string => {
   try {
-    const parsed = new URL(url);
-    return parsed.hostname.replace("www.", "");
+    return new URL(url).hostname.replace(/^www\./i, "").toLowerCase();
   } catch {
     return url;
   }
