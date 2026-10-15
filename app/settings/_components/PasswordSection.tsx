@@ -3,6 +3,7 @@
 import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
+import { CapsLockHint } from "@/components/auth/CapsLockHint";
 import {
   authPasswordFieldClass,
   authQuietControlClass,
@@ -200,6 +201,7 @@ function PasswordField({
   hint?: string;
   onChange: (value: string) => void;
 }) {
+  const [focused, setFocused] = useState(false);
   const describedBy = [hint ? `${id}-hint` : null, error ? errorId : null]
     .filter(Boolean)
     .join(" ");
@@ -216,6 +218,8 @@ function PasswordField({
           autoComplete={autoComplete}
           aria-invalid={error ? true : undefined}
           aria-describedby={describedBy || undefined}
+          onFocus={() => setFocused(true)}
+          onBlur={() => setFocused(false)}
           onChange={(event) => onChange(event.target.value)}
           className={authPasswordFieldClass}
         />
@@ -233,6 +237,7 @@ function PasswordField({
           {hint}
         </p>
       ) : null}
+      <CapsLockHint active={focused} />
       {error ? (
         <p id={errorId} className="text-[12px] text-danger" role="alert">
           {error}
