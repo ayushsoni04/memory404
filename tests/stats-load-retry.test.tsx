@@ -38,7 +38,8 @@ describe("statistics load", () => {
       screen.getByText("Your saved links are still in the library."),
     ).toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
-    expect(screen.queryByText("No categories created yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No groups yet.")).not.toBeInTheDocument();
+    expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 

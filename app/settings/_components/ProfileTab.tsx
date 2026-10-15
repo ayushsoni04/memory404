@@ -23,6 +23,7 @@ import {
   getNameIssues,
   getUsernameIssues,
 } from "@/lib/profile";
+import { PasswordSection } from "./PasswordSection";
 
 const profileField =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
@@ -69,6 +70,7 @@ export function ProfileTab({
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
   const nameIssues = getNameIssues(name);
@@ -85,6 +87,7 @@ export function ProfileTab({
   // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
     setExportError(null);
+    setExportNotice(null);
     setIsExporting(true);
     try {
       const allLinks: unknown[] = [];
@@ -101,13 +104,15 @@ export function ProfileTab({
         cursor = data.nextCursor as string;
       }
 
+      const filename = `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`;
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLinks, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      downloadAnchor.setAttribute("download", filename);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      setExportNotice(`Downloaded ${filename}`);
     } catch {
       setExportError("Could not export your links. Try again.");
     } finally {
@@ -147,6 +152,7 @@ export function ProfileTab({
   }
 
   return (
+    <div className="space-y-8">
     <form
       onSubmit={(event: FormEvent) => {
         if (fieldError || photoError) {
@@ -344,6 +350,9 @@ export function ProfileTab({
           </span>
         )}
       </div>
+    </form>
+
+      <PasswordSection />
 
       <ExtensionInstallCard variant="settings" />
 
@@ -422,6 +431,11 @@ export function ProfileTab({
             {exportError}
           </p>
         ) : null}
+        {exportNotice ? (
+          <p className="text-[12px] text-success" role="status">
+            {exportNotice}
+          </p>
+        ) : null}
       </section>
 
       {/* Danger Zone: Account Deactivation Modal */}
@@ -445,6 +459,6 @@ export function ProfileTab({
         </div>
       </section>
 
-    </form>
+    </div>
   );
 }

@@ -53,4 +53,11 @@ describe("search result notes", () => {
     expect(screen.getByText("example.com")).toBeInTheDocument();
     expect(screen.queryByText("Remember the pricing section.")).not.toBeInTheDocument();
   });
+
+  it("puts the group on the same line as the host", () => {
+    render(<SearchResultText link={sample(null)} groupLabel="Reading" />);
+    const title = screen.getByText("Pricing page");
+    const place = screen.getByText("example.com · in Reading");
+    expect(title.compareDocumentPosition(place) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });
