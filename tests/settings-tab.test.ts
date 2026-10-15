@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  nextBannerStyle,
   nextSettingsTab,
   resolveSettingsTab,
   settingsHrefWithoutRetiredTab,
@@ -37,5 +38,18 @@ describe("settings tabs", () => {
     expect(nextSettingsTab("profile", "End")).toBe("statistics");
     expect(nextSettingsTab("profile", "Home")).toBeNull();
     expect(nextSettingsTab("profile", "Enter")).toBeNull();
+  });
+
+  it("moves through profile banners and stops at the ends", () => {
+    expect(nextBannerStyle("midnight", "ArrowRight")).toBe("aurora");
+    expect(nextBannerStyle("aurora", "ArrowDown")).toBe("twilight");
+    expect(nextBannerStyle("ocean", "ArrowLeft")).toBe("twilight");
+    expect(nextBannerStyle("twilight", "ArrowUp")).toBe("aurora");
+    expect(nextBannerStyle("midnight", "ArrowLeft")).toBeNull();
+    expect(nextBannerStyle("ocean", "ArrowRight")).toBeNull();
+    expect(nextBannerStyle("aurora", "Home")).toBe("midnight");
+    expect(nextBannerStyle("aurora", "End")).toBe("ocean");
+    expect(nextBannerStyle("midnight", "Home")).toBeNull();
+    expect(nextBannerStyle("custom", "ArrowRight")).toBeNull();
   });
 });
