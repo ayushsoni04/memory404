@@ -1,5 +1,11 @@
+"use client";
+
+import { useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
+import { useDialogContainment } from "@/lib/dialog-focus";
+import { controlPress } from "@/components/vault/types";
 
 type DeactivateModalProps = {
   open: boolean;
@@ -22,40 +28,90 @@ export function DeactivateModal({
   error = null,
   onSubmit,
 }: DeactivateModalProps) {
+  const portalRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const busy = isDeactivating || deactivatedSuccess;
+  useDialogContainment(open, portalRef, dialogRef, inputRef);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || busy) return;
+      event.preventDefault();
+      onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, busy, onClose]);
+
   if (!open) return null;
 
-  return (
-    <div className="mind-modal-backdrop-in fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
-      <div className="mind-modal-panel-in w-full max-w-[420px] rounded-xl border border-danger/35 bg-surface p-6 shadow-2xl space-y-4">
+  return createPortal(
+    <div
+      ref={portalRef}
+      className="mind-modal-backdrop-in fixed inset-0 z-[280] flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm"
+    >
+      <div
+        data-deactivate-backdrop=""
+        className="absolute inset-0"
+        onClick={() => {
+          if (!busy) onClose();
+        }}
+      />
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-busy={isDeactivating}
+        aria-labelledby="deactivate-title"
+        aria-describedby="deactivate-detail"
+        className="mind-modal-panel-in relative w-full max-w-[420px] space-y-4 rounded-xl border border-danger/35 bg-surface p-6 shadow-2xl"
+      >
         <div className="flex items-center gap-2.5 text-danger">
-          <AlertTriangle className="size-5" />
-          <h3 className="text-sm font-bold uppercase font-mono tracking-wider">Confirm Deactivation</h3>
+          <AlertTriangle className="size-5" aria-hidden />
+          <h3
+            id="deactivate-title"
+            className="font-mono text-sm font-bold uppercase tracking-wider"
+          >
+            Confirm Deactivation
+          </h3>
         </div>
 
-        <p className="text-xs text-muted leading-relaxed">
+        <p id="deactivate-detail" className="text-xs leading-relaxed text-muted">
           This action is <strong className="text-foreground">permanent</strong>. Your
           account, links, and groups will be deleted and you will be signed out.
         </p>
 
         {deactivatedSuccess ? (
-          <div className="p-3 rounded-lg bg-success/10 border border-success/30 text-success text-xs font-semibold text-center animate-pulse">
+          <div
+            className="animate-pulse rounded-lg border border-success/30 bg-success/10 p-3 text-center text-xs font-semibold text-success"
+            role="status"
+          >
             Account deleted. Redirecting to sign in…
           </div>
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
-            {error && (
-              <p className="text-xs text-danger">{error}</p>
-            )}
+            {error ? (
+              <p id="deactivate-error" className="text-xs text-danger" role="alert">
+                {error}
+              </p>
+            ) : null}
             <label className="block space-y-1.5">
-              <span className="text-[10px] font-medium text-subtle font-mono uppercase">
-                Type <code className="text-danger select-none">deactivate</code> to confirm
+              <span className="font-mono text-[10px] font-medium uppercase text-subtle">
+                Type <code className="select-none text-danger">deactivate</code> to confirm
               </span>
               <input
+                ref={inputRef}
                 type="text"
                 value={deactivateInput}
                 onChange={(e) => setDeactivateInput(e.target.value)}
                 placeholder="deactivate"
-                className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-xs text-foreground outline-none font-mono focus:border-danger/50"
+                autoComplete="off"
+                spellCheck={false}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={error ? "deactivate-error" : undefined}
+                className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 font-mono text-xs text-foreground outline-none focus-visible:border-danger/50 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)]"
                 required
                 disabled={isDeactivating}
               />
@@ -66,21 +122,26 @@ export function DeactivateModal({
                 type="button"
                 onClick={onClose}
                 disabled={isDeactivating}
-                className="flex-1 h-8 text-xs font-medium border border-border rounded-lg text-muted hover:bg-pill transition cursor-pointer"
+                className={`h-8 flex-1 cursor-pointer rounded-lg border border-border text-xs font-medium text-muted hover:bg-pill disabled:opacity-50 ${controlPress}`}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={deactivateInput !== "deactivate" || isDeactivating}
-                className="flex-1 h-8 text-xs font-semibold bg-danger text-white rounded-lg hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none transition flex items-center justify-center cursor-pointer"
+                className={`flex h-8 flex-1 cursor-pointer items-center justify-center rounded-lg bg-danger text-xs font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 ${controlPress}`}
               >
-                {isDeactivating ? <AppLoader compact progressive label="deactivating" /> : "Wipe everything"}
+                {isDeactivating ? (
+                  <AppLoader compact progressive label="deactivating" />
+                ) : (
+                  "Wipe everything"
+                )}
               </button>
             </div>
           </form>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

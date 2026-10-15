@@ -62,21 +62,6 @@ export default function SettingsClient({
   }, []);
 
   useEffect(() => {
-    if (!showDeactivateModal) return;
-
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setShowDeactivateModal(false);
-      setDeactivateInput("");
-      setDeactivateError(null);
-    };
-
-    window.addEventListener("keydown", closeOnEscape);
-    return () => window.removeEventListener("keydown", closeOnEscape);
-  }, [showDeactivateModal]);
-
-  useEffect(() => {
     setActiveTab(initialTab);
   }, [initialTab]);
 
