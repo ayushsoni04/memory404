@@ -70,7 +70,7 @@ const TrashBin = forwardRef<HTMLDivElement, Props>(function TrashBin(
         <span className="truncate text-[13px]">Trash</span>
         {isDragOver && (
           <span className="ml-auto text-[11px] font-medium text-red-400 animate-pulse">
-            Drop to delete
+            Drop to Trash
           </span>
         )}
       </Link>

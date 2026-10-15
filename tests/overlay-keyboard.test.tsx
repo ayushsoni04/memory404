@@ -77,6 +77,41 @@ function renderOverlay(onNext = vi.fn()) {
 }
 
 describe("link detail keyboard", () => {
+  it("names the action Move to Trash, matching the undo toast", () => {
+    const onDelete = vi.fn();
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      media: "",
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+    render(
+      <LinkDetailOverlay
+        link={sampleLink("link-1", "Pricing page")}
+        groupName="References"
+        groups={[{ id: "references", name: "References" }]}
+        originRect={null}
+        onClose={() => {}}
+        onPrev={() => {}}
+        onNext={() => {}}
+        onDelete={onDelete}
+        onMove={() => {}}
+        hasPrev={false}
+        hasNext={false}
+      />,
+    );
+
+    expect(
+      screen.getByText("You can restore it from Trash for 30 days."),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Move to Trash" }));
+    expect(onDelete).toHaveBeenCalledWith("link-1");
+    expect(screen.queryByRole("button", { name: "Delete" })).not.toBeInTheDocument();
+  });
+
   it("does not leave the note when ArrowRight is pressed inside it", () => {
     const onNext = vi.fn();
     renderOverlay(onNext);
