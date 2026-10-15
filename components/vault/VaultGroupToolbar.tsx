@@ -8,6 +8,7 @@ import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { playUiSound } from "@/lib/ui-sound";
 import { nextOptionIndex } from "./feed-keyboard";
+import { activeGroupPill, groupPillIds, nextGroupPill } from "./group-pills";
 import {
   controlPress,
   pillActive,
@@ -72,7 +73,7 @@ export function CollectionDrop({
       data-drop-target={groupId}
       data-drop-over={over ? "true" : "false"}
       title="Drop a link to move it here"
-      className={`${className} ${over ? "ring-2 ring-foreground/70" : ""}`}
+      className={`${className} focus-within:ring-2 focus-within:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-within:ring-offset-2 focus-within:ring-offset-background ${over ? "ring-2 ring-foreground/70" : ""}`}
       onDragOver={(event) => {
         if (!onDropLink) return;
         event.preventDefault();
@@ -263,6 +264,23 @@ export default function VaultGroupToolbar({
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
+  const pillIds = groupPillIds(filteredFolders.map((group) => group.id));
+  const currentPill = activeGroupPill(openedGroupId, pillIds);
+  const onPillKeyDown = (
+    event: React.KeyboardEvent<HTMLButtonElement>,
+    id: string,
+  ) => {
+    const next = nextGroupPill(id, pillIds, event.key);
+    if (!next) return;
+    event.preventDefault();
+    selectGroup(next);
+    playUiSound("tick");
+    const button = document.getElementById(`group-pill-${next}`);
+    button?.focus();
+    if (typeof button?.scrollIntoView === "function") {
+      button.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+  };
   const pillRowRef = useRef<HTMLDivElement>(null);
   const [pillEdges, setPillEdges] = useState({ start: false, end: false });
   const pillKey = filteredFolders.map((group) => group.id).join("|");
@@ -307,6 +325,8 @@ export default function VaultGroupToolbar({
         <div
           ref={pillRowRef}
           data-pill-row=""
+          role="toolbar"
+          aria-label="Groups"
           className="flex min-w-0 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 ps-0.5 pe-1"
         >
           {isDragging && (
@@ -339,31 +359,37 @@ export default function VaultGroupToolbar({
             <CollectionDrop
               groupId={generalGroup.id}
               onDropLink={onDropLink}
-              className={`z-10 relative ${
+              className={`z-10 relative scroll-mx-8 ${
                 openedGroupId === "all" ? pillActive : pillIdle
               }`}
             >
               <button
+                id="group-pill-all"
                 type="button"
                 aria-pressed={openedGroupId === "all"}
+                tabIndex={currentPill === "all" ? 0 : -1}
                 onClick={() => {
                   selectGroup("all");
                   playUiSound("tick");
                 }}
-                className="h-7 bg-transparent px-4 -mx-4"
+                onKeyDown={(event) => onPillKeyDown(event, "all")}
+                className="h-7 bg-transparent px-4 -mx-4 outline-none"
               >
                 All
               </button>
             </CollectionDrop>
           ) : (
             <button
+              id="group-pill-all"
               type="button"
               aria-pressed={openedGroupId === "all"}
+              tabIndex={currentPill === "all" ? 0 : -1}
               onClick={() => {
                 selectGroup("all");
                 playUiSound("tick");
               }}
-              className={`z-10 relative ${
+              onKeyDown={(event) => onPillKeyDown(event, "all")}
+              className={`z-10 relative scroll-mx-8 ${
                 openedGroupId === "all" ? pillActive : pillIdle
               }`}
             >
@@ -405,20 +431,23 @@ export default function VaultGroupToolbar({
                 <CollectionDrop
                   groupId={g.id}
                   onDropLink={onDropLink}
-                  className={`${g.id === openedGroupId ? pillActive : pillIdle} gap-0 pe-1.5 ${
+                  className={`scroll-mx-8 ${g.id === openedGroupId ? pillActive : pillIdle} gap-0 pe-1.5 ${
                     draggingGroupId === g.id
                       ? "bg-surface-elevated/80 border-border-strong shadow-[0_0_12px_rgba(255,255,255,0.04)]"
                       : ""
                   }`}
                 >
                   <button
+                    id={`group-pill-${g.id}`}
                     type="button"
                     aria-pressed={g.id === openedGroupId}
+                    tabIndex={currentPill === g.id ? 0 : -1}
                     onClick={() => {
                       selectGroup(g.id);
                       playUiSound("tick");
                     }}
-                    className="bg-transparent"
+                    onKeyDown={(event) => onPillKeyDown(event, g.id)}
+                    className="bg-transparent outline-none"
                   >
                     {g.name}
                   </button>
@@ -426,11 +455,12 @@ export default function VaultGroupToolbar({
                     <button
                       type="button"
                       aria-label={`Move ${g.name} to Trash`}
+                      tabIndex={g.id === openedGroupId ? 0 : -1}
                       onClick={(e) => {
                         e.stopPropagation();
                         void handleDeleteGroup(g.id);
                       }}
-                      className="group-pill-delete ms-1.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer"
+                      className="group-pill-delete ms-1.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer outline-none"
                     >
                       <X className="size-2.5" />
                     </button>
@@ -504,7 +534,7 @@ export default function VaultGroupToolbar({
               placeholder="Group"
               disabled={creatingGroup}
               style={{ width: groupInputWidth }}
-              className="h-7 shrink-0 rounded-full border border-dashed border-foreground/40 bg-surface px-4 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle"
+              className="h-7 shrink-0 rounded-full border border-dashed border-foreground/40 bg-surface px-4 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
             {creatingGroup ? (
               <span className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">

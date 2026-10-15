@@ -59,6 +59,7 @@ describe("VaultGroupToolbar create error", () => {
     const input = screen.getByRole("textbox", { name: "Group name" });
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input).toHaveAttribute("aria-describedby", "create-group-error");
+    expect(input.className).toContain("focus-visible:ring-2");
     expect(alert).toHaveAttribute("id", "create-group-error");
   });
 });
