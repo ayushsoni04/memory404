@@ -13,14 +13,13 @@ import {
   EXTENSION_ZIP_HREF,
 } from "@/lib/extension-download";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
-import { playUiSound } from "@/lib/ui-sound";
+import { GridSizeControl } from "./GridSizeControl";
 import GroupSearchCommand from "./GroupSearchCommand";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
 import {
   controlPress,
   FIELD_CLASS,
-  GRID_SIZES,
   type GridSize,
   type GroupRow,
 } from "./types";
@@ -120,35 +119,10 @@ export default function VaultSidebar({
                 404
               </GlitchText>
             </Link>
-            <div
-              role="group"
-              aria-label="Grid layout"
-              className="flex items-center gap-[var(--layout-gap-item)]"
-            >
-              {GRID_SIZES.map((opt) => {
-                const active = gridSize === opt.id;
-                return (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    title={opt.title}
-                    aria-label={opt.title}
-                    aria-pressed={active}
-                    onClick={() => {
-                      setGridSizeAndPersist(opt.id);
-                      playUiSound("toggle");
-                    }}
-                    className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[12px] font-medium leading-none ${controlPress} ${
-                      active
-                        ? "bg-pill-active text-pill-active-fg"
-                        : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                );
-              })}
-            </div>
+            <GridSizeControl
+              gridSize={gridSize}
+              setGridSizeAndPersist={setGridSizeAndPersist}
+            />
           </div>
 
           <div className="flex flex-col gap-[var(--layout-gap-group)] lg:mt-auto">
