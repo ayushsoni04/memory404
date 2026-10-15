@@ -25,20 +25,27 @@ function useIsClient() {
   );
 }
 
-export default function UndoNotice({ notice, onUndo, onDismiss }: Props) {
-  const mounted = useIsClient();
-  const offer = Boolean(notice && !notice.error && notice.perform);
+function UndoCountdown({ token }: { token: number }) {
   const [seconds, setSeconds] = useState(() => undoSecondsLeft(0));
 
   useEffect(() => {
-    if (!offer || !notice) return;
     const started = Date.now();
-    setSeconds(undoSecondsLeft(0));
     const id = window.setInterval(() => {
       setSeconds(undoSecondsLeft(Date.now() - started));
     }, 250);
     return () => window.clearInterval(id);
-  }, [offer, notice?.token]);
+  }, [token]);
+
+  return (
+    <span className="shrink-0 font-mono text-[11px] tabular-nums text-subtle">
+      {seconds}s
+    </span>
+  );
+}
+
+export default function UndoNotice({ notice, onUndo, onDismiss }: Props) {
+  const mounted = useIsClient();
+  const offer = Boolean(notice && !notice.error && notice.perform);
 
   useEffect(() => {
     if (!notice || notice.error || notice.busy) return;
@@ -70,16 +77,14 @@ export default function UndoNotice({ notice, onUndo, onDismiss }: Props) {
             <p className="min-w-0 text-[13px] text-foreground">{message}</p>
             {offer ? (
               <>
-                <span className="shrink-0 font-mono text-[11px] tabular-nums text-subtle">
-                  {seconds}s
-                </span>
+                <UndoCountdown token={notice.token} />
                 <kbd className="shrink-0 rounded-md border border-border bg-pill px-1.5 py-0.5 font-mono text-[11px] text-subtle">
                   {undoShortcutLabel(
                     typeof navigator === "undefined" ? "" : navigator.platform,
                   )}
                 </kbd>
                 <span className="sr-only">
-                  Press {undoShortcutLabel(navigator.platform)} to undo. Available for {seconds} seconds.
+                  Press {undoShortcutLabel(navigator.platform)} to undo. Available for 10 seconds.
                 </span>
                 <span
                   key={notice.token}
