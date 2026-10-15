@@ -1,8 +1,14 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
-import { isTypingTarget, type UndoNoticeModel } from "./undo-offer";
+import {
+  isTypingTarget,
+  UNDO_MS,
+  undoSecondsLeft,
+  undoShortcutLabel,
+  type UndoNoticeModel,
+} from "./undo-offer";
 import { controlPress } from "./types";
 
 type Props = {
@@ -19,8 +25,27 @@ function useIsClient() {
   );
 }
 
+function UndoCountdown({ token }: { token: number }) {
+  const [seconds, setSeconds] = useState(() => undoSecondsLeft(0));
+
+  useEffect(() => {
+    const started = Date.now();
+    const id = window.setInterval(() => {
+      setSeconds(undoSecondsLeft(Date.now() - started));
+    }, 250);
+    return () => window.clearInterval(id);
+  }, [token]);
+
+  return (
+    <span className="shrink-0 font-mono text-[11px] tabular-nums text-subtle">
+      {seconds}s
+    </span>
+  );
+}
+
 export default function UndoNotice({ notice, onUndo, onDismiss }: Props) {
   const mounted = useIsClient();
+  const offer = Boolean(notice && !notice.error && notice.perform);
 
   useEffect(() => {
     if (!notice || notice.error || notice.busy) return;
@@ -43,13 +68,32 @@ export default function UndoNotice({ notice, onUndo, onDismiss }: Props) {
         aria-live="polite"
         className={
           notice
-            ? "pointer-events-auto flex max-w-[min(100%,28rem)] items-center gap-3 rounded-full border border-border bg-surface-elevated py-1.5 ps-4 pe-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)]"
+            ? `pointer-events-auto relative flex max-w-[min(100%,28rem)] items-center gap-3 rounded-full border border-border bg-surface-elevated py-1.5 ps-4 pe-1.5 shadow-[0_12px_40px_rgba(0,0,0,0.45)] ${offer ? "pb-2.5" : ""}`
             : "sr-only"
         }
       >
         {notice ? (
           <>
             <p className="min-w-0 text-[13px] text-foreground">{message}</p>
+            {offer ? (
+              <>
+                <UndoCountdown token={notice.token} />
+                <kbd className="shrink-0 rounded-md border border-border bg-pill px-1.5 py-0.5 font-mono text-[11px] text-subtle">
+                  {undoShortcutLabel(
+                    typeof navigator === "undefined" ? "" : navigator.platform,
+                  )}
+                </kbd>
+                <span className="sr-only">
+                  Press {undoShortcutLabel(navigator.platform)} to undo. Available for 10 seconds.
+                </span>
+                <span
+                  key={notice.token}
+                  aria-hidden
+                  className="undo-lifetime"
+                  style={{ animationDuration: `${UNDO_MS}ms` }}
+                />
+              </>
+            ) : null}
             {notice.error ? (
               <button
                 type="button"

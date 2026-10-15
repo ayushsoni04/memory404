@@ -3,6 +3,17 @@ import type { LinkApiRow } from "@/lib/links";
 /** How long an undo stays available. Trash remains the later way back. */
 export const UNDO_MS = 10_000;
 
+/** Whole seconds still left in the undo window. */
+export function undoSecondsLeft(elapsedMs: number): number {
+  const left = Math.max(0, UNDO_MS - Math.max(0, elapsedMs));
+  return Math.ceil(left / 1000);
+}
+
+/** The undo chord, written the way the current platform shows it. */
+export function undoShortcutLabel(platform: string): string {
+  return /Mac|iPhone|iPad/i.test(platform) ? "⌘Z" : "Ctrl+Z";
+}
+
 export type UndoNoticeModel = {
   token: number;
   message: string;

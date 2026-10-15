@@ -4,6 +4,9 @@ import {
   cacheWithLink,
   deleteUndoMessage,
   moveUndoMessage,
+  undoSecondsLeft,
+  undoShortcutLabel,
+  UNDO_MS,
 } from "@/components/vault/undo-offer";
 
 function link(id: string, groupId: string): LinkApiRow {
@@ -26,6 +29,14 @@ function link(id: string, groupId: string): LinkApiRow {
 }
 
 describe("undo copy and cache", () => {
+  it("counts down the undo window and names the shortcut", () => {
+    expect(undoSecondsLeft(0)).toBe(10);
+    expect(undoSecondsLeft(1_100)).toBe(9);
+    expect(undoSecondsLeft(UNDO_MS)).toBe(0);
+    expect(undoShortcutLabel("MacIntel")).toBe("⌘Z");
+    expect(undoShortcutLabel("Linux x86_64")).toBe("Ctrl+Z");
+  });
+
   it("names a delete and a move", () => {
     expect(deleteUndoMessage()).toBe("Moved to Trash");
     expect(moveUndoMessage("References")).toBe("Moved to References");

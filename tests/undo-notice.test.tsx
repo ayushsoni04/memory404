@@ -103,6 +103,8 @@ describe("undo after delete and move", () => {
       expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
     });
     expect(screen.getByRole("status")).toHaveTextContent("Moved to Trash");
+    expect(screen.getByText("10s")).toBeInTheDocument();
+    expect(screen.getByText("Ctrl+Z")).toBeInTheDocument();
     expect(screen.queryByText("Pricing page")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Undo" }));
@@ -182,6 +184,11 @@ describe("undo after delete and move", () => {
       await Promise.resolve();
     });
     expect(screen.getByRole("button", { name: "Undo" })).toBeInTheDocument();
+    expect(screen.getByText("10s")).toBeInTheDocument();
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1_100);
+    });
+    expect(screen.getByText("9s")).toBeInTheDocument();
     await act(async () => {
       await vi.advanceTimersByTimeAsync(UNDO_MS);
     });
