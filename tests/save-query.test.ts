@@ -9,6 +9,11 @@ describe("httpUrlFromQuery", () => {
     expect(httpUrlFromQuery("  http://example.com  ")).toBe("http://example.com/");
   });
 
+  it("accepts a host that left off https", () => {
+    expect(httpUrlFromQuery("linear.app/docs")).toBe("https://linear.app/docs");
+    expect(httpUrlFromQuery("example.com")).toBe("https://example.com/");
+  });
+
   it("rejects titles, notes, and non-http schemes", () => {
     expect(httpUrlFromQuery("design inspiration")).toBeNull();
     expect(httpUrlFromQuery("javascript:alert(1)")).toBeNull();
@@ -27,6 +32,13 @@ describe("saveOfferUrl", () => {
   it("stays quiet when that URL is already saved", () => {
     expect(
       saveOfferUrl("https://example.com/", ["https://example.com/"]),
+    ).toBeNull();
+  });
+
+  it("offers a host without a scheme, and stays quiet when it is already saved", () => {
+    expect(saveOfferUrl("linear.app/docs", [])).toBe("https://linear.app/docs");
+    expect(
+      saveOfferUrl("example.com", ["https://example.com"]),
     ).toBeNull();
   });
 });
