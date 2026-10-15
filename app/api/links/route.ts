@@ -19,7 +19,12 @@ import {
   isGeneralName,
 } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
-import { coerceHttpUrl, duplicateLinkMessage, linkToApiRow } from "@/lib/links";
+import {
+  coerceHttpUrl,
+  duplicateLinkMessage,
+  linkToApiRow,
+  linkUrlIssue,
+} from "@/lib/links";
 import { isPublicHttpUrlForFetch } from "@/lib/safe-url";
 import {
   decodeLinkCursor,
@@ -249,7 +254,7 @@ export async function POST(request: Request) {
     const url = coerceHttpUrl(rawUrl);
     if (!url) {
       return NextResponse.json(
-        { error: "url must be a valid http or https URL" },
+        { error: linkUrlIssue(rawUrl) ?? "url must be a valid http or https URL" },
         { status: 400 },
       );
     }

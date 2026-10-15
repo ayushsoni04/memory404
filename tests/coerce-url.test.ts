@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { coerceHttpUrl } from "@/lib/links";
+import { coerceHttpUrl, LINK_URL_MAX, linkUrlIssue } from "@/lib/links";
 
 describe("coerceHttpUrl", () => {
   it("adds https to a pasted host and path", () => {
@@ -21,5 +21,23 @@ describe("coerceHttpUrl", () => {
     expect(coerceHttpUrl("localhost")).toBeNull();
     expect(coerceHttpUrl("user:pass@example.com")).toBeNull();
     expect(coerceHttpUrl("")).toBeNull();
+  });
+
+  it("rejects a link that embeds a username or password", () => {
+    expect(coerceHttpUrl("https://user:secret@example.com/docs")).toBeNull();
+    expect(coerceHttpUrl("https://token@example.com/private")).toBeNull();
+    expect(linkUrlIssue("https://user:secret@example.com/docs")).toBe(
+      "Remove the username and password from the link.",
+    );
+  });
+
+  it("rejects a link that is too long to store", () => {
+    const huge = `https://example.com/${"a".repeat(LINK_URL_MAX)}`;
+    expect(coerceHttpUrl(huge)).toBeNull();
+    expect(linkUrlIssue(huge)).toBe("That link is too long to save.");
+    expect(linkUrlIssue("remember this later")).toBe(
+      "Enter a link, like example.com/page",
+    );
+    expect(linkUrlIssue("https://example.com/docs")).toBeNull();
   });
 });

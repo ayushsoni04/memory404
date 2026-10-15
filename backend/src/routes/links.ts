@@ -18,7 +18,12 @@ import type { LinkDocument } from "@/lib/db/types";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { isGeneralName } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
-import { coerceHttpUrl, duplicateLinkMessage, linkToApiRow } from "@/lib/links";
+import {
+  coerceHttpUrl,
+  duplicateLinkMessage,
+  linkToApiRow,
+  linkUrlIssue,
+} from "@/lib/links";
 import { isPublicHttpUrlForFetch } from "@/lib/safe-url";
 import {
   decodeLinkCursor,
@@ -252,7 +257,9 @@ linksRouter.post("/", async (req, res) => {
 
     const url = coerceHttpUrl(rawUrl);
     if (!url) {
-      res.status(400).json({ error: "url must be a valid http or https URL" });
+      res
+        .status(400)
+        .json({ error: linkUrlIssue(rawUrl) ?? "url must be a valid http or https URL" });
       return;
     }
 
