@@ -5,6 +5,7 @@ import {
   getMongoEnvError,
   isDuplicateKeyError,
 } from "@/lib/db/mongodb";
+import { noteIssue } from "@/lib/note-limit";
 import {
   createGroup,
   createLink,
@@ -398,6 +399,11 @@ linksRouter.patch("/:id", async (req, res) => {
         updateData.notes = null;
       } else if (typeof rawNotes === "string") {
         const n = rawNotes.trim();
+        const issue = noteIssue(n);
+        if (issue) {
+          res.status(400).json({ error: issue });
+          return;
+        }
         updateData.notes = n.length ? n : null;
       } else {
         res.status(400).json({ error: "notes must be a string or null" });

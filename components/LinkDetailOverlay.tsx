@@ -12,6 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
+import { noteIssue } from "@/lib/note-limit";
 import {
   formatRelativeTime,
   linkHostname,
@@ -88,6 +89,11 @@ const NoteEditor = forwardRef<
   const save = useCallback((): Promise<boolean> => {
     if (inflight.current) return inflight.current;
     const next = draftRef.current.trim() ? draftRef.current.trim() : null;
+    const issue = noteIssue(draftRef.current);
+    if (issue) {
+      setError(issue);
+      return Promise.resolve(false);
+    }
     const run = (async (): Promise<boolean> => {
       setSaving(true);
       setError(null);
@@ -139,7 +145,7 @@ const NoteEditor = forwardRef<
         value={draft}
         onChange={(event) => {
           setDraft(event.target.value);
-          setError(null);
+          setError(noteIssue(event.target.value));
         }}
         rows={3}
         placeholder="What should you remember?"

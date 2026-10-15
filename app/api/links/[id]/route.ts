@@ -9,6 +9,7 @@ import {
 import type { LinkDocument } from "@/lib/db/types";
 import { enrichLinkMetadataInBackground } from "@/lib/enrich-link-metadata";
 import { linkToApiRow } from "@/lib/links";
+import { noteIssue } from "@/lib/note-limit";
 
 export const runtime = "nodejs";
 
@@ -132,6 +133,10 @@ export async function PATCH(request: Request, context: RouteContext) {
         updateData.notes = null;
       } else if (typeof rawNotes === "string") {
         const n = rawNotes.trim();
+        const issue = noteIssue(n);
+        if (issue) {
+          return NextResponse.json({ error: issue }, { status: 400 });
+        }
         updateData.notes = n.length ? n : null;
       } else {
         return NextResponse.json(
