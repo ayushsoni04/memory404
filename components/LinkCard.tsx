@@ -4,6 +4,7 @@ import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
 import DitheredPreview from "@/components/vault/DitheredPreview";
 import MindCardActions from "@/components/vault/MindCardActions";
+import { nextCardPreview } from "@/components/vault/preview-fallback";
 import {
   googleFaviconUrl,
   linkHostname,
@@ -45,6 +46,7 @@ function LinkCard({
   const pending = link.metadataStatus === "pending" || !!link.isPending;
   const loginGated = requiresLoginPlaceholder(link.url);
   const [fallbackUrl, setFallbackUrl] = useState<string | null>(null);
+  const [broken, setBroken] = useState(false);
   const [loaded, setLoaded] = useState(false);
 
   // Prefer placeholder for auth/LMS hosts even if a stale cache still has a
@@ -61,6 +63,8 @@ function LinkCard({
     !loginGated && brandThumbnailInvertInDark(link.url) ? "invert" : "";
 
   const showLoader = pending;
+  const showMark = !loginGated && (broken || !feedSrc);
+  const markLetter = (host[0] ?? "•").toUpperCase();
 
   const openDetails = () => {
     const origin = previewRef.current ?? cardRef.current;
@@ -109,30 +113,56 @@ function LinkCard({
             ref={previewRef}
             className="mind-card-preview relative block w-full overflow-hidden bg-surface"
           >
-            <DitheredPreview>
-              {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
-              <img
-                key={`${link.id}-${resolvedImageUrl}`}
-                src={feedSrc}
-                srcSet={feedSrcSet}
-                sizes={feedSrcSet ? imageSizes : undefined}
-                alt={link.displayTitle}
-                loading={priority ? "eager" : "lazy"}
-                fetchPriority={priority ? "high" : "auto"}
-                referrerPolicy="no-referrer"
-                decoding="async"
-                draggable={false}
-                onLoad={() => setLoaded(true)}
-                className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
-                  loaded ? "opacity-100" : "opacity-0"
-                } ${invert} ${showLoader ? "opacity-60" : ""}`}
-                onError={() => {
-                  if (loginGated || fallbackUrl !== null) return;
-                  setFallbackUrl(googleFaviconUrl(link.url) ?? "");
-                  setLoaded(false);
-                }}
-              />
-            </DitheredPreview>
+            {showMark ? (
+              <span
+                data-preview="missing"
+                className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-surface px-4 text-center"
+              >
+                <span
+                  aria-hidden
+                  className="flex size-10 items-center justify-center rounded-full border border-border bg-surface-elevated text-[15px] font-medium text-muted"
+                >
+                  {markLetter}
+                </span>
+                <span className="line-clamp-2 max-w-full text-[11px] leading-snug text-subtle">
+                  {host}
+                </span>
+              </span>
+            ) : (
+              <DitheredPreview>
+                {/* eslint-disable-next-line @next/next/no-img-element -- Cloudinary srcset + native lazy; no activation queue */}
+                <img
+                  key={`${link.id}-${resolvedImageUrl}`}
+                  src={feedSrc}
+                  srcSet={feedSrcSet}
+                  sizes={feedSrcSet ? imageSizes : undefined}
+                  alt={link.displayTitle}
+                  loading={priority ? "eager" : "lazy"}
+                  fetchPriority={priority ? "high" : "auto"}
+                  referrerPolicy="no-referrer"
+                  decoding="async"
+                  draggable={false}
+                  onLoad={() => setLoaded(true)}
+                  className={`absolute inset-0 h-full w-full object-cover object-top transition-opacity duration-200 ${
+                    loaded ? "opacity-100" : "opacity-0"
+                  } ${invert} ${showLoader ? "opacity-60" : ""}`}
+                  onError={() => {
+                    if (loginGated) return;
+                    const next = nextCardPreview(
+                      resolvedImageUrl,
+                      googleFaviconUrl(link.url),
+                      fallbackUrl !== null,
+                    );
+                    if (next) {
+                      setFallbackUrl(next);
+                      setLoaded(false);
+                      return;
+                    }
+                    setBroken(true);
+                  }}
+                />
+              </DitheredPreview>
+            )}
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
             {faviconSrc ? (
               // eslint-disable-next-line @next/next/no-img-element -- small badge; native lazy
