@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Image from "next/image";
 import MorphText from "@/components/MorphText";
 import { AppLoader } from "@/components/AppLoader";
@@ -18,6 +18,11 @@ import {
 } from "@/lib/ui-sound";
 import { controlPress } from "@/components/vault/types";
 import { BANNER_GRADIENTS, nextBannerStyle } from "./constants";
+import {
+  getAvatarFileIssues,
+  getNameIssues,
+  getUsernameIssues,
+} from "@/lib/profile";
 
 const profileField =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
@@ -64,7 +69,14 @@ export function ProfileTab({
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
+  const nameIssues = getNameIssues(name);
+  const usernameIssues =
+    username.trim().length > 0 ? getUsernameIssues(username.trim()) : [];
+  const fieldError = nameIssues[0] ?? (usernameIssues.length
+    ? `Username must be: ${usernameIssues.join("; ")}`
+    : null);
 
   useEffect(() => {
     setSoundsOn(getSoundsEnabled());
@@ -135,7 +147,16 @@ export function ProfileTab({
   }
 
   return (
-    <form onSubmit={onSaveProfile} className="space-y-8">
+    <form
+      onSubmit={(event: FormEvent) => {
+        if (fieldError || photoError) {
+          event.preventDefault();
+          return;
+        }
+        onSaveProfile(event);
+      }}
+      className="space-y-8"
+    >
       {error && (
         <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
           {error}
@@ -153,9 +174,22 @@ export function ProfileTab({
           <label className="group/avatar absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-neutral-900 shadow-xl select-none transition-colors duration-150 hover:border-muted focus-within:ring-2 focus-within:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] focus-within:ring-offset-2 focus-within:ring-offset-surface">
             <input
               type="file"
-              accept="image/*"
-              onChange={onAvatarChange}
+              accept="image/png,image/jpeg,image/webp,image/gif"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (!file) return;
+                const issues = getAvatarFileIssues(file);
+                if (issues.length > 0) {
+                  setPhotoError(issues[0]);
+                  event.target.value = "";
+                  return;
+                }
+                setPhotoError(null);
+                onAvatarChange(event);
+              }}
               aria-label="Change profile photo"
+              aria-invalid={photoError ? true : undefined}
+              aria-describedby={photoError ? "profile-photo-error" : undefined}
               className="absolute inset-0 z-10 cursor-pointer opacity-0"
             />
             {avatarPreview ? (
@@ -186,6 +220,11 @@ export function ProfileTab({
           </div>
         </div>
       </div>
+      {photoError ? (
+        <p id="profile-photo-error" className="px-1 text-[12px] text-danger" role="alert">
+          {photoError}
+        </p>
+      ) : null}
 
       {/* Accent Banner Selector */}
       <section className="space-y-3">
@@ -246,7 +285,14 @@ export function ProfileTab({
             className={profileField}
             placeholder="Your name"
             autoComplete="name"
+            aria-invalid={nameIssues.length > 0 ? true : undefined}
+            aria-describedby={nameIssues.length > 0 ? "profile-name-error" : undefined}
           />
+          {nameIssues.length > 0 ? (
+            <span id="profile-name-error" className="block text-[12px] text-danger" role="alert">
+              {nameIssues[0]}
+            </span>
+          ) : null}
         </label>
         <label className="block space-y-1.5 group">
           <span className="text-xs font-medium text-muted transition group-focus-within:text-foreground">Username</span>
@@ -257,7 +303,16 @@ export function ProfileTab({
             className={`${profileField} font-mono`}
             placeholder="your_handle"
             autoComplete="username"
+            aria-invalid={usernameIssues.length > 0 ? true : undefined}
+            aria-describedby={
+              usernameIssues.length > 0 ? "profile-username-error" : undefined
+            }
           />
+          {usernameIssues.length > 0 ? (
+            <span id="profile-username-error" className="block text-[12px] text-danger" role="alert">
+              Username must be: {usernameIssues.join("; ")}
+            </span>
+          ) : null}
         </label>
         <label className="block space-y-1.5 sm:col-span-2 group">
           <span className="text-xs font-medium text-muted transition group-focus-within:text-foreground">Email address</span>
@@ -275,7 +330,7 @@ export function ProfileTab({
       <div className="flex items-center gap-3 pt-2">
         <button
           type="submit"
-          disabled={isSaving}
+          disabled={isSaving || Boolean(fieldError || photoError)}
           className={`inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg shadow-md hover:opacity-90 disabled:opacity-50 ${controlPress}`}
         >
           <MorphText>

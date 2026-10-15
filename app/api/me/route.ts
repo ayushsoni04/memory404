@@ -9,6 +9,7 @@ import {
 } from "@/lib/db/repositories";
 import {
   getAvatarUrlIssues,
+  getNameIssues,
   getUsernameIssues,
   isValidBannerStyle,
   normalizeUsername,
@@ -70,11 +71,9 @@ export async function PATCH(request: Request) {
       patch.name = null;
     } else if (typeof body.name === "string") {
       const name = body.name.trim();
-      if (name.length > 80) {
-        return NextResponse.json(
-          { error: "Name must be 80 characters or fewer" },
-          { status: 400 },
-        );
+      const nameIssues = getNameIssues(name);
+      if (nameIssues.length > 0) {
+        return NextResponse.json({ error: nameIssues[0] }, { status: 400 });
       }
       patch.name = name || null;
     } else {
