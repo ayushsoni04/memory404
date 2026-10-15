@@ -18,7 +18,9 @@ import MorphText from "@/components/MorphText";
 import SearchResultText from "@/components/vault/SearchResultText";
 import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
 import { matchingPalettePages, palettePagesForUser } from "@/lib/palette-pages";
+import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
+import { NoteCount } from "@/components/vault/NoteCount";
 import { saveOfferUrl } from "@/lib/save-query";
 import { searchResultGroupLabel } from "@/lib/search-group";
 
@@ -200,6 +202,11 @@ export default function CommandPalette({
       closePalette();
       return;
     }
+    const issue = noteIssue(note);
+    if (issue) {
+      setNoteError(issue);
+      return;
+    }
     setSavingNote(true);
     setNoteError(null);
     const result = await saveLinkNote(savedLink.id, trimmed);
@@ -245,16 +252,23 @@ export default function CommandPalette({
             value={note}
             rows={2}
             placeholder="What should you remember?"
+            aria-invalid={noteError ? true : undefined}
+            aria-describedby={
+              [noteCountLabel(note) ? "palette-note-count" : null, noteError ? "palette-note-error" : null]
+                .filter(Boolean)
+                .join(" ") || undefined
+            }
             onChange={(event) => {
               setNote(event.target.value);
-              setNoteError(null);
+              setNoteError(noteIssue(event.target.value));
             }}
             className="w-full resize-none rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
           />
+          <NoteCount notes={note} id="palette-note-count" />
           <div>
             <button
               type="submit"
-              disabled={savingNote}
+              disabled={savingNote || Boolean(noteIssue(note))}
               className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
             >
               <MorphText duration={220}>
@@ -263,7 +277,7 @@ export default function CommandPalette({
             </button>
           </div>
           {noteError ? (
-            <p className="text-[12px] text-danger" role="alert">
+            <p id="palette-note-error" className="text-[12px] text-danger" role="alert">
               {noteError}
             </p>
           ) : null}

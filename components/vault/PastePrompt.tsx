@@ -7,7 +7,9 @@ import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
 import type { LinkApiRow } from "@/lib/links";
+import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
+import { NoteCount } from "./NoteCount";
 import { applyShellStroke, clearShellStroke } from "@/lib/card-vicinity-stroke";
 import { FIELD_CLASS } from "./types";
 
@@ -169,23 +171,31 @@ export default function PastePrompt({
                 value={notes}
                 onChange={(e) => {
                   setNotes(e.target.value);
-                  setError(null);
+                  setError(noteIssue(e.target.value));
                 }}
                 placeholder="What should you remember?"
                 rows={2}
+                aria-invalid={error ? true : undefined}
+                aria-describedby={
+                  [noteCountLabel(notes) ? "paste-note-count" : null, error ? "paste-note-error" : null]
+                    .filter(Boolean)
+                    .join(" ") || undefined
+                }
                 className={`${FIELD_CLASS} resize-none`}
               />
+              <NoteCount notes={notes} id="paste-note-count" />
               <button
                 type="button"
                 onClick={() => void finishFlow()}
-                className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+                disabled={Boolean(noteIssue(notes))}
+                className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
               >
                 <MorphText duration={220}>
                   {notes.trim() ? "Save Notes" : "Done"}
                 </MorphText>
               </button>
               {error ? (
-                <p className="text-[11px] text-danger" role="alert">
+                <p id="paste-note-error" className="text-[11px] text-danger" role="alert">
                   {error}
                 </p>
               ) : null}

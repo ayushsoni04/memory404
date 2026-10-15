@@ -12,7 +12,8 @@ import {
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
-import { noteIssue } from "@/lib/note-limit";
+import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { NoteCount } from "@/components/vault/NoteCount";
 import {
   formatRelativeTime,
   linkHostname,
@@ -79,7 +80,7 @@ const NoteEditor = forwardRef<
 >(function NoteEditor({ linkId, notes, onSaved }, ref) {
   const [draft, setDraft] = useState(notes ?? "");
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() => noteIssue(notes ?? ""));
   const saved = (notes ?? "").trim();
   const dirty = draft.trim() !== saved;
   const draftRef = useRef(draft);
@@ -137,6 +138,12 @@ const NoteEditor = forwardRef<
     [save],
   );
 
+  const countId = `link-note-count-${linkId}`;
+  const errorId = `link-note-error-${linkId}`;
+  const describedBy = [noteCountLabel(draft) ? countId : null, error ? errorId : null]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <div className="mt-4">
       <label htmlFor={`link-note-${linkId}`} className="text-[12px] text-subtle">
@@ -151,20 +158,23 @@ const NoteEditor = forwardRef<
         }}
         rows={3}
         placeholder="What should you remember?"
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy || undefined}
         className={`mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-subtle focus:border-white/30 ${overlayFocus}`}
       />
+      <NoteCount notes={draft} id={countId} />
       {dirty ? (
         <button
           type="button"
           onClick={() => void save()}
-          disabled={saving}
+          disabled={saving || Boolean(noteIssue(draft))}
           className={`mt-2 inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 ${overlayFocus}`}
         >
           {saving ? "Saving…" : "Save note"}
         </button>
       ) : null}
       {error ? (
-        <p className="mt-2 text-[12px] text-danger" role="alert">
+        <p id={errorId} className="mt-2 text-[12px] text-danger" role="alert">
           {error}
         </p>
       ) : null}

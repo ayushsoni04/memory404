@@ -5,7 +5,9 @@ import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import type { LinkApiRow } from "@/lib/links";
+import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
+import { NoteCount } from "@/components/vault/NoteCount";
 import { controlPress } from "@/components/vault/types";
 
 const addLinkField =
@@ -243,21 +245,30 @@ export default function AddLinkCard({
                 value={notes}
                 onChange={(e) => {
                   setNotes(e.target.value);
-                  setError(null);
+                  setError(noteIssue(e.target.value));
                 }}
                 tabIndex={phase === "notes" ? 0 : -1}
                 placeholder="What should you remember?"
                 rows={2}
                 aria-invalid={error ? true : undefined}
-                aria-describedby={error ? "add-link-note-error" : undefined}
+                aria-describedby={
+                  [
+                    noteCountLabel(notes) ? "add-link-note-count" : null,
+                    error ? "add-link-note-error" : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" ") || undefined
+                }
                 className={`${addLinkField} resize-none py-1.5`}
               />
+              <NoteCount notes={notes} id="add-link-note-count" />
               <div className="flex items-center gap-2">
                 <button
                   type="button"
                   onClick={finishFlow}
+                  disabled={Boolean(noteIssue(notes))}
                   tabIndex={phase === "notes" ? 0 : -1}
-                  className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg ${controlPress}`}
+                  className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-50 ${controlPress}`}
                 >
                   <MorphText duration={220}>
                     {notes.trim() ? "Save Notes" : "Done"}
