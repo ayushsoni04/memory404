@@ -14,8 +14,9 @@ import {
   authSubmitClass,
 } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
-import { getPasswordRequirementIssues, PASSWORD_HINT } from "@/lib/password-policy";
+import { PASSWORD_HINT } from "@/lib/password-policy";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { signupPasswordErrors } from "@/lib/signup-password";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
 
 export function SignupForm() {
@@ -24,23 +25,32 @@ export function SignupForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [attempted, setAttempted] = useState(false);
   const [leadSource, setLeadSource] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const allowDevSkip = process.env.NODE_ENV !== "production";
 
-  const passwordIssues = getPasswordRequirementIssues(password);
+  const fieldErrors = signupPasswordErrors(password, confirm);
+  const passwordError =
+    fieldErrors.password && (attempted || password.length > 0)
+      ? fieldErrors.password
+      : null;
+  const confirmError =
+    fieldErrors.confirm && (attempted || confirm.length > 0)
+      ? fieldErrors.confirm
+      : null;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setAttempted(true);
 
-    if (password.length > 0 && passwordIssues.length > 0) {
-      setError(PASSWORD_HINT);
-      return;
-    }
+    if (fieldErrors.password || fieldErrors.confirm) return;
 
     setIsSubmitting(true);
     const utm = readUtmFromSearchParams(searchParams);
@@ -124,7 +134,12 @@ export function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="new-password"
-              aria-describedby="signup-password-hint"
+              aria-invalid={passwordError ? true : undefined}
+              aria-describedby={
+                passwordError
+                  ? "signup-password-hint signup-password-error"
+                  : "signup-password-hint"
+              }
               className={authPasswordFieldClass}
               required
             />
@@ -140,6 +155,43 @@ export function SignupForm() {
           <p id="signup-password-hint" className="text-[10px] text-subtle">
             {PASSWORD_HINT}
           </p>
+          {passwordError ? (
+            <p id="signup-password-error" className="text-xs text-danger" role="alert">
+              {passwordError}
+            </p>
+          ) : null}
+        </div>
+
+        <div className="space-y-1.5">
+          <label htmlFor="signup-password-confirm" className="block text-[11px] font-medium text-muted">
+            Confirm password
+          </label>
+          <div className="relative">
+            <input
+              id="signup-password-confirm"
+              type={showConfirm ? "text" : "password"}
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              placeholder="••••••••"
+              autoComplete="new-password"
+              aria-invalid={confirmError ? true : undefined}
+              aria-describedby={confirmError ? "signup-password-confirm-error" : undefined}
+              className={authPasswordFieldClass}
+            />
+            <button
+              type="button"
+              onClick={() => setShowConfirm(!showConfirm)}
+              aria-label={showConfirm ? "Hide confirmed password" : "Show confirmed password"}
+              className={authRevealClass}
+            >
+              {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
+            </button>
+          </div>
+          {confirmError ? (
+            <p id="signup-password-confirm-error" className="text-xs text-danger" role="alert">
+              {confirmError}
+            </p>
+          ) : null}
         </div>
 
         <label className="block space-y-1.5">
