@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
+import { CapsLockHint } from "@/components/auth/CapsLockHint";
 import {
   authPasswordFieldClass,
   authRevealClass,
@@ -22,6 +23,8 @@ export function ResetPasswordForm() {
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -103,6 +106,8 @@ export function ResetPasswordForm() {
                 aria-describedby={
                   passwordError ? "reset-password-hint reset-password-error" : "reset-password-hint"
                 }
+                onFocus={() => setPasswordFocused(true)}
+                onBlur={() => setPasswordFocused(false)}
                 className={authPasswordFieldClass}
                 required
               />
@@ -118,6 +123,7 @@ export function ResetPasswordForm() {
             <p id="reset-password-hint" className="text-[10px] text-subtle">
               {PASSWORD_HINT}
             </p>
+            <CapsLockHint active={passwordFocused} />
             {passwordError ? (
               <p id="reset-password-error" className="text-xs text-danger" role="alert">
                 {passwordError}
@@ -139,6 +145,8 @@ export function ResetPasswordForm() {
                 autoComplete="new-password"
                 aria-invalid={confirmError ? true : undefined}
                 aria-describedby={confirmError ? "reset-password-confirm-error" : undefined}
+                onFocus={() => setConfirmFocused(true)}
+                onBlur={() => setConfirmFocused(false)}
                 className={authPasswordFieldClass}
               />
               <button
@@ -155,6 +163,7 @@ export function ResetPasswordForm() {
                 {confirmError}
               </p>
             ) : null}
+            <CapsLockHint active={confirmFocused} />
           </div>
 
           {error ? (
