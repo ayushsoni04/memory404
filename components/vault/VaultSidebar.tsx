@@ -13,6 +13,7 @@ import {
   EXTENSION_ZIP_HREF,
 } from "@/lib/extension-download";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { explainLoadError } from "@/lib/load-error";
 import { GridSizeControl } from "./GridSizeControl";
 import GroupSearchCommand from "./GroupSearchCommand";
 import SidebarDitherBackground from "./SidebarDitherBackground";
@@ -292,7 +293,7 @@ export default function VaultSidebar({
             ) : null}
             {groupsError ? (
               <p className="text-xs text-danger" role="alert">
-                {groupsError}{" "}
+                {explainLoadError(groupsError)}{" "}
                 <button
                   type="button"
                   onClick={() => void loadGroups()}

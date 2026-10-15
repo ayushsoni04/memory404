@@ -12,6 +12,7 @@ import {
 } from "cmdk";
 import { Folder, LayoutGrid, Plus, Settings, Trash2 } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
+import { asSentence, explainLoadError } from "@/lib/load-error";
 import type { LinkApiRow } from "@/lib/links";
 import MorphText from "@/components/MorphText";
 import SearchResultText from "@/components/vault/SearchResultText";
@@ -287,7 +288,8 @@ export default function CommandPalette({
         {searchError && !loadingLinks ? (
           <div className="flex flex-col items-start gap-2 px-2 py-3" role="alert">
             <p className="text-[13px] text-danger">
-              {searchError}. Your library is unchanged.
+              {asSentence(explainLoadError(searchError) ?? searchError)} Your library is
+              unchanged.
             </p>
             <button
               type="button"

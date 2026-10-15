@@ -3,6 +3,7 @@
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
 import MorphText from "@/components/MorphText";
+import { explainLoadError } from "@/lib/load-error";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
 import { replaceFeedWithLoadError } from "./feed-load";
@@ -71,8 +72,10 @@ export default function VaultFeed({
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
 
+  const groupsLoadMessage = explainLoadError(groupsError);
   const groupsFailedToLoad = Boolean(
-    groupsError && /load groups/i.test(groupsError),
+    groupsError &&
+      (groupsLoadMessage !== groupsError || /load groups/i.test(groupsError)),
   );
   const feedBody = groupsFailedToLoad && !loadingLinks && sortedLinks.length === 0 ? (
     <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface-elevated p-6">
@@ -110,7 +113,7 @@ export default function VaultFeed({
     </div>
   ) : replaceFeedWithLoadError(fetchError, sortedLinks.length) ? (
     <div className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6">
-      <p className="text-sm text-danger">{fetchError}</p>
+      <p className="text-sm text-danger">{explainLoadError(fetchError)}</p>
       <p className="text-[13px] text-subtle">Something went wrong loading this group.</p>
       <button
         type="button"
@@ -155,7 +158,7 @@ export default function VaultFeed({
           className="mt-8 flex w-full flex-col items-center gap-3 pb-12 text-center"
           role="alert"
         >
-          <p className="text-sm text-danger">{loadMoreError}</p>
+          <p className="text-sm text-danger">{explainLoadError(loadMoreError)}</p>
           <p className="text-[13px] text-subtle">The links above are still here.</p>
           <button
             type="button"
