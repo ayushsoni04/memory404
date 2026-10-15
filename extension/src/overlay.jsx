@@ -5,6 +5,7 @@ import LoadingState from "./LoadingState";
 import { groupPickerKeyAction } from "./group-picker";
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { saveHeadline } from "./save-outcome";
+import { libraryHomeUrl } from "./library-url";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
@@ -406,6 +407,8 @@ function App({ onClose }) {
     const name = groups.find((g) => g.id === currentGroupId)?.name ?? null;
     return displayGroupName(name);
   }, [groups, currentGroupId]);
+
+  const libraryUrl = libraryHomeUrl(apiBase);
 
   const resolveTargetGroup = async () => {
     if (selectedGroupId) {
@@ -1068,6 +1071,17 @@ function App({ onClose }) {
                         {noteError ? <p className="field-error">{noteError}</p> : null}
                       </div>
                     )
+                  ) : null}
+
+                  {phase === "saved" && libraryUrl ? (
+                    <a
+                      className="library-link"
+                      href={libraryUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      View in memory404
+                    </a>
                   ) : null}
 
                   {error ? <p className="field-error">{error}</p> : null}
