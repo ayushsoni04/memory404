@@ -58,6 +58,9 @@ describe("empty statistics", () => {
     render(<StatsTab bannerStyle="midnight" />);
 
     expect(await screen.findByText("4")).toBeInTheDocument();
+    expect(screen.getByText("Still in your library. Trash is not counted.")).toBeInTheDocument();
+    expect(screen.getByText("Groups you can open. Trash is not counted.")).toBeInTheDocument();
+    expect(screen.queryByText(/workspace categories/)).not.toBeInTheDocument();
     expect(screen.getByText("Reading")).toBeInTheDocument();
     expect(screen.getByText("Link addition activity")).toBeInTheDocument();
     expect(screen.queryByText("No links yet")).not.toBeInTheDocument();

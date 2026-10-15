@@ -8,6 +8,7 @@ import {
   EMPTY_LIBRARY_STATS,
   isEmptyLibraryStats,
 } from "@/lib/stats-empty";
+import { STATS_GROUP_CAPTION, STATS_LINK_CAPTION } from "@/lib/stats-scope";
 import { explainLoadError } from "@/lib/load-error";
 import { ActivityGrid } from "./ActivityGrid";
 
@@ -113,7 +114,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
           ) : (
             <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground tabular-nums font-mono">{totalLinks}</p>
           )}
-          <p className="mt-1.5 text-xs text-subtle">Total links saved across all workspace categories.</p>
+          <p className="mt-1.5 text-xs text-subtle">{STATS_LINK_CAPTION}</p>
         </div>
 
         <div className="rounded-xl border border-border bg-surface p-5 hover:border-neutral-700 hover:shadow-[0_0_15px_rgba(255,255,255,0.02)] transition duration-300 group">
@@ -126,7 +127,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
           ) : (
             <p className="mt-3 text-3xl font-semibold tracking-tight text-foreground tabular-nums font-mono">{totalGroups}</p>
           )}
-          <p className="mt-1.5 text-xs text-subtle">Active folders organizing link inspiration feeds.</p>
+          <p className="mt-1.5 text-xs text-subtle">{STATS_GROUP_CAPTION}</p>
         </div>
       </div>
 

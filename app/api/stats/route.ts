@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { getCollections } from "@/lib/db/mongodb";
+import { activeLibraryMatch } from "@/lib/stats-scope";
 
 export async function GET() {
   const auth = await requireAuth();
@@ -8,12 +9,13 @@ export async function GET() {
 
   try {
     const { groups: groupsCollection, links } = await getCollections();
+    const library = activeLibraryMatch(auth.id);
     const [totalLinks, totalGroups, groups, frequency] = await Promise.all([
-      links.countDocuments({ userId: auth.id }),
-      groupsCollection.countDocuments({ userId: auth.id }),
+      links.countDocuments(library),
+      groupsCollection.countDocuments(library),
       groupsCollection
         .aggregate<{ _id: string; name: string; count: number }>([
-          { $match: { userId: auth.id } },
+          { $match: library },
           { $sort: { sortOrder: 1 } },
           {
             $lookup: {
@@ -22,7 +24,7 @@ export async function GET() {
               pipeline: [
                 {
                   $match: {
-                    userId: auth.id,
+                    ...library,
                     $expr: { $eq: ["$groupId", "$$groupId"] },
                   },
                 },
@@ -43,6 +45,7 @@ export async function GET() {
         .toArray(),
       links
         .aggregate<{ date: string; count: number }>([
+          // Days you added a link, including one you later moved to Trash.
           { $match: { userId: auth.id } },
           {
             $group: {
