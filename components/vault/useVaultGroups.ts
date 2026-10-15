@@ -4,8 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useQueryState } from "nuqs";
 import { apiUrl } from "@/lib/api-base";
-import { createGroupErrorMessage } from "./create-group";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { groupNameIssue } from "@/lib/group-name";
+import { createGroupErrorMessage } from "./create-group";
 import { groupTrashFailureMessage } from "./GroupTrashConfirm";
 import { MISSING_GROUP_NOTICE, resolveOpenedGroup } from "./opened-group";
 import {
@@ -165,8 +166,9 @@ export function useVaultGroups(
 
   const createGroup = async () => {
     const name = createGroupName.trim();
-    if (!name) {
-      setCreateGroupError("Group name cannot be empty");
+    const issue = groupNameIssue(name);
+    if (issue) {
+      setCreateGroupError(issue);
       return;
     }
     const insertAt =

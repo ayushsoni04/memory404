@@ -10,6 +10,7 @@ import {
   listGroupsWithPreviews,
   reorderGroups,
 } from "@/lib/db/repositories";
+import { groupNameIssue } from "@/lib/group-name";
 
 export const groupsRouter = Router();
 
@@ -86,6 +87,11 @@ groupsRouter.post("/", async (req, res) => {
     const name = body.name.trim();
     if (!name) {
       res.status(400).json({ error: "name cannot be empty" });
+      return;
+    }
+    const nameIssue = groupNameIssue(name);
+    if (nameIssue) {
+      res.status(400).json({ error: nameIssue });
       return;
     }
 
