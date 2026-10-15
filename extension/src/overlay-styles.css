@@ -92,6 +92,21 @@
   padding: 14px 16px 12px;
 }
 
+#m404-save-root .library-link {
+  display: inline-block;
+  margin: 4px 12px 0;
+  color: var(--foreground);
+  font-size: 13px;
+  line-height: 1.4;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+#m404-save-root .library-link:focus-visible {
+  outline: 2px solid var(--foreground);
+  outline-offset: 2px;
+}
+
 #m404-save-root .orb-status {
   display: flex;
   flex-direction: column;
