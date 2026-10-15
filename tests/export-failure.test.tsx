@@ -107,6 +107,7 @@ describe("library export", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not export your links. Try again.",
     );
+    expect(screen.queryByText(/Downloaded memory404-backup/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Export backup JSON" })).toBeEnabled();
 
     fireEvent.click(screen.getByRole("button", { name: "Export backup JSON" }));
@@ -117,5 +118,35 @@ describe("library export", () => {
     const urls = fetchMock.mock.calls.map(([input]) => requestUrl(input));
     expect(urls.filter((url) => url.includes("/api/me"))).toHaveLength(1);
     expect(urls.filter((url) => url.includes("/api/links"))).toHaveLength(2);
+  });
+
+  it("names the backup file after it downloads", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = requestUrl(input);
+        if (url.includes("/api/me")) {
+          return { ok: true, json: async () => ({ user: profile }) };
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            links: [{ id: "link-1", url: "https://example.com" }],
+            hasMore: false,
+          }),
+        };
+      }),
+    );
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Export backup JSON" }),
+    );
+
+    expect(
+      await screen.findByText(/^Downloaded memory404-backup-\d{4}-\d{2}-\d{2}\.json$/),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 });

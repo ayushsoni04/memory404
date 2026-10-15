@@ -70,6 +70,7 @@ export function ProfileTab({
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
+  const [exportNotice, setExportNotice] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
   const nameIssues = getNameIssues(name);
@@ -86,6 +87,7 @@ export function ProfileTab({
   // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
     setExportError(null);
+    setExportNotice(null);
     setIsExporting(true);
     try {
       const allLinks: unknown[] = [];
@@ -102,13 +104,15 @@ export function ProfileTab({
         cursor = data.nextCursor as string;
       }
 
+      const filename = `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`;
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLinks, null, 2));
       const downloadAnchor = document.createElement("a");
       downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`);
+      downloadAnchor.setAttribute("download", filename);
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      setExportNotice(`Downloaded ${filename}`);
     } catch {
       setExportError("Could not export your links. Try again.");
     } finally {
@@ -425,6 +429,11 @@ export function ProfileTab({
         {exportError ? (
           <p className="text-[12px] text-danger" role="alert">
             {exportError}
+          </p>
+        ) : null}
+        {exportNotice ? (
+          <p className="text-[12px] text-success" role="status">
+            {exportNotice}
           </p>
         ) : null}
       </section>
