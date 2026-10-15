@@ -13,6 +13,7 @@ describe("httpUrlFromQuery", () => {
     expect(httpUrlFromQuery("design inspiration")).toBeNull();
     expect(httpUrlFromQuery("javascript:alert(1)")).toBeNull();
     expect(httpUrlFromQuery("https://localhost")).toBeNull();
+    expect(httpUrlFromQuery("https://user:secret@example.com/docs")).toBeNull();
   });
 });
 

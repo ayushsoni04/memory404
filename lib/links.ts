@@ -204,16 +204,28 @@ export function isValidHttpUrl(urlString: string): boolean {
 
 const EXPLICIT_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 
+/** Long enough for a signed download link, short enough to store and show. */
+export const LINK_URL_MAX = 8_192;
+
+export const LINK_URL_HINT = "Enter a link, like example.com/page";
+
+function urlHasCredentials(url: URL): boolean {
+  return Boolean(url.username || url.password);
+}
+
 /**
  * Turn a pasted link into an http(s) URL.
  * `linear.app/docs` becomes `https://linear.app/docs`.
  * A URL that is already http(s) is kept as typed.
- * Sentences, `javascript:`, and hosts with no dot return null.
+ * Sentences, `javascript:`, credentialed URLs, and hosts with no dot return null.
  */
 export function coerceHttpUrl(raw: string): string | null {
   const trimmed = raw.trim();
-  if (!trimmed || /\s/.test(trimmed)) return null;
-  if (isValidHttpUrl(trimmed)) return trimmed;
+  if (!trimmed || trimmed.length > LINK_URL_MAX || /\s/.test(trimmed)) return null;
+  if (isValidHttpUrl(trimmed)) {
+    if (urlHasCredentials(new URL(trimmed))) return null;
+    return trimmed;
+  }
   if (EXPLICIT_SCHEME.test(trimmed)) return null;
 
   let url: URL;
@@ -224,10 +236,36 @@ export function coerceHttpUrl(raw: string): string | null {
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return null;
   if (!url.hostname.includes(".")) return null;
-  if (url.username || url.password) return null;
+  if (urlHasCredentials(url)) return null;
   // A bare host gets a slash from the URL parser. Store it without one.
   if (url.pathname === "/" && !url.search && !url.hash) return url.origin;
   return url.href;
+}
+
+/**
+ * Why a pasted link cannot be saved.
+ * Null means `coerceHttpUrl` will accept it.
+ */
+export function linkUrlIssue(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed || /\s/.test(trimmed)) return LINK_URL_HINT;
+  if (trimmed.length > LINK_URL_MAX) return "That link is too long to save.";
+
+  let parsed: URL | null = null;
+  if (isValidHttpUrl(trimmed)) {
+    parsed = new URL(trimmed);
+  } else if (!EXPLICIT_SCHEME.test(trimmed)) {
+    try {
+      parsed = new URL(`https://${trimmed}`);
+    } catch {
+      parsed = null;
+    }
+  }
+  if (parsed && urlHasCredentials(parsed)) {
+    return "Remove the username and password from the link.";
+  }
+  if (!coerceHttpUrl(trimmed)) return LINK_URL_HINT;
+  return null;
 }
 
 export function truncateUrl(url: string, max = 48): string {

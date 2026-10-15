@@ -1,10 +1,13 @@
+import { LINK_URL_MAX } from "@/lib/links";
+
 /** Return a public http(s) URL when the query is itself a link, otherwise null. */
 export function httpUrlFromQuery(query: string): string | null {
   const trimmed = query.trim();
-  if (!trimmed || /\s/.test(trimmed)) return null;
+  if (!trimmed || trimmed.length > LINK_URL_MAX || /\s/.test(trimmed)) return null;
   try {
     const url = new URL(trimmed);
     if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+    if (url.username || url.password) return null;
     if (!url.hostname.includes(".")) return null;
     return url.toString();
   } catch {
