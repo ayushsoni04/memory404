@@ -1,6 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
@@ -53,44 +61,73 @@ function isJunkFavicon(url: string | null | undefined): boolean {
   return /dummyimage\.com|placehold\.|via\.placeholder/i.test(url);
 }
 
-function NoteEditor({
-  linkId,
-  notes,
-  onSaved,
-}: {
-  linkId: string;
-  notes: string | null;
-  onSaved: (notes: string | null) => void;
-}) {
+type NoteEditorHandle = {
+  isDirty: () => boolean;
+  saveIfDirty: () => Promise<boolean>;
+};
+
+const NoteEditor = forwardRef<
+  NoteEditorHandle,
+  {
+    linkId: string;
+    notes: string | null;
+    onSaved: (notes: string | null) => void;
+  }
+>(function NoteEditor({ linkId, notes, onSaved }, ref) {
   const [draft, setDraft] = useState(notes ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const saved = (notes ?? "").trim();
   const dirty = draft.trim() !== saved;
+  const draftRef = useRef(draft);
+  const savedRef = useRef(saved);
+  const inflight = useRef<Promise<boolean> | null>(null);
+  draftRef.current = draft;
+  savedRef.current = saved;
 
-  const save = async () => {
-    setSaving(true);
-    setError(null);
-    const next = draft.trim() ? draft.trim() : null;
-    try {
-      const res = await fetch(apiUrl(`/api/links/${linkId}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ notes: next }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setError(typeof data.error === "string" ? data.error : "Could not save the note");
+  const save = useCallback((): Promise<boolean> => {
+    if (inflight.current) return inflight.current;
+    const next = draftRef.current.trim() ? draftRef.current.trim() : null;
+    const run = (async (): Promise<boolean> => {
+      setSaving(true);
+      setError(null);
+      try {
+        const res = await fetch(apiUrl(`/api/links/${linkId}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ notes: next }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setError(typeof data.error === "string" ? data.error : "Could not save the note");
+          return false;
+        }
+        onSaved(next);
+        savedRef.current = next ?? "";
+        return true;
+      } catch {
+        setError("Could not save the note. Try again.");
+        return false;
+      } finally {
         setSaving(false);
-        return;
+        inflight.current = null;
       }
-      onSaved(next);
-      setSaving(false);
-    } catch {
-      setError("Could not save the note. Try again.");
-      setSaving(false);
-    }
-  };
+    })();
+    inflight.current = run;
+    return run;
+  }, [linkId, onSaved]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      isDirty: () => draftRef.current.trim() !== savedRef.current,
+      saveIfDirty: () => {
+        if (draftRef.current.trim() === savedRef.current) return Promise.resolve(true);
+        return save();
+      },
+    }),
+    [save],
+  );
 
   return (
     <div className="mt-4">
@@ -125,7 +162,7 @@ function NoteEditor({
       ) : null}
     </div>
   );
-}
+});
 
 function prefersReducedMotion() {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -180,6 +217,8 @@ export default function LinkDetailOverlay({
   const flyRef = useRef<HTMLDivElement | null>(null);
   const chromeRef = useRef<HTMLDivElement | null>(null);
   const closingRef = useRef(false);
+  const noteRef = useRef<NoteEditorHandle>(null);
+  const leavingRef = useRef(false);
   const hasOpenedRef = useRef(false);
   const previousLinkIdRef = useRef(link.id);
   const keyboardNavigationRef = useRef(false);
@@ -319,11 +358,25 @@ export default function LinkDetailOverlay({
     [onClose],
   );
 
+  const leave = useCallback((go: () => void) => {
+    const editor = noteRef.current;
+    if (!editor || !editor.isDirty()) {
+      go();
+      return;
+    }
+    if (leavingRef.current) return;
+    leavingRef.current = true;
+    void editor.saveIfDirty().then((ok) => {
+      leavingRef.current = false;
+      if (ok) go();
+    });
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        animateClose(true);
+        leave(() => animateClose(true));
       } else if (
         (e.key === "ArrowLeft" || e.key === "ArrowRight") &&
         !e.altKey &&
@@ -333,12 +386,16 @@ export default function LinkDetailOverlay({
       ) {
         if (e.key === "ArrowLeft" && hasPrev) {
           e.preventDefault();
-          keyboardNavigationRef.current = true;
-          onPrev();
+          leave(() => {
+            keyboardNavigationRef.current = true;
+            onPrev();
+          });
         } else if (e.key === "ArrowRight" && hasNext) {
           e.preventDefault();
-          keyboardNavigationRef.current = true;
-          onNext();
+          leave(() => {
+            keyboardNavigationRef.current = true;
+            onNext();
+          });
         }
       }
     };
@@ -372,7 +429,7 @@ export default function LinkDetailOverlay({
       root?.removeEventListener("keydown", trapTab);
       document.body.style.overflow = prevOverflow;
     };
-  }, [animateClose, hasPrev, hasNext, onPrev, onNext, link.id]);
+  }, [animateClose, hasPrev, hasNext, leave, onPrev, onNext, link.id]);
 
   useLayoutEffect(() => {
     const backdrop = backdropRef.current;
@@ -535,7 +592,7 @@ export default function LinkDetailOverlay({
       <div
         ref={backdropRef}
         className="absolute inset-0 bg-black/55 backdrop-blur-[2px]"
-        onClick={() => animateClose()}
+        onClick={() => leave(() => animateClose())}
       />
 
       {/* Intermediate shared-element layer (card → detail) */}
@@ -557,7 +614,7 @@ export default function LinkDetailOverlay({
 
       <div
         className="relative z-10 flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto overscroll-contain"
-        onClick={() => animateClose()}
+        onClick={() => leave(() => animateClose())}
       >
         <div
           ref={chromeRef}
@@ -566,7 +623,7 @@ export default function LinkDetailOverlay({
         >
           <button
             type="button"
-            onClick={() => animateClose()}
+            onClick={() => leave(() => animateClose())}
             className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 hover:text-foreground ${overlayFocus}`}
             data-overlay-close=""
             aria-label="Close"
@@ -576,7 +633,7 @@ export default function LinkDetailOverlay({
           <button
             type="button"
             disabled={!hasPrev}
-            onClick={onPrev}
+            onClick={() => leave(onPrev)}
             className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 ${overlayFocus}`}
             aria-label="Previous"
           >
@@ -585,7 +642,7 @@ export default function LinkDetailOverlay({
           <button
             type="button"
             disabled={!hasNext}
-            onClick={onNext}
+            onClick={() => leave(onNext)}
             className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 ${overlayFocus}`}
             aria-label="Next"
           >
@@ -667,6 +724,7 @@ export default function LinkDetailOverlay({
 
                 <NoteEditor
                   key={link.id}
+                  ref={noteRef}
                   linkId={link.id}
                   notes={link.notes}
                   onSaved={(notes) => onNotesSaved?.({ ...link, notes })}
