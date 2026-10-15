@@ -1,7 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { FolderKanban, TrendingUp } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
 import { buildActivityCells } from "@/lib/activity-grid";
+import {
+  EMPTY_GROUP_DENSITY,
+  EMPTY_LIBRARY_STATS,
+  isEmptyLibraryStats,
+} from "@/lib/stats-empty";
 import { ActivityGrid } from "./ActivityGrid";
 
 type GroupStat = {
@@ -76,6 +82,21 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
     );
   }
 
+  if (!loadingStats && isEmptyLibraryStats(totalLinks)) {
+    return (
+      <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface p-6">
+        <p className="text-sm font-medium text-foreground">{EMPTY_LIBRARY_STATS.title}</p>
+        <p className="max-w-md text-[13px] text-subtle">{EMPTY_LIBRARY_STATS.body}</p>
+        <Link
+          href={EMPTY_LIBRARY_STATS.href}
+          className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+        >
+          {EMPTY_LIBRARY_STATS.action}
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
 
@@ -136,7 +157,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
               ))}
             </div>
           ) : linksByGroup.length === 0 ? (
-            <p className="text-xs text-subtle py-4 text-center">No categories created yet.</p>
+            <p className="text-xs text-subtle py-4 text-center">{EMPTY_GROUP_DENSITY}</p>
           ) : (
             linksByGroup.map((group) => {
               const maxVal = Math.max(...linksByGroup.map((g) => g.count), 1);
