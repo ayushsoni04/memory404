@@ -7,6 +7,7 @@ import VaultFeed from "@/components/vault/VaultFeed";
 import {
   isLaterLinksPage,
   replaceFeedWithLoadError,
+  showRefreshFailure,
 } from "@/components/vault/feed-load";
 import type { LinkApiRow } from "@/lib/links";
 
@@ -99,6 +100,13 @@ describe("feed load helpers", () => {
     expect(replaceFeedWithLoadError("Failed to load links", 3)).toBe(false);
     expect(replaceFeedWithLoadError(null, 0)).toBe(false);
   });
+
+  it("shows a refresh failure only when links are already on screen", () => {
+    expect(showRefreshFailure("Failed to load links", 3, null)).toBe(true);
+    expect(showRefreshFailure("Failed to load links", 0, null)).toBe(false);
+    expect(showRefreshFailure("Failed to load links", 3, "next page")).toBe(false);
+    expect(showRefreshFailure(null, 3, null)).toBe(false);
+  });
 });
 
 describe("VaultFeed load more failure", () => {
@@ -126,5 +134,21 @@ describe("VaultFeed load more failure", () => {
 
     expect(screen.getByText("Something went wrong loading this group.")).toBeInTheDocument();
     expect(screen.queryByText("A saved article")).not.toBeInTheDocument();
+  });
+
+  it("keeps the links and says when a refresh fails", () => {
+    const { loadLinks } = renderFeed({
+      fetchError: "Failed to fetch",
+      hasMoreLinks: false,
+    });
+
+    expect(screen.getByText("A saved article")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Couldn't reach memory404. Check your connection and try again.",
+    );
+    expect(screen.getByText("The links on screen are still here.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(loadLinks).toHaveBeenCalledOnce();
   });
 });

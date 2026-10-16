@@ -17,3 +17,15 @@ export function replaceFeedWithLoadError(
 ): boolean {
   return Boolean(fetchError) && linkCount === 0;
 }
+
+/**
+ * A refresh that fails after links are already on screen.
+ * The next-page error has its own message, so this stays quiet then.
+ */
+export function showRefreshFailure(
+  fetchError: string | null,
+  linkCount: number,
+  loadMoreError: string | null,
+): boolean {
+  return Boolean(fetchError) && linkCount > 0 && !loadMoreError;
+}
