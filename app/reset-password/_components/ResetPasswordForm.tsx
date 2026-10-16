@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
 import {
+  authLinkClass,
   authPasswordFieldClass,
   authRevealClass,
   authSubmitClass,
@@ -17,7 +19,8 @@ import { resetPasswordErrors } from "@/lib/reset-password";
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
+  const token = (searchParams.get("token") || "").trim();
+  const missingToken = token.length === 0;
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -79,14 +82,33 @@ export function ResetPasswordForm() {
     <div className="w-full space-y-6">
       <div className="space-y-1">
         <h1 className="text-lg font-bold font-mono uppercase text-foreground">
-          Choose a new password
+          {missingToken ? "Reset link expired" : "Choose a new password"}
         </h1>
         <p className="text-xs text-subtle">
-          This replaces your current password.
+          {missingToken
+            ? "Request a new one to choose a password."
+            : "This replaces your current password."}
         </p>
       </div>
 
-      {done ? (
+      {missingToken ? (
+        <div className="space-y-4">
+          <p className="text-xs text-danger" role="alert">
+            This reset link is invalid or expired.
+          </p>
+          <Link
+            href="/forgot-password"
+            className={`${authSubmitClass} inline-flex items-center justify-center`}
+          >
+            Request a new link
+          </Link>
+          <p className="text-center text-xs text-subtle">
+            <Link href="/login" className={authLinkClass}>
+              Back to sign in
+            </Link>
+          </p>
+        </div>
+      ) : done ? (
         <p className="text-sm text-success">Password updated — sign in with your new password…</p>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-4">

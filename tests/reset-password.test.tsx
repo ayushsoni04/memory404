@@ -41,16 +41,25 @@ describe("resetPasswordErrors", () => {
 });
 
 describe("ResetPasswordForm", () => {
-  it("keeps a missing token ahead of the confirmation check", async () => {
-    const user = userEvent.setup();
+  it("explains a missing token before asking for a password", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
     render(<ResetPasswordForm />);
-    await user.type(screen.getByLabelText("New password"), "Memory404");
-    await user.click(screen.getByRole("button", { name: "Update password" }));
 
-    expect(screen.getByText("This reset link is invalid or expired.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Reset link expired" })).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "This reset link is invalid or expired.",
+    );
+    expect(screen.queryByLabelText("New password")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Request a new link" })).toHaveAttribute(
+      "href",
+      "/forgot-password",
+    );
+    expect(screen.getByRole("link", { name: "Back to sign in" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
