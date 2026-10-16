@@ -24,6 +24,11 @@ import { NoteCount } from "@/components/vault/NoteCount";
 import { groupsMatchingQuery } from "@/lib/group-query";
 import { saveOfferUrl } from "@/lib/save-query";
 import {
+  anotherDialogIsOpen,
+  isPaletteShortcut,
+  shouldTogglePalette,
+} from "@/lib/palette-shortcut";
+import {
   commandPaletteJumpGroups,
   searchResultGroupLabel,
 } from "@/lib/search-group";
@@ -88,14 +93,11 @@ export default function CommandPalette({
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "k" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        if (open) {
-          closePalette();
-        } else {
-          onOpenChange(true);
-        }
-      }
+      if (!isPaletteShortcut(e)) return;
+      e.preventDefault();
+      if (!shouldTogglePalette(open, anotherDialogIsOpen())) return;
+      if (open) closePalette();
+      else onOpenChange(true);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
