@@ -41,4 +41,23 @@ describe("saveOfferUrl", () => {
       saveOfferUrl("example.com", ["https://example.com"]),
     ).toBeNull();
   });
+
+  it("treats www, a trailing slash, and a hash as the same saved page", () => {
+    expect(
+      saveOfferUrl("https://www.example.com/docs/", [
+        "https://example.com/docs",
+      ]),
+    ).toBeNull();
+    expect(
+      saveOfferUrl("https://example.com/docs#pricing", [
+        "https://example.com/docs",
+      ]),
+    ).toBeNull();
+    expect(
+      saveOfferUrl("https://example.com:443/docs", ["https://example.com/docs"]),
+    ).toBeNull();
+    expect(
+      saveOfferUrl("https://www.example.com/other", ["https://example.com/docs"]),
+    ).toBe("https://www.example.com/other");
+  });
 });
