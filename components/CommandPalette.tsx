@@ -21,6 +21,7 @@ import { matchingPalettePages, palettePagesForUser } from "@/lib/palette-pages";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "@/components/vault/NoteCount";
+import { groupsMatchingQuery } from "@/lib/group-query";
 import { saveOfferUrl } from "@/lib/save-query";
 import {
   commandPaletteJumpGroups,
@@ -168,7 +169,7 @@ export default function CommandPalette({
   const filteredGroups = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return jumpGroups.slice(0, 6);
-    return jumpGroups.filter((g) => g.name.toLowerCase().includes(q));
+    return groupsMatchingQuery(jumpGroups, q);
   }, [jumpGroups, search]);
 
   const pages = useMemo(

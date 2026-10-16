@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { EMAIL_INVALID, emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
 import { attachSessionCookie, issueSessionToken } from "@/lib/session";
 import { hashPassword } from "@/lib/password";
@@ -8,8 +9,6 @@ import { createUserWithPassword, findUserByEmail } from "@/lib/db/repositories";
 import type { UserUtm } from "@/lib/db/types";
 
 export const runtime = "nodejs";
-
-const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 type SignupBody = {
   email?: unknown;
@@ -35,15 +34,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const email = typeof body.email === "string" ? normalizeEmail(body.email) : "";
   const password = typeof body.password === "string" ? body.password : "";
   const name =
     typeof body.name === "string" ? body.name.trim().slice(0, 80) || null : null;
   const leadSource = typeof body.leadSource === "string" ? body.leadSource : undefined;
   const utm = body.utm && typeof body.utm === "object" ? (body.utm as UserUtm) : undefined;
 
-  if (!EMAIL_RE.test(email)) {
-    return NextResponse.json({ error: "Enter a valid email address" }, { status: 400 });
+  if (emailIssue(email)) {
+    return NextResponse.json({ error: EMAIL_INVALID }, { status: 400 });
   }
 
   const passwordIssues = getPasswordRequirementIssues(password);

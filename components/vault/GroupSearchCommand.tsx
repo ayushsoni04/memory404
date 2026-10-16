@@ -43,6 +43,7 @@ export default function GroupSearchCommand({
   return (
     <Command
       ref={rootRef}
+      label={placeholder}
       shouldFilter={false}
       className={`relative ${className || ""}`}
     >
