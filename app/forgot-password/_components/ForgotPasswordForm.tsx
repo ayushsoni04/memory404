@@ -106,7 +106,7 @@ export function ForgotPasswordForm() {
 
       <p className="text-center text-xs text-subtle">
         <Link
-          href={withAuthRedirect("/login", searchParams.get("redirect"))}
+          href={withAuthRedirect("/login", searchParams?.get("redirect"))}
           className={authLinkClass}
         >
           Back to sign in
