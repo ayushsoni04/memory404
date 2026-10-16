@@ -4,7 +4,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { noteCountLabel, noteIssue } from "./note-limit";
-import { groupPickerKeyAction } from "./group-picker";
+import { chooseSaveGroup, groupPickerKeyAction } from "./group-picker";
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { saveHeadline } from "./save-outcome";
 import { libraryHomeUrl } from "./library-url";
@@ -155,6 +155,7 @@ function App({ onClose }) {
   const [dropdownOpen, setDropdownOpen] = useState(true);
   const [highlight, setHighlight] = useState(-1);
   const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const [createName, setCreateName] = useState("");
   const [error, setError] = useState("");
   const [highlightedTabs, setHighlightedTabs] = useState([]);
   const [activeTabGroup, setActiveTabGroup] = useState(null);
@@ -414,18 +415,25 @@ function App({ onClose }) {
   const libraryUrl = libraryHomeUrl(apiBase);
 
   const resolveTargetGroup = async () => {
-    if (selectedGroupId) {
-      const existing = groups.find((g) => g.id === selectedGroupId);
-      if (existing) return existing;
-    }
-    if (exactMatch) {
-      const existing = groups.find((g) => g.id === exactMatch.id);
-      if (existing) return existing;
-      return exactMatch;
-    }
-    const name = groupQuery.trim();
-    if (!name) throw new Error("Pick a group first");
-    const res = await sendMessage({ type: "CREATE_GROUP", name });
+    const selected = selectedGroupId
+      ? (groups.find((g) => g.id === selectedGroupId) ?? null)
+      : null;
+    const exact = exactMatch
+      ? (groups.find((g) => g.id === exactMatch.id) ?? exactMatch)
+      : null;
+    const visible = filteredGroups.map(
+      (group) => groups.find((item) => item.id === group.id) ?? group,
+    );
+    const choice = chooseSaveGroup({
+      selected,
+      exact,
+      visible,
+      query: groupQuery,
+      createName,
+    });
+    if (choice.type === "use") return choice.group;
+    if (choice.type !== "create") throw new Error("Pick a group first");
+    const res = await sendMessage({ type: "CREATE_GROUP", name: choice.name });
     if (!res?.ok || !res.group) {
       throw new Error(res?.error || "Failed to create group");
     }
@@ -437,6 +445,7 @@ function App({ onClose }) {
 
   const handleSaveModeChange = (mode) => {
     setSaveMode(mode);
+    setCreateName("");
     if (mode === "group" && activeTabGroup && activeTabGroup.title) {
       const existingGroup = groups.find(
         (g) =>
@@ -548,6 +557,7 @@ function App({ onClose }) {
         throw new Error(res?.error || "Failed to save");
       }
       if (res.job) applyJobToState(res.job, jobSetters);
+      setCreateName("");
       setPendingRememberUrl(null);
       setNoteDraft("");
       setNoteSaved(false);
@@ -593,6 +603,7 @@ function App({ onClose }) {
   const pickGroup = (g) => {
     setSelectedGroupId(g.id);
     setGroupQuery(g.name);
+    setCreateName("");
     setDropdownOpen(false);
     setError("");
   };
@@ -632,6 +643,7 @@ function App({ onClose }) {
     }
     if (action.type === "create") {
       e.preventDefault();
+      setCreateName(groupQuery.trim());
       setSelectedGroupId(null);
       setDropdownOpen(false);
       setHighlight(-1);
@@ -921,6 +933,7 @@ function App({ onClose }) {
                       onChange={(e) => {
                         setGroupQuery(e.target.value);
                         setSelectedGroupId(null);
+                        setCreateName("");
                         setDropdownOpen(true);
                         setHighlight(-1);
                         setError("");
@@ -1005,6 +1018,7 @@ function App({ onClose }) {
                       tabIndex={-1}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
+                        setCreateName(groupQuery.trim());
                         setSelectedGroupId(null);
                         setDropdownOpen(false);
                       }}
