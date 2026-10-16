@@ -3,6 +3,7 @@ import type { LinkApiRow } from "@/lib/links";
 import {
   cacheWithLink,
   deleteUndoMessage,
+  moveFailureNotice,
   moveUndoMessage,
   undoSecondsLeft,
   undoShortcutLabel,
@@ -35,6 +36,15 @@ describe("undo copy and cache", () => {
     expect(undoSecondsLeft(UNDO_MS)).toBe(0);
     expect(undoShortcutLabel("MacIntel")).toBe("⌘Z");
     expect(undoShortcutLabel("Linux x86_64")).toBe("Ctrl+Z");
+  });
+
+  it("explains a move that did not stick", () => {
+    expect(moveFailureNotice({ error: "  Group not found  " })).toBe("Group not found");
+    expect(moveFailureNotice({ error: "Unauthorized" })).toBe(
+      "Your session expired. Sign in again.",
+    );
+    expect(moveFailureNotice({})).toBe("Couldn't move that link. Try again.");
+    expect(moveFailureNotice(null, true)).toMatch(/Couldn't reach memory404/);
   });
 
   it("names a delete and a move", () => {
