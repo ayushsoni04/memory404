@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
+import { activityTimeZone } from "@/lib/activity-grid";
 import { requireAuth } from "@/lib/auth";
 import { getCollections } from "@/lib/db/mongodb";
 import { activeLibraryMatch } from "@/lib/stats-scope";
 
-export async function GET() {
+export async function GET(request: Request) {
   const auth = await requireAuth();
   if (auth instanceof Response) return auth;
+  const timeZone = activityTimeZone(new URL(request.url).searchParams.get("tz"));
 
   try {
     const { groups: groupsCollection, links } = await getCollections();
@@ -53,7 +55,7 @@ export async function GET() {
                 $dateToString: {
                   format: "%Y-%m-%d",
                   date: "$createdAt",
-                  timezone: "UTC",
+                  timezone: timeZone,
                 },
               },
               count: { $sum: 1 },

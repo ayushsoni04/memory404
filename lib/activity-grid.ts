@@ -7,6 +7,29 @@ export type ActivityCount = {
   count: number;
 };
 
+/**
+ * Calendar day in local time, `YYYY-MM-DD`.
+ * UTC would move an evening save onto the next day for anyone west of Greenwich.
+ */
+export function activityDateKey(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+/** IANA zone from the viewer, or UTC when the value is missing or not a real zone. */
+export function activityTimeZone(raw: string | null | undefined): string {
+  const value = raw?.trim() ?? "";
+  if (!value) return "UTC";
+  try {
+    Intl.DateTimeFormat("en-US", { timeZone: value });
+    return value;
+  } catch {
+    return "UTC";
+  }
+}
+
 /** One cell per day, oldest first, ending on `today`. */
 export function buildActivityCells(
   linkFrequency: ActivityCount[],
@@ -19,7 +42,7 @@ export function buildActivityCells(
   const cells: ActivityCount[] = [];
   const cursor = new Date(start);
   for (let i = 0; i < totalDays; i += 1) {
-    const date = cursor.toISOString().slice(0, 10);
+    const date = activityDateKey(cursor);
     cells.push({ date, count: counts.get(date) ?? 0 });
     cursor.setDate(cursor.getDate() + 1);
   }

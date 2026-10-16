@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { FolderKanban, TrendingUp } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
-import { buildActivityCells } from "@/lib/activity-grid";
+import { activityTimeZone, buildActivityCells } from "@/lib/activity-grid";
 import {
   EMPTY_GROUP_DENSITY,
   EMPTY_LIBRARY_STATS,
@@ -39,7 +39,10 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
     setLoadingStats(true);
     setStatsError(null);
     try {
-      const res = await fetch("/api/stats");
+      const timeZone = activityTimeZone(
+        Intl.DateTimeFormat().resolvedOptions().timeZone,
+      );
+      const res = await fetch(`/api/stats?tz=${encodeURIComponent(timeZone)}`);
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data.success) {
         const message =
