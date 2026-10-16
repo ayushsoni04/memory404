@@ -1,4 +1,4 @@
-import { coerceHttpUrl } from "@/lib/links";
+import { coerceHttpUrl, withoutTrackingParams } from "@/lib/links";
 
 function canonicalHttpUrl(value: string): string | null {
   try {
@@ -12,12 +12,14 @@ function canonicalHttpUrl(value: string): string | null {
 
 /**
  * Key for "is this page already saved?".
- * www, a trailing slash, a default port, and a hash do not make a second page.
+ * www, a trailing slash, a default port, a hash, and campaign parameters
+ * do not make a second page. The path and any other query stay as typed.
  */
-function comparableSavedUrl(value: string): string | null {
+export function savedPageKey(value: string): string | null {
+  const prepared = coerceHttpUrl(value) ?? value.trim();
   let url: URL;
   try {
-    url = new URL(value);
+    url = new URL(withoutTrackingParams(prepared));
   } catch {
     return null;
   }
@@ -40,6 +42,66 @@ function comparableSavedUrl(value: string): string | null {
   return url.toString();
 }
 
+export type SavedPageCandidate = {
+  id?: string;
+  url: string;
+  deletedAt?: Date | string | null;
+  groupId?: string;
+};
+
+/** The link this page already belongs to. An active copy wins over Trash. */
+export function pickExistingSavedPage<T extends SavedPageCandidate>(
+  candidates: readonly T[],
+  incoming: string,
+): T | null {
+  const key = savedPageKey(incoming);
+  if (!key) return null;
+  const matches = candidates.filter((item) => savedPageKey(item.url) === key);
+  return matches.find((item) => item.deletedAt == null) ?? matches[0] ?? null;
+}
+
+/**
+ * Host-anchored pattern for links that might be the same page.
+ * Callers still compare `savedPageKey` so a different path is not a match.
+ */
+export function savedPageHostPattern(value: string): string | null {
+  const key = savedPageKey(value);
+  if (!key) return null;
+  let host = "";
+  try {
+    host = new URL(key).hostname;
+  } catch {
+    return null;
+  }
+  if (!host.includes(".")) return null;
+  const escaped = host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return `^https?://(?:www\\.)?${escaped}(?::\\d+)?(?:[/?#]|$)`;
+}
+
+/**
+ * Put an equivalent saved page on the first page of results when text search missed it.
+ * A full page stays the same length, so this does not invent an extra page.
+ */
+export function preferSamePageMatch<T extends SavedPageCandidate & { id: string }>(
+  rows: readonly T[],
+  query: string,
+  candidates: readonly T[],
+  limit: number,
+  groupId?: string,
+): T[] {
+  const match = pickExistingSavedPage(
+    candidates.filter((item) => {
+      if (item.deletedAt != null) return false;
+      if (groupId && item.groupId !== groupId) return false;
+      return true;
+    }),
+    query,
+  );
+  if (!match?.id || rows.some((row) => row.id === match.id)) return [...rows];
+  const room = rows.length > limit ? limit + 1 : Math.min(limit, rows.length + 1);
+  return [match, ...rows].slice(0, room);
+}
+
 /**
  * Return a public http(s) URL when the query is itself a link, otherwise null.
  * A host without a scheme, like linear.app/docs, is treated as https.
@@ -58,10 +120,10 @@ export function httpUrlFromQuery(query: string): string | null {
 export function saveOfferUrl(query: string, resultUrls: string[]): string | null {
   const url = httpUrlFromQuery(query);
   if (!url) return null;
-  const target = comparableSavedUrl(url);
+  const target = savedPageKey(url);
   if (!target) return null;
   const alreadySaved = resultUrls.some((candidate) => {
-    const comparable = comparableSavedUrl(candidate);
+    const comparable = savedPageKey(candidate);
     return comparable ? comparable === target : candidate === url;
   });
   return alreadySaved ? null : url;

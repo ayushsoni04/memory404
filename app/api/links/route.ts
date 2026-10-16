@@ -26,6 +26,11 @@ import {
   linkToApiRow,
   linkUrlIssue,
 } from "@/lib/links";
+import {
+  pickExistingSavedPage,
+  preferSamePageMatch,
+  savedPageHostPattern,
+} from "@/lib/save-query";
 import { isPublicHttpUrlForFetch } from "@/lib/safe-url";
 import {
   decodeLinkCursor,
@@ -123,10 +128,27 @@ export async function GET(request: Request) {
       ],
     };
 
-    const rows = await findLinks(where, {
+    let rows = await findLinks(where, {
       sort: { createdAt: -1, _id: -1 },
       limit: limit + 1,
     });
+    if (search.trim() && !cursor) {
+      const pattern = savedPageHostPattern(search);
+      if (pattern) {
+        const candidates = await findLinks({
+          userId: auth.id,
+          deletedAt: null,
+          url: { $regex: pattern, $options: "i" },
+        });
+        rows = preferSamePageMatch(
+          rows,
+          search,
+          candidates,
+          limit,
+          filterGroupId,
+        );
+      }
+    }
     timer.mark("query");
     const payload = toLinksPage(rows, limit);
     timer.mark("serialize");
@@ -264,7 +286,17 @@ export async function POST(request: Request) {
       );
     }
 
-    const existing = await findLink({ userId: auth.id, url });
+    let existing = await findLink({ userId: auth.id, url });
+    if (!existing) {
+      const pattern = savedPageHostPattern(url);
+      if (pattern) {
+        const candidates = await findLinks({
+          userId: auth.id,
+          url: { $regex: pattern, $options: "i" },
+        });
+        existing = pickExistingSavedPage(candidates, url);
+      }
+    }
     if (existing) {
       return NextResponse.json(
         {
