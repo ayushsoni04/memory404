@@ -695,8 +695,9 @@ async function executeSaveJob(job, opts) {
 
     job.saved = saved;
     job.already = already;
-    const savedCount = saved;
-    if (savedCount <= 0 && already <= 0 && failed > 0) {
+    // saveJobSettled is prepended from extension/src/save-outcome.js at build time.
+    const settled = saveJobSettled({ saved, already, failed, skipped });
+    if (settled.status === "error") {
       const failedJob = {
         ...job,
         status: "error",
@@ -704,7 +705,7 @@ async function executeSaveJob(job, opts) {
         updatedAt: Date.now(),
       };
       await setActiveSaveJob(failedJob);
-      await setBadge("!");
+      await setBadge(settled.badge);
       return failedJob;
     }
 
@@ -723,8 +724,12 @@ async function executeSaveJob(job, opts) {
       updatedAt: Date.now(),
     };
     await setActiveSaveJob(doneJob);
-    await setBadge("✓");
-    setTimeout(() => void setBadge(""), 2500);
+    if (settled.badge) {
+      await setBadge(settled.badge);
+      setTimeout(() => void setBadge(""), 2500);
+    } else {
+      await setBadge("");
+    }
     return doneJob;
   } catch (e) {
     const failedJob = {

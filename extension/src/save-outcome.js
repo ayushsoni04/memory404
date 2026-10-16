@@ -65,6 +65,17 @@ export function saveHeadline({
     };
   }
 
+  if (created === 0 && already === 0 && failed === 0 && skipped > 0) {
+    return {
+      title: "Nothing was saved",
+      detail:
+        skipped === 1
+          ? "This page can't be saved."
+          : `${skipped} pages were skipped.`,
+      offerNote: false,
+    };
+  }
+
   if (total > 1) {
     const extra = [];
     if (already > 0) {
@@ -73,7 +84,12 @@ export function saveHeadline({
     if (failed > 0) extra.push(`${failed} failed`);
     if (skipped > 0) extra.push(`${skipped} skipped`);
     return {
-      title: `Saved ${created} of ${total}`,
+      title:
+        created === 0
+          ? already > 0
+            ? "Nothing new was saved"
+            : "Nothing was saved"
+          : `Saved ${created} of ${total}`,
       detail: extra.length ? extra.join(" · ") : null,
       offerNote: false,
     };
@@ -84,4 +100,24 @@ export function saveHeadline({
     detail: null,
     offerNote: created > 0 && already === 0 && failed === 0,
   };
+}
+
+/**
+ * How a finished batch should be stored and badged.
+ * A batch that only skipped pages is not a successful save.
+ * @param {{ saved?: number, already?: number, failed?: number, skipped?: number }} [counts]
+ */
+export function saveJobSettled({
+  saved = 0,
+  already = 0,
+  failed = 0,
+  skipped = 0,
+} = {}) {
+  if (saved <= 0 && already <= 0 && failed > 0) {
+    return { status: "error", badge: "!" };
+  }
+  if (saved <= 0 && already <= 0 && skipped > 0) {
+    return { status: "saved", badge: "" };
+  }
+  return { status: "saved", badge: "✓" };
 }
