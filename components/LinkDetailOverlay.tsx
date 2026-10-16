@@ -672,7 +672,7 @@ export default function LinkDetailOverlay({
         <div
           className="relative z-10 flex min-w-0 flex-1 flex-col items-center px-6 pb-10 md:px-10"
           onClick={(e) => {
-            if (e.target === e.currentTarget) animateClose();
+            if (e.target === e.currentTarget) leave(() => animateClose());
           }}
         >
           <div
@@ -768,7 +768,11 @@ export default function LinkDetailOverlay({
                   Move to group
                   <select
                     value={link.groupId}
-                    onChange={(e) => onMove(link, e.target.value)}
+                    onChange={(e) => {
+                      const nextGroupId = e.target.value;
+                      if (nextGroupId === link.groupId) return;
+                      leave(() => onMove(link, nextGroupId));
+                    }}
                     className={`rounded-[4px] border border-white/12 bg-black/25 px-2 py-2 text-sm text-foreground backdrop-blur-sm ${overlayFocus}`}
                   >
                     {groups.map((g) => (
@@ -781,8 +785,10 @@ export default function LinkDetailOverlay({
                 <button
                   type="button"
                   onClick={() => {
-                    onDelete(link.id);
-                    animateClose();
+                    leave(() => {
+                      onDelete(link.id);
+                      animateClose();
+                    });
                   }}
                   className={`rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 ${overlayFocus}`}
                 >
