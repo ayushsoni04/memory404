@@ -207,6 +207,53 @@ const EXPLICIT_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 /** Long enough for a signed download link, short enough to store and show. */
 export const LINK_URL_MAX = 8_192;
 
+/**
+ * Query keys that identify a campaign, not the page.
+ * `utm_*` covers the usual set. The rest are click ids from ad and share links.
+ */
+const TRACKING_PARAM_NAMES = new Set([
+  "_ga",
+  "dclid",
+  "fbclid",
+  "gad_campaignid",
+  "gad_source",
+  "gbraid",
+  "gclid",
+  "gclsrc",
+  "igsh",
+  "igshid",
+  "mc_cid",
+  "mc_eid",
+  "msclkid",
+  "ttclid",
+  "twclid",
+  "wbraid",
+  "yclid",
+]);
+
+export function isTrackingParam(name: string): boolean {
+  const key = name.toLowerCase();
+  return key.startsWith("utm_") || TRACKING_PARAM_NAMES.has(key);
+}
+
+/**
+ * Drop campaign parameters so the same page is not saved twice.
+ * A link with none of those parameters is returned unchanged.
+ */
+export function withoutTrackingParams(raw: string): string {
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return raw;
+  }
+  const tracked = [...url.searchParams.keys()].filter((key) => isTrackingParam(key));
+  if (tracked.length === 0) return raw;
+  for (const key of tracked) url.searchParams.delete(key);
+  if (url.pathname === "/" && !url.search && !url.hash) return url.origin;
+  return url.href;
+}
+
 export const LINK_URL_HINT = "Enter a link, like example.com/page";
 
 function urlHasCredentials(url: URL): boolean {
@@ -224,7 +271,7 @@ export function coerceHttpUrl(raw: string): string | null {
   if (!trimmed || trimmed.length > LINK_URL_MAX || /\s/.test(trimmed)) return null;
   if (isValidHttpUrl(trimmed)) {
     if (urlHasCredentials(new URL(trimmed))) return null;
-    return trimmed;
+    return withoutTrackingParams(trimmed);
   }
   if (EXPLICIT_SCHEME.test(trimmed)) return null;
 
@@ -239,7 +286,7 @@ export function coerceHttpUrl(raw: string): string | null {
   if (urlHasCredentials(url)) return null;
   // A bare host gets a slash from the URL parser. Store it without one.
   if (url.pathname === "/" && !url.search && !url.hash) return url.origin;
-  return url.href;
+  return withoutTrackingParams(url.href);
 }
 
 /**
