@@ -5,6 +5,7 @@ import Image from "next/image";
 import type { TrashGroupItem, TrashLinkItem } from "@/app/api/trash/route";
 import { controlPress } from "@/components/vault/types";
 import { linkHostname } from "@/lib/links";
+import { libraryGroupLabel } from "@/lib/search-group";
 
 function DaysLeft({ days }: { days: number }) {
   const color =
@@ -109,11 +110,12 @@ export function TrashLinkRow({
   onRestore: () => void;
   onDelete: () => void;
 }) {
+  const place = libraryGroupLabel(item.groupName);
   return (
     <div className={rowClass} data-exiting={exiting}>
       <RowBody
         title={item.displayTitle}
-        detail={`${item.groupName ? `in ${item.groupName}` : "in deleted group"} · ${linkHostname(item.url)}`}
+        detail={`${place ? `in ${place}` : "in deleted group"} · ${linkHostname(item.url)}`}
         days={item.daysLeft}
         onRestore={onRestore}
         onDelete={onDelete}

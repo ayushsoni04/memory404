@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   commandPaletteJumpGroups,
+  libraryGroupLabel,
   searchResultGroupLabel,
 } from "@/lib/search-group";
 
@@ -29,6 +30,16 @@ describe("commandPaletteJumpGroups", () => {
         { id: "reading", name: "Reading" },
       ]).map((group) => group.id),
     ).toEqual(["all", "reading"]);
+  });
+});
+
+describe("libraryGroupLabel", () => {
+  it("calls the stored inbox All and keeps other names", () => {
+    expect(libraryGroupLabel("General")).toBe("All");
+    expect(libraryGroupLabel(" uncategorized ")).toBe("All");
+    expect(libraryGroupLabel("Reading")).toBe("Reading");
+    expect(libraryGroupLabel("  ")).toBeNull();
+    expect(libraryGroupLabel(null)).toBeNull();
   });
 });
 

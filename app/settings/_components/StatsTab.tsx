@@ -8,6 +8,7 @@ import {
   EMPTY_LIBRARY_STATS,
   isEmptyLibraryStats,
 } from "@/lib/stats-empty";
+import { libraryGroupLabel } from "@/lib/search-group";
 import { STATS_GROUP_CAPTION, STATS_LINK_CAPTION } from "@/lib/stats-scope";
 import { explainLoadError } from "@/lib/load-error";
 import { ActivityGrid } from "./ActivityGrid";
@@ -178,7 +179,9 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
               return (
                 <div key={group.id} className="py-3.5 first:pt-0 last:pb-0 space-y-2">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground">{group.name}</span>
+                    <span className="font-medium text-foreground">
+                      {libraryGroupLabel(group.name) ?? group.name}
+                    </span>
                     <span className="font-mono text-muted tabular-nums">
                       {group.count} link{group.count === 1 ? "" : "s"}
                     </span>

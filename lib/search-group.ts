@@ -25,6 +25,14 @@ export function commandPaletteJumpGroups(
   ];
 }
 
+/** The name to show for a group. The stored inbox is General; the library calls it All. */
+export function libraryGroupLabel(name: string | null | undefined): string | null {
+  const trimmed = name?.trim() ?? "";
+  if (!trimmed) return null;
+  if (INBOX_NAMES.has(trimmed.toLowerCase())) return "All";
+  return trimmed;
+}
+
 /** The group name to show under a search hit, using the library's "All" label. */
 export function searchResultGroupLabel(
   groupId: string,
