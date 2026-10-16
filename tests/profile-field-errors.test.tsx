@@ -60,6 +60,9 @@ describe("profile field checks", () => {
       "Name must be 80 characters or fewer",
     ]);
     expect(getNameIssues("Ada")).toEqual([]);
+    expect(getNameIssues("Ada\nLovelace")).toEqual([
+      "Names can't include line breaks.",
+    ]);
     expect(
       getAvatarFileIssues({ name: "notes.txt", type: "text/plain", size: 12 }),
     ).toEqual(["Use a PNG, JPEG, WebP, or GIF."]);
@@ -112,5 +115,35 @@ describe("profile field checks", () => {
       screen.getByText("Name must be 80 characters or fewer"),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save profile changes" })).toBeDisabled();
+  });
+
+  it("keeps a name with a line break from saving", () => {
+    const onSave = vi.fn();
+    render(
+      <ProfileTab
+        name={"Ada\nLovelace"}
+        setName={() => {}}
+        username="ada"
+        setUsername={() => {}}
+        email="ada@example.com"
+        bannerStyle="midnight"
+        setBannerStyle={() => {}}
+        avatarPreview={null}
+        onAvatarChange={() => {}}
+        isSaved={false}
+        profileReady
+        onSaveProfile={(event) => {
+          event.preventDefault();
+          onSave();
+        }}
+        onOpenDeactivateModal={() => {}}
+      />,
+    );
+    expect(screen.getByText("Names can't include line breaks.")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save profile changes" })).toBeDisabled();
+    fireEvent.submit(
+      screen.getByRole("button", { name: "Save profile changes" }).closest("form")!,
+    );
+    expect(onSave).not.toHaveBeenCalled();
   });
 });

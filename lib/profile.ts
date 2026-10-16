@@ -20,7 +20,11 @@ export function normalizeUsername(raw: string): string {
 }
 
 export function getNameIssues(name: string): string[] {
-  if (name.trim().length > NAME_MAX) {
+  const trimmed = name.trim();
+  if (/[\u0000-\u001F\u007F]/.test(trimmed)) {
+    return ["Names can't include line breaks."];
+  }
+  if (trimmed.length > NAME_MAX) {
     return [`Name must be ${NAME_MAX} characters or fewer`];
   }
   return [];
