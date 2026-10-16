@@ -13,6 +13,7 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { PASSWORD_HINT } from "@/lib/password-policy";
@@ -37,6 +38,7 @@ export function SignupForm() {
   const allowDevSkip = process.env.NODE_ENV !== "production";
 
   const fieldErrors = signupPasswordErrors(password, confirm);
+  const emailError = attempted ? emailIssue(email) : null;
   const passwordError =
     fieldErrors.password && (attempted || password.length > 0)
       ? fieldErrors.password
@@ -51,7 +53,7 @@ export function SignupForm() {
     setError(null);
     setAttempted(true);
 
-    if (fieldErrors.password || fieldErrors.confirm) return;
+    if (emailIssue(email) || fieldErrors.password || fieldErrors.confirm) return;
 
     setIsSubmitting(true);
     const utm = readUtmFromSearchParams(searchParams);
@@ -61,7 +63,7 @@ export function SignupForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email,
+          email: normalizeEmail(email),
           password,
           leadSource: leadSource || undefined,
           utm,
@@ -118,9 +120,16 @@ export function SignupForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             autoComplete="email"
+            aria-invalid={emailError ? true : undefined}
+            aria-describedby={emailError ? "signup-email-error" : undefined}
             className={authFieldClass}
             required
           />
+          {emailError ? (
+            <p id="signup-email-error" className="text-xs text-danger" role="alert">
+              {emailError}
+            </p>
+          ) : null}
         </label>
 
         <div className="space-y-1.5">
