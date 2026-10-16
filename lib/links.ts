@@ -321,10 +321,14 @@ export function truncateUrl(url: string, max = 48): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
-export function formatRelativeTime(iso: string): string {
+export function formatRelativeTime(iso: string, now = Date.now()): string {
   const d = new Date(iso);
-  const diffMs = Date.now() - d.getTime();
-  const sec = Math.floor(diffMs / 1000);
+  const time = d.getTime();
+  if (Number.isNaN(time)) return "";
+  const sec = Math.floor((now - time) / 1000);
+  // A timestamp a few seconds ahead of this device is still "just now".
+  // Further ahead is a date, not a brand-new save.
+  if (sec < -30) return d.toLocaleDateString();
   if (sec < 10) return "just now";
   if (sec < 60) return `${sec}s ago`;
   const min = Math.floor(sec / 60);
