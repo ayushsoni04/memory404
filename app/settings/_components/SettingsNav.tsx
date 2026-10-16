@@ -2,11 +2,15 @@
 
 import Link from "next/link";
 import Image from "next/image";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, LogOut, TrendingUp, User } from "lucide-react";
 import GlitchText from "@/components/GlitchText";
 import { controlPress } from "@/components/vault/types";
+import { UNREACHABLE_MESSAGE } from "@/lib/load-error";
 import { nextSettingsTab, type Tab } from "./constants";
+
+export const SIGN_OUT_FAILED = "Couldn't sign out. Try again.";
 
 const TABS: { id: Tab; label: string; icon: typeof User }[] = [
   { id: "profile", label: "Profile", icon: User },
@@ -25,11 +29,26 @@ export function SettingsNav({
   isOwner = false,
 }: SettingsNavProps) {
   const router = useRouter();
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
 
   const handleSignOut = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/login");
-    router.refresh();
+    if (signingOut) return;
+    setSigningOut(true);
+    setSignOutError(null);
+    try {
+      const res = await fetch("/api/auth/logout", { method: "POST" });
+      if (!res.ok) {
+        setSignOutError(SIGN_OUT_FAILED);
+        setSigningOut(false);
+        return;
+      }
+      router.push("/login");
+      router.refresh();
+    } catch {
+      setSignOutError(UNREACHABLE_MESSAGE);
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -93,11 +112,17 @@ export function SettingsNav({
         <button
           type="button"
           onClick={handleSignOut}
-          className={`flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 py-2 px-3 text-center text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground ${controlPress}`}
+          disabled={signingOut}
+          className={`flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 py-2 px-3 text-center text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground disabled:opacity-60 ${controlPress}`}
         >
           <LogOut className="size-3.5 text-subtle" aria-hidden />
-          Sign out
+          {signingOut ? "Signing out…" : "Sign out"}
         </button>
+        {signOutError ? (
+          <p className="text-[12px] text-danger" role="alert">
+            {signOutError}
+          </p>
+        ) : null}
 
         <div className="hidden flex-col gap-2 lg:flex">
           <Link href="/" className={`inline-flex items-center gap-1 rounded-md text-[13px] text-muted transition-colors hover:text-foreground ${controlPress}`}>
