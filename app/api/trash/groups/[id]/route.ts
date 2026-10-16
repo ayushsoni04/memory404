@@ -3,9 +3,16 @@ import { requireAuth } from "@/lib/auth";
 import {
   getCollections,
   getMongoEnvError,
+  isDuplicateKeyError,
   withMongoTransaction,
 } from "@/lib/db/mongodb";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { groupNameConflict } from "@/lib/group-name";
+import {
+  GROUP_NOT_IN_TRASH,
+  GROUP_RESTORE_TAKEN,
+  groupRestoreIssue,
+} from "@/lib/trash-restore";
 
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
@@ -24,6 +31,37 @@ export async function PATCH(_req: Request, ctx: Ctx) {
   if (auth instanceof Response) return auth;
   const { id } = await ctx.params;
   try {
+    const { groups } = await getCollections();
+    const group = await groups.findOne(
+      { _id: id, userId: auth.id },
+      { projection: { name: 1, deletedAt: 1 } },
+    );
+    let activeName: string | null = null;
+    if (group?.deletedAt != null) {
+      const active = await groups
+        .find({ userId: auth.id, deletedAt: null }, { projection: { name: 1 } })
+        .toArray();
+      if (
+        groupNameConflict(
+          group.name,
+          active.map((row) => ({ name: row.name, deletedAt: null })),
+        ) === "active"
+      ) {
+        const target = group.name.trim().toLowerCase();
+        activeName =
+          active.find((row) => row.name.trim().toLowerCase() === target)?.name ??
+          group.name;
+      }
+    }
+    const issue = groupRestoreIssue({
+      found: group != null,
+      inTrash: group?.deletedAt != null,
+      activeName,
+    });
+    if (issue) {
+      return NextResponse.json({ error: issue.message }, { status: issue.status });
+    }
+
     const restored = await withMongoTransaction(async (session) => {
       const { groups, links } = await getCollections();
       const group = await groups.findOne(
@@ -54,10 +92,13 @@ export async function PATCH(_req: Request, ctx: Ctx) {
       return true;
     });
     if (!restored) {
-      return NextResponse.json({ error: "Group not in Trash" }, { status: 404 });
+      return NextResponse.json({ error: GROUP_NOT_IN_TRASH }, { status: 404 });
     }
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (error) {
+    if (isDuplicateKeyError(error)) {
+      return NextResponse.json({ error: GROUP_RESTORE_TAKEN }, { status: 409 });
+    }
     return NextResponse.json({ error: "Failed to restore group" }, { status: 500 });
   }
 }
