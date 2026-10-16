@@ -14,6 +14,7 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 
@@ -128,7 +129,10 @@ export function LoginForm() {
         </div>
 
         <div className="flex justify-end">
-          <Link href="/forgot-password" className={authQuietControlClass}>
+          <Link
+            href={withAuthRedirect("/forgot-password", searchParams.get("redirect"))}
+            className={authQuietControlClass}
+          >
             Forgot password?
           </Link>
         </div>
@@ -152,7 +156,10 @@ export function LoginForm() {
 
       <p className="text-center text-xs text-subtle">
         Don&apos;t have an account?{" "}
-        <Link href="/signup" className={authLinkClass}>
+        <Link
+          href={withAuthRedirect("/signup", searchParams.get("redirect"))}
+          className={authLinkClass}
+        >
           Sign up
         </Link>
       </p>

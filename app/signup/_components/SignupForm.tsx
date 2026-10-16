@@ -13,6 +13,7 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { PASSWORD_HINT } from "@/lib/password-policy";
 import { safeRedirectPath } from "@/lib/safe-redirect";
@@ -229,7 +230,10 @@ export function SignupForm() {
 
       <p className="text-center text-xs text-subtle">
         Already have an account?{" "}
-        <Link href="/login" className={authLinkClass}>
+        <Link
+          href={withAuthRedirect("/login", searchParams.get("redirect"))}
+          className={authLinkClass}
+        >
           Sign in
         </Link>
       </p>
