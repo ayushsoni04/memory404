@@ -70,6 +70,19 @@ describe("trash rows on a narrow screen", () => {
     expect(actionsFor("Delete Now")).toHaveClass("sm:opacity-0");
   });
 
+  it("calls a trashed inbox group All", () => {
+    render(
+      <TrashGroupRow
+        item={{ ...group, name: "General" }}
+        exiting={false}
+        onRestore={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(screen.getByText("All")).toBeInTheDocument();
+    expect(screen.queryByText("General")).not.toBeInTheDocument();
+  });
+
   it("calls the inbox All, the same label the library uses", () => {
     render(
       <TrashLinkRow

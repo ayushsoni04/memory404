@@ -82,7 +82,7 @@ export function TrashGroupRow({
   return (
     <div className={rowClass} data-exiting={exiting}>
       <RowBody
-        title={item.name}
+        title={libraryGroupLabel(item.name) ?? item.name}
         detail={`${item.linksCount} ${item.linksCount === 1 ? "link" : "links"} inside`}
         days={item.daysLeft}
         onRestore={onRestore}

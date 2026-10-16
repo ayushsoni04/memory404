@@ -1,7 +1,14 @@
+import { libraryGroupLabel } from "@/lib/search-group";
+
 export type PermanentDelete =
   | { kind: "empty"; count: number }
   | { kind: "link"; id: string; title: string }
   | { kind: "group"; id: string; name: string };
+
+/** The name a person sees. The stored inbox is General; Trash calls it All. */
+function visibleGroupName(name: string): string {
+  return libraryGroupLabel(name) ?? name;
+}
 
 export function permanentDeleteCopy(pending: PermanentDelete): {
   title: string;
@@ -25,7 +32,7 @@ export function permanentDeleteCopy(pending: PermanentDelete): {
     };
   }
   return {
-    title: `Delete “${pending.name}” forever?`,
+    title: `Delete “${visibleGroupName(pending.name)}” forever?`,
     detail:
       "Links that were deleted with this group are removed too. This cannot be undone.",
     action: "Delete forever",
