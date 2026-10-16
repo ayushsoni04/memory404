@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   classifyLinkSave,
   saveHeadline,
+  saveJobSettled,
 } from "../extension/src/save-outcome.js";
 
 describe("extension save outcome", () => {
@@ -48,12 +49,43 @@ describe("extension save outcome", () => {
     });
   });
 
+  it("does not call a skipped page a successful save", () => {
+    expect(saveHeadline({ total: 1, saved: 0, skipped: 1 })).toEqual({
+      title: "Nothing was saved",
+      detail: "This page can't be saved.",
+      offerNote: false,
+    });
+    expect(saveHeadline({ total: 4, saved: 0, skipped: 4 })).toEqual({
+      title: "Nothing was saved",
+      detail: "4 pages were skipped.",
+      offerNote: false,
+    });
+    expect(saveHeadline({ total: 3, saved: 0, already: 1, skipped: 2 })).toEqual({
+      title: "Nothing new was saved",
+      detail: "1 already saved · 2 skipped",
+      offerNote: false,
+    });
+    expect(saveJobSettled({ saved: 0, skipped: 1 })).toEqual({
+      status: "saved",
+      badge: "",
+    });
+    expect(saveJobSettled({ saved: 0, failed: 1 })).toEqual({
+      status: "error",
+      badge: "!",
+    });
+    expect(saveJobSettled({ saved: 2, skipped: 1 })).toEqual({
+      status: "saved",
+      badge: "✓",
+    });
+  });
+
   it("keeps the service worker on the same duplicate outcome", () => {
     const source = readFileSync(
       "extension/public/static/background.js",
       "utf8",
     );
     expect(source).toContain("classifyLinkSave");
+    expect(source).toContain("saveJobSettled");
     expect(source).toContain('status: "already"');
   });
 });
