@@ -193,7 +193,10 @@ export function ProfileTab({
       className="space-y-8"
     >
       {error && (
-        <p className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger">
+        <p
+          className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger"
+          role="alert"
+        >
           {error}
         </p>
       )}

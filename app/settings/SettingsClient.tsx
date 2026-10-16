@@ -135,14 +135,19 @@ export default function SettingsClient({
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Failed to save profile");
+        const raw =
+          typeof data.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : "Failed to save profile";
+        throw new Error(raw);
       }
       if (data.user) applyUser(data.user as MeUser);
       window.dispatchEvent(new CustomEvent("m404:profile-updated"));
       setIsSaved(true);
       setTimeout(() => setIsSaved(false), 2000);
     } catch (err) {
-      setProfileError(err instanceof Error ? err.message : "Failed to save profile");
+      const message = err instanceof Error ? err.message : "Failed to save profile";
+      setProfileError(explainLoadError(message) ?? "Failed to save profile");
     } finally {
       setIsSaving(false);
     }
@@ -168,16 +173,19 @@ export default function SettingsClient({
       const res = await fetch("/api/me", { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        throw new Error(data.error || "Failed to delete account");
+        const raw =
+          typeof data.error === "string" && data.error.trim()
+            ? data.error.trim()
+            : "Failed to delete account";
+        throw new Error(raw);
       }
       setDeactivatedSuccess(true);
       setTimeout(() => {
         window.location.href = "/login";
       }, 1500);
     } catch (err) {
-      setDeactivateError(
-        err instanceof Error ? err.message : "Failed to delete account",
-      );
+      const message = err instanceof Error ? err.message : "Failed to delete account";
+      setDeactivateError(explainLoadError(message) ?? "Failed to delete account");
       setIsDeactivating(false);
     }
   };

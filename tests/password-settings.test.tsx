@@ -101,6 +101,34 @@ describe("password settings", () => {
     expect(screen.getByLabelText("Current password")).toHaveValue("WrongPassword1");
   });
 
+  it("says to sign in again when the session is gone", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 401,
+        json: async () => ({ error: "Unauthorized" }),
+      }),
+    );
+    render(<PasswordSection />);
+
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: "OldPassword1" },
+    });
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your session expired. Sign in again.",
+    );
+    expect(screen.getByLabelText("Current password")).toHaveValue("OldPassword1");
+  });
+
   it("confirms a successful change and clears the fields", async () => {
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
