@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 import { explainLoadError } from "@/lib/load-error";
 import type { Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
@@ -160,7 +161,7 @@ export default function SettingsClient({
 
   const handleDeactivate = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (deactivateInput !== "deactivate") return;
+    if (!isDeactivateConfirmation(deactivateInput)) return;
     setDeactivateError(null);
     setIsDeactivating(true);
     try {

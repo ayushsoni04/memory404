@@ -4,9 +4,20 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { DeactivateModal } from "@/app/settings/_components/DeactivateModal";
+import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 
 afterEach(() => {
   cleanup();
+});
+
+describe("isDeactivateConfirmation", () => {
+  it("accepts the word in any letter case, with surrounding spaces", () => {
+    expect(isDeactivateConfirmation("deactivate")).toBe(true);
+    expect(isDeactivateConfirmation("Deactivate")).toBe(true);
+    expect(isDeactivateConfirmation("  DEACTIVATE  ")).toBe(true);
+    expect(isDeactivateConfirmation("deactivated")).toBe(false);
+    expect(isDeactivateConfirmation("")).toBe(false);
+  });
 });
 
 describe("DeactivateModal", () => {
@@ -87,5 +98,21 @@ describe("DeactivateModal", () => {
 
     fireEvent.click(document.querySelector("[data-deactivate-backdrop]")!);
     expect(onClose).toHaveBeenCalledOnce();
+  });
+
+  it("enables the wipe button when the word is capitalized", () => {
+    render(
+      <DeactivateModal
+        open
+        onClose={() => {}}
+        deactivateInput="Deactivate"
+        setDeactivateInput={() => {}}
+        isDeactivating={false}
+        deactivatedSuccess={false}
+        onSubmit={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Wipe everything" })).toBeEnabled();
   });
 });
