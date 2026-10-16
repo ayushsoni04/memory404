@@ -72,6 +72,11 @@ function statusBadge(status, index) {
   return <SpinnerRing>{index + 1}</SpinnerRing>;
 }
 
+/** Skipped and in-progress rows start open so the reason is visible. */
+export function taskRowStartsOpen(status) {
+  return status === "saving" || status === "skipped";
+}
+
 /** Short pill and the sentence shown when a save row is opened. */
 export function taskStatusCopy(status, error) {
   const detail = typeof error === "string" ? error.trim() : "";
@@ -117,7 +122,7 @@ export default function SaveTaskRows({ items = [] }) {
         const key = `${row.url || "item"}-${i}`;
         const status = row.status || "pending";
         const copy = taskStatusCopy(status, row.error);
-        const open = manualOpen[key] ?? (status === "saving" || status === "skipped");
+        const open = manualOpen[key] ?? taskRowStartsOpen(status);
         const host = hostnameOf(row.url);
         const label = (row.title && row.title.trim()) || host;
 

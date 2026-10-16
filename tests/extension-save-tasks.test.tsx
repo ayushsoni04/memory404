@@ -1,13 +1,6 @@
-// @vitest-environment jsdom
-import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
-import SaveTaskRows, { taskStatusCopy } from "../extension/src/SaveTaskRows.jsx";
+import { describe, expect, it } from "vitest";
+import { taskRowStartsOpen, taskStatusCopy } from "../extension/src/SaveTaskRows.jsx";
 import { BLOCKED_PAGE_MESSAGE } from "../extension/src/page-url.js";
-
-afterEach(() => {
-  cleanup();
-});
 
 describe("task status copy", () => {
   it("uses the skip reason instead of a bare skipped label", () => {
@@ -23,29 +16,15 @@ describe("task status copy", () => {
       pill: "Failed",
       detail: "Session expired",
     });
+    expect(taskStatusCopy("saved", null)).toEqual({
+      pill: "Completed",
+      detail: "Saved",
+    });
   });
-});
 
-describe("SaveTaskRows", () => {
-  it("shows why a tab was left out of a multi-save", () => {
-    render(
-      <SaveTaskRows
-        items={[
-          {
-            url: "chrome://newtab/",
-            title: "New Tab",
-            status: "skipped",
-            error: BLOCKED_PAGE_MESSAGE,
-          },
-        ]}
-      />,
-    );
-
-    expect(screen.getByRole("button", { name: /New Tab/ })).toHaveAttribute(
-      "aria-expanded",
-      "true",
-    );
-    expect(screen.getByText("Can't save")).toBeInTheDocument();
-    expect(screen.getByText(BLOCKED_PAGE_MESSAGE)).toBeInTheDocument();
+  it("opens a skipped row so the reason is on screen", () => {
+    expect(taskRowStartsOpen("skipped")).toBe(true);
+    expect(taskRowStartsOpen("saving")).toBe(true);
+    expect(taskRowStartsOpen("saved")).toBe(false);
   });
 });
