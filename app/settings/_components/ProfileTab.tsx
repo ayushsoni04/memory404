@@ -71,6 +71,7 @@ export function ProfileTab({
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const [exportNoticeTone, setExportNoticeTone] = useState<"ok" | "empty">("ok");
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
   const nameIssues = getNameIssues(name);
@@ -88,6 +89,7 @@ export function ProfileTab({
   const handleExportData = async () => {
     setExportError(null);
     setExportNotice(null);
+    setExportNoticeTone("ok");
     setIsExporting(true);
     try {
       const allLinks: unknown[] = [];
@@ -104,6 +106,12 @@ export function ProfileTab({
         cursor = data.nextCursor as string;
       }
 
+      if (allLinks.length === 0) {
+        setExportNoticeTone("empty");
+        setExportNotice("Nothing to download yet. Save a link first.");
+        return;
+      }
+
       const filename = `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`;
       const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLinks, null, 2));
       const downloadAnchor = document.createElement("a");
@@ -112,6 +120,7 @@ export function ProfileTab({
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      setExportNoticeTone("ok");
       setExportNotice(`Downloaded ${filename}`);
     } catch {
       setExportError("Could not export your links. Try again.");
@@ -432,7 +441,10 @@ export function ProfileTab({
           </p>
         ) : null}
         {exportNotice ? (
-          <p className="text-[12px] text-success" role="status">
+          <p
+            className={`text-[12px] ${exportNoticeTone === "ok" ? "text-success" : "text-subtle"}`}
+            role="status"
+          >
             {exportNotice}
           </p>
         ) : null}
