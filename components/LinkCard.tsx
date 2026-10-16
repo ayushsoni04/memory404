@@ -177,7 +177,6 @@ function LinkCard({
                 referrerPolicy="no-referrer"
               />
             ) : null}
-            <MindCardActions url={link.url} host={host} />
             {showLoader ? (
               <span className="absolute inset-0 flex items-center justify-center bg-black/30">
                 <AppLoader compact progressive label="capturing" />
@@ -185,6 +184,7 @@ function LinkCard({
             ) : null}
           </span>
         </div>
+        <MindCardActions url={link.url} host={host} />
       </div>
       <div className="mind-card-caption">
         <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
