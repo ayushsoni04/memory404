@@ -119,7 +119,6 @@ export default function SidebarProfile() {
           onClick={() => inputRef.current?.click()}
           disabled={savingAvatar}
           aria-label={avatar ? "Change profile photo" : "Add profile photo"}
-          aria-invalid={photoError ? true : undefined}
           aria-describedby={photoError ? "sidebar-photo-error" : undefined}
           title={avatar ? "Change photo" : "Add photo"}
           className="group/avatar relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-60"

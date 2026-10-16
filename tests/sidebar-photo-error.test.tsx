@@ -54,9 +54,8 @@ describe("sidebar profile photo", () => {
 
     const alert = await screen.findByRole("alert");
     expect(alert).toHaveTextContent("Use a PNG, JPEG, WebP, or GIF.");
-    expect(screen.getByRole("button", { name: "Add profile photo" })).toHaveAttribute(
-      "aria-describedby",
-      "sidebar-photo-error",
+    expect(screen.getByRole("button", { name: "Add profile photo" })).toHaveAccessibleDescription(
+      "Use a PNG, JPEG, WebP, or GIF.",
     );
     expect(fetch).toHaveBeenCalledTimes(1);
   });
