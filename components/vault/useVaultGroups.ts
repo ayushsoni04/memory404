@@ -6,6 +6,7 @@ import { useQueryState } from "nuqs";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { groupNameIssue } from "@/lib/group-name";
+import { groupsMatchingQuery } from "@/lib/group-query";
 import { createGroupErrorMessage } from "./create-group";
 import { groupTrashFailureMessage } from "./GroupTrashConfirm";
 import { MISSING_GROUP_NOTICE, resolveOpenedGroup } from "./opened-group";
@@ -153,9 +154,7 @@ export function useVaultGroups(
   const filteredFolders = useMemo(() => {
     const q = groupSearch.trim().toLowerCase();
     if (!q) return folderGroups;
-    const matched = folderGroups.filter((group) =>
-      group.name.toLowerCase().includes(q),
-    );
+    const matched = groupsMatchingQuery(folderGroups, q);
     if (!openedGroupId || openedGroupId === "all") return matched;
     const open = folderGroups.find((group) => group.id === openedGroupId);
     if (open && !matched.some((group) => group.id === open.id)) {
