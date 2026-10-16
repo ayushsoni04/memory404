@@ -14,7 +14,9 @@ import {
 } from "@/lib/extension-download";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { explainLoadError } from "@/lib/load-error";
+import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { GridSizeControl } from "./GridSizeControl";
+import { NoteCount } from "./NoteCount";
 import GroupSearchCommand from "./GroupSearchCommand";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
@@ -92,6 +94,13 @@ export default function VaultSidebar({
   filteredFolders,
   selectGroup,
 }: VaultSidebarProps) {
+  const noteProblem = noteIssue(sidebarNotesText);
+  const noteDescribedBy = [
+    noteCountLabel(sidebarNotesText) ? "sidebar-note-count" : null,
+    noteProblem ? "sidebar-note-error" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
   const showSaveFlow =
     sidebarShowNotesForm || saving || savePhase === "place";
 
@@ -138,12 +147,21 @@ export default function VaultSidebar({
                       onChange={(e) => setSidebarNotesText(e.target.value)}
                       placeholder="What should you remember?"
                       rows={2}
+                      aria-invalid={noteProblem ? true : undefined}
+                      aria-describedby={noteDescribedBy || undefined}
                       className={`${FIELD_CLASS} resize-none`}
                     />
+                    <NoteCount notes={sidebarNotesText} id="sidebar-note-count" />
+                    {noteProblem ? (
+                      <p id="sidebar-note-error" className="text-xs text-danger" role="alert">
+                        {noteProblem}
+                      </p>
+                    ) : null}
                     <button
                       type="button"
                       onClick={finishSidebarNotesFlow}
-                      className={`inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer ${controlPress}`}
+                      disabled={Boolean(noteProblem)}
+                      className={`inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer disabled:opacity-50 ${controlPress}`}
                     >
                       <MorphText duration={220}>
                         {sidebarNotesText.trim() ? "Save Notes" : "Done"}
