@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
+import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { groupPickerKeyAction } from "./group-picker";
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { saveHeadline } from "./save-outcome";
@@ -388,19 +389,20 @@ function App({ onClose }) {
   }, [linkId]);
 
   const filteredGroups = useMemo(() => {
-    const q = groupQuery.trim().toLowerCase();
     const mapped = groups.map((g) => ({
       ...g,
       name: displayGroupName(g.name),
     }));
-    if (!q) return mapped;
-    return mapped.filter((g) => g.name.toLowerCase().includes(q));
+    if (!groupQuery.trim()) return mapped;
+    return mapped.filter((g) => groupNameMatches(g.name, groupQuery));
   }, [groups, groupQuery]);
 
   const exactMatch = useMemo(() => {
-    const q = groupQuery.trim().toLowerCase();
-    if (!q) return null;
-    return filteredGroups.find((g) => g.name.toLowerCase() === q) ?? null;
+    if (!groupQuery.trim()) return null;
+    return (
+      filteredGroups.find((g) => groupNamesMatchExactly(g.name, groupQuery)) ??
+      null
+    );
   }, [filteredGroups, groupQuery]);
 
   const currentGroupName = useMemo(() => {

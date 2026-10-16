@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
+import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { classifyLinkSave, saveHeadline } from "./save-outcome";
 import "./styles.css";
 
@@ -413,7 +414,6 @@ function App() {
   }, [apiBase, isStorageLoaded, isSignedIn]);
 
   const filteredGroups = useMemo(() => {
-    const q = groupQuery.trim().toLowerCase();
     const mapped = groups.map((g) => {
       const nameLower = g.name.trim().toLowerCase();
       if (nameLower === "general" || nameLower === "uncategorized") {
@@ -421,22 +421,17 @@ function App() {
       }
       return g;
     });
-    if (!q) return mapped;
-    return mapped.filter((g) => g.name.toLowerCase().includes(q));
+    if (!groupQuery.trim()) return mapped;
+    return mapped.filter((g) => groupNameMatches(g.name, groupQuery));
   }, [groups, groupQuery]);
 
   const exactMatch = useMemo(() => {
-    const q = groupQuery.trim().toLowerCase();
-    if (!q) return null;
-    const mapped = groups.map((g) => {
-      const nameLower = g.name.trim().toLowerCase();
-      if (nameLower === "general" || nameLower === "uncategorized") {
-        return { ...g, name: "All" };
-      }
-      return g;
-    });
-    return mapped.find((g) => g.name.toLowerCase() === q) ?? null;
-  }, [groups, groupQuery]);
+    if (!groupQuery.trim()) return null;
+    return (
+      filteredGroups.find((g) => groupNamesMatchExactly(g.name, groupQuery)) ??
+      null
+    );
+  }, [filteredGroups, groupQuery]);
 
   const currentGroupName = useMemo(() => {
     const name = groups.find((g) => g.id === currentGroupId)?.name ?? null;
