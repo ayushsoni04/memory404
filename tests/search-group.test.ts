@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { searchResultGroupLabel } from "@/lib/search-group";
+import {
+  commandPaletteJumpGroups,
+  searchResultGroupLabel,
+} from "@/lib/search-group";
 
 const groups = [
   { id: "all", name: "All" },
@@ -7,6 +10,27 @@ const groups = [
   { id: "reading", name: "Reading" },
   { id: "blank", name: "  " },
 ];
+
+describe("commandPaletteJumpGroups", () => {
+  it("lists All once and leaves the stored General group out", () => {
+    expect(
+      commandPaletteJumpGroups([
+        { id: "general", name: "General" },
+        { id: "reading", name: "Reading" },
+      ]).map((group) => group.name),
+    ).toEqual(["All", "Reading"]);
+  });
+
+  it("does not duplicate All when the palette already has it", () => {
+    expect(
+      commandPaletteJumpGroups([
+        { id: "all", name: "All" },
+        { id: "general", name: " general " },
+        { id: "reading", name: "Reading" },
+      ]).map((group) => group.id),
+    ).toEqual(["all", "reading"]);
+  });
+});
 
 describe("searchResultGroupLabel", () => {
   it("names the group a search hit belongs to", () => {
