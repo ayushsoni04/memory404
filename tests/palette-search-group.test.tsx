@@ -79,4 +79,23 @@ describe("command palette search groups", () => {
     expect(await screen.findByText("Linear method")).toBeInTheDocument();
     expect(screen.getByText("linear.app · in Reading")).toBeInTheDocument();
   });
+
+  it("offers All once and does not list the stored General group", () => {
+    render(
+      <CommandPalette
+        open
+        onOpenChange={() => {}}
+        groups={[
+          { id: "all", name: "All" },
+          { id: "general", name: "General" },
+          { id: "reading", name: "Reading" },
+        ]}
+        onSelectGroup={() => {}}
+      />,
+    );
+
+    expect(screen.getAllByText("All")).toHaveLength(1);
+    expect(screen.getByText("Reading")).toBeInTheDocument();
+    expect(screen.queryByText("General")).not.toBeInTheDocument();
+  });
 });
