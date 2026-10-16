@@ -599,7 +599,8 @@ async function executeSaveJob(job, opts) {
           results[i] = {
             ...results[i],
             status: "skipped",
-            error: "Invalid URL",
+            // skipSaveReason is prepended from extension/src/page-url.js at build time.
+            error: skipSaveReason(url),
           };
         }
         job.itemResults = results;

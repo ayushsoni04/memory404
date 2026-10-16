@@ -1,6 +1,6 @@
 {
   "name": "memory404-extension",
-  "version": "0.2.5",
+  "version": "0.2.6",
   "private": true,
   "description": "Chrome extension for saving current tab into memory404",
   "scripts": {

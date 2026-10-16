@@ -36,3 +36,12 @@ export function blockedPageMessage(url) {
   }
   return null;
 }
+
+/**
+ * Why one tab in a multi-save was left out.
+ * Browser pages use the same explanation as the blocked page.
+ * @param {unknown} url
+ */
+export function skipSaveReason(url) {
+  return blockedPageMessage(url) ?? "This page can't be saved.";
+}
