@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { NextResponse } from "next/server";
+import { EMAIL_INVALID, emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { enforceAuthRateLimit } from "@/lib/auth-rate-limit";
 import { getMongoEnvError } from "@/lib/db/mongodb";
 import { findUserByEmail, setPasswordResetToken } from "@/lib/db/repositories";
@@ -30,12 +31,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
   }
 
-  const email = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+  const email = typeof body.email === "string" ? normalizeEmail(body.email) : "";
 
-  // Always respond with the same shape whether or not the email exists —
-  // don't let this endpoint be used to enumerate registered accounts.
+  // A malformed address is not an account, so this can say so.
+  // A real address still gets the same response whether or not it is registered.
+  if (emailIssue(email)) {
+    return NextResponse.json({ error: EMAIL_INVALID }, { status: 400 });
+  }
+
   const genericResponse = NextResponse.json({ ok: true });
-  if (!email) return genericResponse;
 
   try {
     const user = await findUserByEmail(email);
