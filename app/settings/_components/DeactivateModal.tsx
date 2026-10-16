@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
+import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 import { useDialogContainment } from "@/lib/dialog-focus";
 import { controlPress } from "@/components/vault/types";
 
@@ -128,7 +129,7 @@ export function DeactivateModal({
               </button>
               <button
                 type="submit"
-                disabled={deactivateInput !== "deactivate" || isDeactivating}
+                disabled={!isDeactivateConfirmation(deactivateInput) || isDeactivating}
                 className={`flex h-8 flex-1 cursor-pointer items-center justify-center rounded-lg bg-danger text-xs font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 ${controlPress}`}
               >
                 {isDeactivating ? (
