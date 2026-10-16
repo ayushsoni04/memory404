@@ -72,23 +72,34 @@ function statusBadge(status, index) {
   return <SpinnerRing>{index + 1}</SpinnerRing>;
 }
 
-function statusPill(status) {
-  if (status === "saved") {
-    return <span className="task-pill task-pill--ok">Completed</span>;
-  }
-  if (status === "failed") {
-    return <span className="task-pill task-pill--fail">Failed</span>;
-  }
+/** Short pill and the sentence shown when a save row is opened. */
+export function taskStatusCopy(status, error) {
+  const detail = typeof error === "string" ? error.trim() : "";
+  if (status === "saved") return { pill: "Completed", detail: "Saved" };
+  if (status === "failed") return { pill: "Failed", detail: detail || "Failed" };
   if (status === "already") {
-    return <span className="task-pill task-pill--skip">Already saved</span>;
+    return { pill: "Already saved", detail: detail || "Already saved" };
   }
   if (status === "skipped") {
-    return <span className="task-pill task-pill--skip">Skipped</span>;
+    return { pill: "Can't save", detail: detail || "This page can't be saved." };
   }
-  if (status === "saving") {
-    return <span className="task-pill task-pill--run">Saving</span>;
-  }
-  return null;
+  if (status === "saving") return { pill: "Saving", detail: "In progress" };
+  return { pill: null, detail: "Queued" };
+}
+
+function statusPill(status, error) {
+  const copy = taskStatusCopy(status, error);
+  if (!copy.pill) return null;
+  const tone =
+    status === "saved" ? "ok" : status === "failed" ? "fail" : status === "saving" ? "run" : "skip";
+  return (
+    <span
+      className={`task-pill task-pill--${tone}`}
+      title={status === "skipped" ? copy.detail : undefined}
+    >
+      {copy.pill}
+    </span>
+  );
 }
 
 /**
@@ -105,7 +116,8 @@ export default function SaveTaskRows({ items = [] }) {
       {items.map((row, i) => {
         const key = `${row.url || "item"}-${i}`;
         const status = row.status || "pending";
-        const open = manualOpen[key] ?? status === "saving";
+        const copy = taskStatusCopy(status, row.error);
+        const open = manualOpen[key] ?? (status === "saving" || status === "skipped");
         const host = hostnameOf(row.url);
         const label = (row.title && row.title.trim()) || host;
 
@@ -133,7 +145,7 @@ export default function SaveTaskRows({ items = [] }) {
               <span className="task-row-meta" title={host}>
                 {host}
               </span>
-              {statusPill(status)}
+              {statusPill(status, row.error)}
               <span aria-hidden className="task-row-chevron">
                 <svg
                   width="14"
@@ -171,17 +183,7 @@ export default function SaveTaskRows({ items = [] }) {
                     <div className="task-row-detail">
                       <span>Status</span>
                       <span className="task-row-detail-meta">
-                        {status === "saving"
-                          ? "In progress"
-                          : status === "saved"
-                            ? "Saved"
-                            : status === "failed"
-                              ? row.error || "Failed"
-                              : status === "already"
-                              ? row.error || "Already saved"
-                              : status === "skipped"
-                                ? "Skipped"
-                                : "Queued"}
+                        {copy.detail}
                       </span>
                     </div>
                   </div>

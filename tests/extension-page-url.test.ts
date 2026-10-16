@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   BLOCKED_PAGE_MESSAGE,
   blockedPageMessage,
+  skipSaveReason,
 } from "../extension/src/page-url.js";
 
 describe("blockedPageMessage", () => {
@@ -22,5 +23,13 @@ describe("blockedPageMessage", () => {
   it("leaves ordinary websites alone", () => {
     expect(blockedPageMessage("https://linear.app/docs")).toBeNull();
     expect(blockedPageMessage("http://localhost:3000/")).toBeNull();
+  });
+
+  it("explains a tab that a multi-save has to skip", () => {
+    expect(skipSaveReason("chrome://newtab/")).toBe(BLOCKED_PAGE_MESSAGE);
+    expect(skipSaveReason("")).toBe(BLOCKED_PAGE_MESSAGE);
+    expect(skipSaveReason("ftp://files.example.com/a")).toBe(
+      "This page can't be saved.",
+    );
   });
 });
