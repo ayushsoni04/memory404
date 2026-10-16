@@ -69,4 +69,17 @@ describe("trash rows on a narrow screen", () => {
     expect(screen.getByText("Expires today")).toBeInTheDocument();
     expect(actionsFor("Delete Now")).toHaveClass("sm:opacity-0");
   });
+
+  it("calls the inbox All, the same label the library uses", () => {
+    render(
+      <TrashLinkRow
+        item={{ ...link, groupName: "General" }}
+        exiting={false}
+        onRestore={() => {}}
+        onDelete={() => {}}
+      />,
+    );
+    expect(screen.getByText(/in All/)).toBeInTheDocument();
+    expect(screen.queryByText(/in General/)).not.toBeInTheDocument();
+  });
 });

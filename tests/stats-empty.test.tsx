@@ -66,6 +66,31 @@ describe("empty statistics", () => {
     expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
   });
 
+  it("calls the inbox All in the density list", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalLinks: 3,
+          totalGroups: 2,
+          linksByGroup: [
+            { id: "general", name: "General", count: 2 },
+            { id: "reading", name: "Reading", count: 1 },
+          ],
+          linkFrequency: [],
+        }),
+      }),
+    );
+
+    render(<StatsTab bannerStyle="midnight" />);
+
+    expect(await screen.findByText("All")).toBeInTheDocument();
+    expect(screen.getByText("Reading")).toBeInTheDocument();
+    expect(screen.queryByText("General")).not.toBeInTheDocument();
+  });
+
   it("says groups, not categories, when density is empty", async () => {
     vi.stubGlobal(
       "fetch",
