@@ -149,4 +149,43 @@ describe("library export", () => {
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
+
+  it("explains an empty library instead of downloading a blank file", async () => {
+    const click = vi.fn();
+    const create = document.createElement.bind(document);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = requestUrl(input);
+        if (url.includes("/api/me")) {
+          return { ok: true, json: async () => ({ user: profile }) };
+        }
+        return {
+          ok: true,
+          json: async () => ({ links: [], hasMore: false }),
+        };
+      }),
+    );
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+
+    const exportButton = await screen.findByRole("button", {
+      name: "Export backup JSON",
+    });
+    const createSpy = vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+      const element = create(tagName);
+      if (tagName === "a") element.click = click;
+      return element;
+    });
+    fireEvent.click(exportButton);
+
+    expect(
+      await screen.findByText("Nothing to download yet. Save a link first."),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Downloaded memory404-backup/)).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(click).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Export backup JSON" })).toBeEnabled();
+    createSpy.mockRestore();
+  });
 });
