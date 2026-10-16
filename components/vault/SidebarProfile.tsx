@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Camera } from "lucide-react";
+import { getAvatarFileIssues } from "@/lib/profile";
 
 type MeUser = {
   name: string | null;
@@ -16,6 +17,7 @@ export default function SidebarProfile() {
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [savingAvatar, setSavingAvatar] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
 
   const applyUser = useCallback((user: MeUser) => {
@@ -46,12 +48,23 @@ export default function SidebarProfile() {
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !file.type.startsWith("image/")) return;
+    e.target.value = "";
+    if (!file) return;
 
+    const issues = getAvatarFileIssues(file);
+    if (issues.length > 0) {
+      setPhotoError(issues[0]);
+      return;
+    }
+
+    setPhotoError(null);
     const reader = new FileReader();
     reader.onloadend = async () => {
       const base64 = typeof reader.result === "string" ? reader.result : null;
-      if (!base64) return;
+      if (!base64) {
+        setPhotoError("Couldn't read that photo. Try a different file.");
+        return;
+      }
       setAvatar(base64);
       setSavingAvatar(true);
       try {
@@ -62,22 +75,26 @@ export default function SidebarProfile() {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
-          console.error("Avatar save failed:", data.error);
+          setPhotoError(
+            typeof data.error === "string" && data.error.trim()
+              ? data.error
+              : "Couldn't save that photo. Try again.",
+          );
           await loadProfile();
           return;
         }
         const data = await res.json();
         if (data.user) applyUser(data.user as MeUser);
+        setPhotoError(null);
         window.dispatchEvent(new CustomEvent("m404:profile-updated"));
-      } catch (err) {
-        console.error("Avatar save failed:", err);
+      } catch {
+        setPhotoError("Couldn't save that photo. Check your connection and try again.");
         await loadProfile();
       } finally {
         setSavingAvatar(false);
       }
     };
     reader.readAsDataURL(file);
-    e.target.value = "";
   };
 
   const initials = name
@@ -95,49 +112,57 @@ export default function SidebarProfile() {
     : "Add photo & details";
 
   return (
-    <div className="flex items-center gap-2.5">
-      <button
-        type="button"
-        onClick={() => inputRef.current?.click()}
-        disabled={savingAvatar}
-        aria-label={avatar ? "Change profile photo" : "Add profile photo"}
-        title={avatar ? "Change photo" : "Add photo"}
-        className="group/avatar relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-60"
-      >
-        <input
-          ref={inputRef}
-          type="file"
-          accept="image/*"
-          onChange={handleAvatarChange}
-          className="hidden"
-        />
-        {avatar ? (
-          <Image
-            src={avatar}
-            alt=""
-            fill
-            unoptimized
-            className="object-cover transition duration-200 group-hover/avatar:brightness-50"
+    <div className="flex flex-col gap-1.5">
+      <div className="flex items-center gap-2.5">
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          disabled={savingAvatar}
+          aria-label={avatar ? "Change profile photo" : "Add profile photo"}
+          aria-describedby={photoError ? "sidebar-photo-error" : undefined}
+          title={avatar ? "Change photo" : "Add photo"}
+          className="group/avatar relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-60"
+        >
+          <input
+            ref={inputRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            onChange={handleAvatarChange}
+            className="hidden"
           />
-        ) : (
-          <span className="font-mono text-[12px] font-semibold tracking-wide uppercase transition duration-200 group-hover/avatar:opacity-40">
-            {initials}
+          {avatar ? (
+            <Image
+              src={avatar}
+              alt=""
+              fill
+              unoptimized
+              className="object-cover transition duration-200 group-hover/avatar:brightness-50"
+            />
+          ) : (
+            <span className="font-mono text-[12px] font-semibold tracking-wide uppercase transition duration-200 group-hover/avatar:opacity-40">
+              {initials}
+            </span>
+          )}
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition duration-200 group-hover/avatar:opacity-100">
+            <Camera className="size-3.5 text-white" aria-hidden />
           </span>
-        )}
-        <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition duration-200 group-hover/avatar:opacity-100">
-          <Camera className="size-3.5 text-white" aria-hidden />
-        </span>
-      </button>
+        </button>
 
-      <Link
-        href="/settings"
-        className="min-w-0 flex-1 rounded-lg px-1 py-0.5 transition-colors hover:bg-pill"
-      >
-        <p className="truncate text-[13px] font-medium text-foreground">
-          {displayName}
+        <Link
+          href="/settings"
+          className="min-w-0 flex-1 rounded-lg px-1 py-0.5 transition-colors hover:bg-pill"
+        >
+          <p className="truncate text-[13px] font-medium text-foreground">
+            {displayName}
+          </p>
+          <p className="truncate text-[11px] text-subtle">{displayMeta}</p>
+        </Link>
+      </div>
+      {photoError ? (
+        <p id="sidebar-photo-error" className="text-[11px] leading-snug text-danger" role="alert">
+          {photoError}
         </p>
-        <p className="truncate text-[11px] text-subtle">{displayMeta}</p>
-      </Link>
+      ) : null}
     </div>
   );
 }
