@@ -53,10 +53,19 @@ function renderOverlay({
   onNext = vi.fn(),
   onClose = vi.fn(),
   onNotesSaved = vi.fn(),
+  onDelete = vi.fn(),
+  onMove = vi.fn(),
+  groups = [
+    { id: "references", name: "References" },
+    { id: "reading", name: "Reading" },
+  ],
 }: {
   onNext?: () => void;
   onClose?: () => void;
   onNotesSaved?: (link: LinkApiRow) => void;
+  onDelete?: (id: string) => void;
+  onMove?: (link: LinkApiRow, groupId: string) => void;
+  groups?: { id: string; name: string }[];
 } = {}) {
   vi.stubGlobal("matchMedia", () => ({
     matches: true,
@@ -71,19 +80,19 @@ function renderOverlay({
     <LinkDetailOverlay
       link={sample()}
       groupName="References"
-      groups={[{ id: "references", name: "References" }]}
+      groups={groups}
       originRect={null}
       onClose={onClose}
       onPrev={() => {}}
       onNext={onNext}
-      onDelete={() => {}}
-      onMove={() => {}}
+      onDelete={onDelete}
+      onMove={onMove}
       hasPrev={false}
       hasNext
       onNotesSaved={onNotesSaved}
     />,
   );
-  return { onNext, onClose, onNotesSaved };
+  return { onNext, onClose, onNotesSaved, onDelete, onMove };
 }
 
 describe("leaving a link keeps the note", () => {
@@ -141,5 +150,94 @@ describe("leaving a link keeps the note", () => {
     );
     expect(onClose).not.toHaveBeenCalled();
     expect(screen.getByLabelText("Note")).toHaveValue("Do not lose this");
+  });
+
+  it("saves an edited note before moving the link to Trash", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ link: sample() }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { onDelete, onClose } = renderOverlay();
+
+    fireEvent.change(screen.getByLabelText("Note"), {
+      target: { value: "Keep this with the link" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Move to Trash" }));
+
+    expect(onDelete).not.toHaveBeenCalled();
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith("link-1"));
+    expect(onClose).toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining("/api/links/link-1"),
+      expect.objectContaining({
+        method: "PATCH",
+        body: JSON.stringify({ notes: "Keep this with the link" }),
+      }),
+    );
+  });
+
+  it("stays open when Trash is chosen and the note cannot be saved", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ error: "Could not save the note" }),
+      })),
+    );
+    const { onDelete, onClose } = renderOverlay();
+    fireEvent.change(screen.getByLabelText("Note"), {
+      target: { value: "Do not lose this" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Move to Trash" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not save the note",
+    );
+    expect(onDelete).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it("saves an edited note before moving the link to another group", async () => {
+    const fetchMock = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({ link: sample() }),
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const { onMove } = renderOverlay();
+
+    fireEvent.change(screen.getByLabelText("Note"), {
+      target: { value: "Take this to Reading" },
+    });
+    fireEvent.change(screen.getByLabelText("Move to group"), {
+      target: { value: "reading" },
+    });
+
+    expect(onMove).not.toHaveBeenCalled();
+    await waitFor(() =>
+      expect(onMove).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "link-1" }),
+        "reading",
+      ),
+    );
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("saves an edited note before closing from the empty area", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({ link: sample() }),
+      })),
+    );
+    const { onClose } = renderOverlay();
+    fireEvent.change(screen.getByLabelText("Note"), {
+      target: { value: "Still here" },
+    });
+    const pad = document.querySelector(".px-6.pb-10");
+    expect(pad).toBeTruthy();
+    fireEvent.click(pad!);
+    expect(onClose).not.toHaveBeenCalled();
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 });
