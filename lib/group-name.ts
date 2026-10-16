@@ -1,6 +1,43 @@
 /** Long enough for a real collection name, short enough to read on a pill. */
 export const GROUP_NAME_MAX = 60;
 
+export const GROUP_NAME_TAKEN = "A group with this name already exists.";
+
+export const GROUP_NAME_IN_TRASH =
+  "That name is in Trash. Restore the group, or pick a different name.";
+
+export type NamedGroup = {
+  name: string;
+  deletedAt: Date | string | null;
+};
+
+/**
+ * Whether this name is already used, ignoring letter case.
+ * An active group wins over one sitting in Trash.
+ */
+export function groupNameConflict(
+  name: string,
+  groups: readonly NamedGroup[],
+): "active" | "trash" | null {
+  const target = name.trim().toLowerCase();
+  if (!target) return null;
+  let inTrash = false;
+  for (const group of groups) {
+    if (group.name.trim().toLowerCase() !== target) continue;
+    if (group.deletedAt == null) return "active";
+    inTrash = true;
+  }
+  return inTrash ? "trash" : null;
+}
+
+export function groupNameConflictMessage(
+  kind: "active" | "trash" | null,
+): string | null {
+  if (kind === "active") return GROUP_NAME_TAKEN;
+  if (kind === "trash") return GROUP_NAME_IN_TRASH;
+  return null;
+}
+
 /** Why a group name cannot be saved, or null when it can. */
 export function groupNameIssue(name: string): string | null {
   const trimmed = name.trim();

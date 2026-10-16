@@ -1,16 +1,14 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
-import {
-  getMongoEnvError,
-  isDuplicateKeyError,
-} from "@/lib/db/mongodb";
+import { getMongoEnvError, isDuplicateKeyError } from "@/lib/db/mongodb";
 import {
   createGroup,
   getOrCreateGeneralGroup,
   listGroupsWithPreviews,
   reorderGroups,
 } from "@/lib/db/repositories";
-import { groupNameIssue } from "@/lib/group-name";
+import { GROUP_NAME_TAKEN, groupNameIssue } from "@/lib/group-name";
+import { groupNameTakenMessage } from "@/lib/group-name-lookup";
 
 export const runtime = "nodejs";
 
@@ -96,6 +94,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: nameIssue }, { status: 400 });
     }
 
+    const taken = await groupNameTakenMessage(auth.id, name);
+    if (taken) {
+      return NextResponse.json({ error: taken }, { status: 409 });
+    }
+
     let parentGroupId: string | null = null;
     if ("parentGroupId" in body && body.parentGroupId != null) {
       if (typeof body.parentGroupId !== "string" || !body.parentGroupId.trim()) {
@@ -140,10 +143,7 @@ export async function POST(request: Request) {
       );
     }
     if (isDuplicateKeyError(e)) {
-      return NextResponse.json(
-        { error: "A group with this name already exists." },
-        { status: 409 },
-      );
+      return NextResponse.json({ error: GROUP_NAME_TAKEN }, { status: 409 });
     }
     console.error("POST /api/groups:", e);
     return NextResponse.json(
