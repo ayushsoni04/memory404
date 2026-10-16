@@ -6,7 +6,7 @@ import MorphText from "@/components/MorphText";
 import { explainLoadError } from "@/lib/load-error";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
-import { replaceFeedWithLoadError } from "./feed-load";
+import { replaceFeedWithLoadError, showRefreshFailure } from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import type { GridSize, GroupRow } from "./types";
 
@@ -226,6 +226,24 @@ export default function VaultFeed({
             </p>
           ) : null}
           {groupToolbar}
+          {showRefreshFailure(fetchError, sortedLinks.length, loadMoreError) ? (
+            <div
+              className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
+              role="alert"
+            >
+              <p className="text-sm text-danger">{explainLoadError(fetchError)}</p>
+              <p className="text-[13px] text-subtle">
+                The links on screen are still here.
+              </p>
+              <button
+                type="button"
+                onClick={() => void loadLinks()}
+                className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+              >
+                Retry
+              </button>
+            </div>
+          ) : null}
           {feedBody}
         </div>
       </div>
