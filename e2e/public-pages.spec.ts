@@ -46,11 +46,21 @@ test("forgot password stays on a generic confirmation", async ({ page }) => {
   await expect(page.getByLabel("Email address")).toHaveValue("person@example.com");
 });
 
-test("reset password rejects a missing token before calling the network", async ({ page }) => {
+test("reset password explains a missing token before asking for a password", async ({ page }) => {
+  let resetCalled = false;
+  await page.route("**/api/auth/reset-password", async (route) => {
+    resetCalled = true;
+    await route.fulfill({ status: 500, contentType: "application/json", body: "{}" });
+  });
   await page.goto("/reset-password");
-  await page.getByLabel("New password", { exact: true }).fill("Memory404");
-  await page.getByRole("button", { name: "Update password" }).click();
+  await expect(page.getByRole("heading", { name: "Reset link expired" })).toBeVisible();
   await expect(page.getByText("This reset link is invalid or expired.")).toBeVisible();
+  await expect(page.getByLabel("New password")).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "Request a new link" })).toHaveAttribute(
+    "href",
+    "/forgot-password",
+  );
+  expect(resetCalled).toBe(false);
 });
 
 test("login layout holds together on a phone viewport", async ({ page }) => {
