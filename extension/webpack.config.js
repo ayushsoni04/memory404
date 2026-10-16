@@ -4,10 +4,14 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 function withSaveOutcome(content, absoluteFrom) {
   if (!absoluteFrom.endsWith(`${path.sep}background.js`)) return content;
-  const helper = fs
-    .readFileSync(path.resolve(__dirname, "src/save-outcome.js"), "utf8")
-    .replace(/^export /gm, "");
-  return Buffer.from(`${helper}\n${content.toString()}`);
+  const helpers = ["save-outcome.js", "page-url.js"]
+    .map((file) =>
+      fs
+        .readFileSync(path.resolve(__dirname, "src", file), "utf8")
+        .replace(/^export /gm, ""),
+    )
+    .join("\n");
+  return Buffer.from(`${helpers}\n${content.toString()}`);
 }
 
 module.exports = {

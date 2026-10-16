@@ -356,25 +356,35 @@ async function getTabContext(tabId) {
   };
 }
 
+async function openBlockedPage() {
+  const pageUrl = chrome.runtime.getURL("blocked.html");
+  try {
+    const existing = await chrome.tabs.query({ url: pageUrl });
+    const tab = existing.find((item) => item.id != null);
+    if (tab?.id != null) {
+      await chrome.tabs.update(tab.id, { active: true });
+      if (tab.windowId != null) {
+        await chrome.windows.update(tab.windowId, { focused: true });
+      }
+      return;
+    }
+    await chrome.tabs.create({ url: pageUrl });
+  } catch (e) {
+    console.warn("Could not open the blocked-page explanation:", e);
+  }
+}
+
 async function ensureOverlay(tabId, payload = {}) {
   if (tabId == null) return { ok: false, error: "No tab" };
 
   const tab = await chrome.tabs.get(tabId).catch(() => null);
   const url = tab?.url || "";
-  if (
-    !url ||
-    url.startsWith("chrome://") ||
-    url.startsWith("chrome-extension://") ||
-    url.startsWith("https://chrome.google.com/webstore") ||
-    url.startsWith("https://chromewebstore.google.com") ||
-    url.startsWith("edge://") ||
-    url.startsWith("about:")
-  ) {
+  const blocked = blockedPageMessage(url);
+  if (blocked) {
     await setBadge("!");
-    return {
-      ok: false,
-      error: "Can't open on this page. Try a normal http(s) tab.",
-    };
+    await chrome.action.setTitle({ title: blocked });
+    await openBlockedPage();
+    return { ok: false, error: blocked };
   }
 
   await storageSet({
@@ -416,6 +426,7 @@ async function ensureOverlay(tabId, payload = {}) {
     console.warn("SHOW_OVERLAY message failed:", e);
   }
 
+  await chrome.action.setTitle({ title: "Save Link" });
   await setBadge("");
   return { ok: true };
 }
