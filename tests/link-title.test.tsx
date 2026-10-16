@@ -4,7 +4,11 @@ import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import LinkTitleEditor from "@/components/vault/LinkTitleEditor";
-import { LINK_TITLE_MAX, linkTitleIssue } from "@/lib/link-title";
+import {
+  LINK_TITLE_LINE_BREAK,
+  LINK_TITLE_MAX,
+  linkTitleIssue,
+} from "@/lib/link-title";
 import type { LinkApiRow } from "@/lib/links";
 
 afterEach(() => {
@@ -36,6 +40,12 @@ describe("linkTitleIssue", () => {
     expect(linkTitleIssue("  ")).toBeNull();
     expect(linkTitleIssue("a".repeat(LINK_TITLE_MAX))).toBeNull();
     expect(linkTitleIssue("a".repeat(LINK_TITLE_MAX + 1))).toMatch(/200/);
+  });
+
+  it("rejects a name that would break across lines", () => {
+    expect(linkTitleIssue("Launch\nnotes")).toBe(LINK_TITLE_LINE_BREAK);
+    expect(linkTitleIssue("Launch\rnotes")).toBe(LINK_TITLE_LINE_BREAK);
+    expect(linkTitleIssue("Launch notes")).toBeNull();
   });
 });
 

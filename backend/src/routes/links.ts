@@ -5,6 +5,7 @@ import {
   getMongoEnvError,
   isDuplicateKeyError,
 } from "@/lib/db/mongodb";
+import { linkTitleIssue } from "@/lib/link-title";
 import { noteIssue } from "@/lib/note-limit";
 import {
   createGroup,
@@ -382,8 +383,9 @@ linksRouter.patch("/:id", async (req, res) => {
         updateData.customTitle = null;
       } else if (typeof raw === "string") {
         const t = raw.trim();
-        if (t.length > 200) {
-          res.status(400).json({ error: "Names must be 200 characters or fewer." });
+        const issue = linkTitleIssue(t);
+        if (issue) {
+          res.status(400).json({ error: issue });
           return;
         }
         updateData.customTitle = t.length ? t : null;
