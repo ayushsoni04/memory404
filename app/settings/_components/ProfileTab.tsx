@@ -19,6 +19,12 @@ import {
 import { controlPress } from "@/components/vault/types";
 import { BANNER_GRADIENTS, nextBannerStyle } from "./constants";
 import {
+  collectLibraryLinks,
+  LIBRARY_BACKUP_TOO_LARGE,
+  libraryBackupFilename,
+  libraryBackupPayload,
+} from "@/lib/library-backup";
+import {
   getAvatarFileIssues,
   getNameIssues,
   getUsernameIssues,
@@ -92,18 +98,22 @@ export function ProfileTab({
     setExportNoticeTone("ok");
     setIsExporting(true);
     try {
-      const allLinks: unknown[] = [];
-      let cursor: string | null = null;
-      for (let page = 0; page < 500; page += 1) {
+      const { links: allLinks, truncated } = await collectLibraryLinks(async (cursor) => {
         const params = new URLSearchParams({ limit: "100" });
         if (cursor) params.set("cursor", cursor);
         const res = await fetch(`/api/links?${params.toString()}`);
         if (!res.ok) throw new Error("Could not export your links");
         const data = await res.json();
-        const batch = Array.isArray(data.links) ? data.links : [];
-        allLinks.push(...batch);
-        if (!data.hasMore || !data.nextCursor) break;
-        cursor = data.nextCursor as string;
+        return {
+          links: Array.isArray(data.links) ? data.links : [],
+          hasMore: Boolean(data.hasMore),
+          nextCursor: typeof data.nextCursor === "string" ? data.nextCursor : null,
+        };
+      });
+
+      if (truncated) {
+        setExportError(LIBRARY_BACKUP_TOO_LARGE);
+        return;
       }
 
       if (allLinks.length === 0) {
@@ -112,14 +122,24 @@ export function ProfileTab({
         return;
       }
 
-      const filename = `memory404-backup-${new Date().toISOString().slice(0, 10)}.json`;
-      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(allLinks, null, 2));
+      const groupsRes = await fetch("/api/groups");
+      if (!groupsRes.ok) throw new Error("Could not export your links");
+      const groupsData = await groupsRes.json();
+      const groups = Array.isArray(groupsData.groups) ? groupsData.groups : [];
+
+      const filename = libraryBackupFilename();
+      const payload = libraryBackupPayload(groups, allLinks);
+      const blob = new Blob([JSON.stringify(payload, null, 2)], {
+        type: "application/json",
+      });
+      const href = URL.createObjectURL(blob);
       const downloadAnchor = document.createElement("a");
-      downloadAnchor.setAttribute("href", dataStr);
-      downloadAnchor.setAttribute("download", filename);
+      downloadAnchor.href = href;
+      downloadAnchor.download = filename;
       document.body.appendChild(downloadAnchor);
       downloadAnchor.click();
       downloadAnchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(href), 1000);
       setExportNoticeTone("ok");
       setExportNotice(`Downloaded ${filename}`);
     } catch {
@@ -414,12 +434,12 @@ export function ProfileTab({
       <section className="border-t border-border pt-6 space-y-3">
         <div>
           <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">Data archive</h3>
-          <p className="text-xs text-subtle mt-0.5">Download a fully formatted JSON backup containing all your saved links and metadata.</p>
+          <p className="text-xs text-subtle mt-0.5">Download a JSON backup of your groups and every saved link.</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-neutral-800 transition duration-300">
           <div className="space-y-0.5">
             <p className="text-xs font-medium text-foreground">Export link archives</p>
-            <p className="text-[10px] text-subtle font-mono">Includes titles, custom tags, screenshots metadata, and dates.</p>
+            <p className="text-[10px] text-subtle font-mono">Includes group names, titles, notes, tags, and dates.</p>
           </div>
           <button
             type="button"
