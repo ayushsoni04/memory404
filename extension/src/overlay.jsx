@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
+import { noteCountLabel, noteIssue } from "./note-limit";
 import { groupPickerKeyAction } from "./group-picker";
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { saveHeadline } from "./save-outcome";
@@ -563,9 +564,17 @@ function App({ onClose }) {
   const canAddNote =
     phase === "saved" && outcome.offerNote && linkId && linkId !== "multiple";
 
+  const noteProblem = noteIssue(noteDraft);
+  const noteCount = noteCountLabel(noteDraft);
+
   const saveNote = async () => {
     const notes = noteDraft.trim();
+    const issue = noteIssue(noteDraft);
     if (!canAddNote || !notes) return;
+    if (issue) {
+      setNoteError(issue);
+      return;
+    }
     setNoteSaving(true);
     setNoteError("");
     const res = await sendMessage({
@@ -1055,22 +1064,43 @@ function App({ onClose }) {
                           rows={2}
                           value={noteDraft}
                           placeholder="What should you remember?"
+                          aria-invalid={noteProblem ? true : undefined}
+                          aria-describedby={
+                            [
+                              noteCount ? "m404-note-count" : null,
+                              noteError ? "m404-note-error" : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" ") || undefined
+                          }
                           onChange={(e) => {
                             setNoteDraft(e.target.value);
-                            setNoteError("");
+                            setNoteError(noteIssue(e.target.value) || "");
                           }}
                         />
+                        {noteCount ? (
+                          <p
+                            id="m404-note-count"
+                            className={`note-count${noteProblem ? " is-over" : ""}`}
+                          >
+                            {noteCount}
+                          </p>
+                        ) : null}
                         {noteDraft.trim() ? (
                           <button
                             type="button"
                             className="save-btn"
-                            disabled={noteSaving}
+                            disabled={noteSaving || Boolean(noteProblem)}
                             onClick={() => void saveNote()}
                           >
                             {noteSaving ? "Saving…" : "Save note"}
                           </button>
                         ) : null}
-                        {noteError ? <p className="field-error">{noteError}</p> : null}
+                        {noteError ? (
+                          <p id="m404-note-error" className="field-error" role="alert">
+                            {noteError}
+                          </p>
+                        ) : null}
                       </div>
                     )
                   ) : null}
