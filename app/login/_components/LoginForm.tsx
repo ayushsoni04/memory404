@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
@@ -14,6 +14,7 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { EMAIL_INVALID, emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { safeRedirectPath } from "@/lib/safe-redirect";
@@ -24,6 +25,7 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const emailRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -34,13 +36,18 @@ export function LoginForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (emailIssue(email)) {
+      setError(EMAIL_INVALID);
+      emailRef.current?.focus();
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       const res = await fetch("/api/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email: normalizeEmail(email), password }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -89,6 +96,7 @@ export function LoginForm() {
         <label className="block space-y-1.5">
           <span className="text-[11px] font-medium text-muted">Email address</span>
           <input
+            ref={emailRef}
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
