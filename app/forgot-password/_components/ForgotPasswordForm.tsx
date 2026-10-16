@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import MorphText from "@/components/MorphText";
 import {
   authFieldClass,
@@ -10,6 +10,7 @@ import {
   authQuietControlClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import { EMAIL_INVALID, emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 
@@ -19,17 +20,24 @@ export function ForgotPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
+  const emailRef = useRef<HTMLInputElement>(null);
+  const address = normalizeEmail(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (emailIssue(email)) {
+      setError(EMAIL_INVALID);
+      emailRef.current?.focus();
+      return;
+    }
     setIsSubmitting(true);
 
     try {
       const res = await fetch("/api/auth/forgot-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: address }),
       });
       const data = await res.json().catch(() => ({}));
       setIsSubmitting(false);
@@ -58,7 +66,7 @@ export function ForgotPasswordForm() {
       {sent ? (
         <div className="space-y-3">
           <p className="text-sm text-success" role="status">
-            If an account exists for {email}, a reset link is on its way.
+            If an account exists for {address}, a reset link is on its way.
           </p>
           <button
             type="button"
@@ -76,18 +84,24 @@ export function ForgotPasswordForm() {
           <label className="block space-y-1.5">
             <span className="text-[11px] font-medium text-muted">Email address</span>
             <input
+              ref={emailRef}
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setError(null);
+              }}
               placeholder="you@example.com"
               autoComplete="email"
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "forgot-email-error" : undefined}
               className={authFieldClass}
               required
             />
           </label>
 
           {error ? (
-            <p className="text-xs text-danger" role="alert">
+            <p id="forgot-email-error" className="text-xs text-danger" role="alert">
               {error}
             </p>
           ) : null}
