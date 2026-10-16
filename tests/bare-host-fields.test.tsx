@@ -38,7 +38,7 @@ function expectBareHostField(field: HTMLElement) {
 
 describe("save fields accept a host without https", () => {
   it("lets the add-link card submit example.com/page", () => {
-    const saveLink = vi.fn(async () => ({ ok: false, error: "stopped" }));
+    const saveLink = vi.fn(async () => ({ ok: false as const, error: "stopped" }));
     render(
       <AddLinkCard groupId="reading" onSaved={() => {}} saveLink={saveLink} />,
     );
@@ -55,7 +55,7 @@ describe("save fields accept a host without https", () => {
   });
 
   it("lets the empty-library field submit a bare host", () => {
-    const saveLink = vi.fn(async () => ({ ok: false, error: "stopped" }));
+    const saveLink = vi.fn(async () => ({ ok: false as const, error: "stopped" }));
     render(
       <PastePrompt
         variant="empty"
