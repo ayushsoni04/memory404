@@ -68,6 +68,25 @@ function requestUrl(input: RequestInfo | URL) {
   return input.url;
 }
 
+/** jsdom does not implement blob URLs. Capture the file the button would download. */
+function installBlobDownload() {
+  const blobs: Blob[] = [];
+  Object.defineProperty(URL, "createObjectURL", {
+    configurable: true,
+    writable: true,
+    value: (blob: Blob) => {
+      blobs.push(blob);
+      return "blob:backup";
+    },
+  });
+  Object.defineProperty(URL, "revokeObjectURL", {
+    configurable: true,
+    writable: true,
+    value: () => {},
+  });
+  return blobs;
+}
+
 describe("library export", () => {
   it("says when the backup cannot be downloaded and keeps the button", async () => {
     let linkRequests = 0;
@@ -138,6 +157,7 @@ describe("library export", () => {
       }),
     );
     installMatchMedia();
+    installBlobDownload();
     render(<SettingsClient isOwner={false} />);
 
     fireEvent.click(
@@ -148,6 +168,89 @@ describe("library export", () => {
       await screen.findByText(/^Downloaded memory404-backup-\d{4}-\d{2}-\d{2}\.json$/),
     ).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("downloads a file that includes the groups, not a data URL", async () => {
+    const blobs = installBlobDownload();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = requestUrl(input);
+        if (url.includes("/api/me")) {
+          return { ok: true, json: async () => ({ user: profile }) };
+        }
+        if (url.includes("/api/groups")) {
+          return {
+            ok: true,
+            json: async () => ({
+              groups: [{ id: "reading", name: "Reading" }],
+            }),
+          };
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            links: [{ id: "link-1", url: "https://example.com", groupId: "reading" }],
+            hasMore: false,
+          }),
+        };
+      }),
+    );
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Export backup JSON" }),
+    );
+
+    expect(await screen.findByText(/Downloaded memory404-backup/)).toBeInTheDocument();
+    expect(blobs).toHaveLength(1);
+    const text = await blobs[0].text();
+    expect(text).toContain('"name": "Reading"');
+    expect(text).toContain('"id": "link-1"');
+    expect(text).not.toContain("data:");
+    expect(blobs[0].type).toBe("application/json");
+  });
+
+  it("explains when the library is too large for one backup", async () => {
+    const click = vi.fn();
+    const create = document.createElement.bind(document);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = requestUrl(input);
+        if (url.includes("/api/me")) {
+          return { ok: true, json: async () => ({ user: profile }) };
+        }
+        return {
+          ok: true,
+          json: async () => ({
+            links: [{ id: "link-1" }],
+            hasMore: true,
+            nextCursor: "next",
+          }),
+        };
+      }),
+    );
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+    const createSpy = vi.spyOn(document, "createElement").mockImplementation((tagName: string) => {
+      const element = create(tagName);
+      if (tagName === "a") element.click = click;
+      return element;
+    });
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Export backup JSON" }),
+    );
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This library is too large to download in one backup.",
+    );
+    expect(screen.queryByText(/Downloaded memory404-backup/)).not.toBeInTheDocument();
+    expect(click).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Export backup JSON" })).toBeEnabled();
+    createSpy.mockRestore();
   });
 
   it("explains an empty library instead of downloading a blank file", async () => {
