@@ -228,13 +228,17 @@ export default function PastePrompt({
               <div className="flex w-full items-center gap-2">
                 <input
                   ref={inputRef}
-                  type="url"
+                  type="text"
+                  inputMode="url"
                   value={url}
                   onChange={(e) => setUrl(e.target.value)}
                   placeholder="Paste a URL to save"
+                  aria-label="Link URL"
                   disabled={!groupId}
                   className={`${FIELD_CLASS} flex-1`}
                   autoComplete="off"
+                  autoCapitalize="none"
+                  spellCheck={false}
                 />
                 <button
                   type="submit"

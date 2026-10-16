@@ -171,7 +171,8 @@ export default function AddLinkCard({
             >
               <input
                 ref={inputRef}
-                type="url"
+                type="text"
+                inputMode="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 onKeyDown={(e) => {
@@ -181,12 +182,14 @@ export default function AddLinkCard({
                   }
                 }}
                 tabIndex={phase === "form" ? 0 : -1}
-                placeholder="https://…"
+                placeholder="example.com/page"
                 aria-label="Link URL"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? "add-link-url-error" : undefined}
                 className={addLinkField}
                 autoComplete="off"
+                autoCapitalize="none"
+                spellCheck={false}
               />
               <div className="flex items-center gap-2">
                 <button
