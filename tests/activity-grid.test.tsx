@@ -1,16 +1,20 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ActivityGrid } from "@/app/settings/_components/ActivityGrid";
+import { StatsTab } from "@/app/settings/_components/StatsTab";
 import {
+  activityDateKey,
   activityDayLabel,
+  activityTimeZone,
   buildActivityCells,
   nextActivityCell,
 } from "@/lib/activity-grid";
 
 afterEach(() => {
   cleanup();
+  vi.unstubAllGlobals();
 });
 
 describe("activity calendar", () => {
@@ -29,6 +33,57 @@ describe("activity calendar", () => {
     expect(cells.at(-1)?.date).toBe("2026-10-14");
     expect(cells.at(-1)?.count).toBe(4);
     expect(cells[0]?.count).toBe(0);
+  });
+
+  it("keeps an evening save on the local calendar day", () => {
+    const evening = new Date(2026, 9, 14, 23, 30);
+    expect(activityDateKey(evening)).toBe("2026-10-14");
+
+    const iso = Date.prototype.toISOString;
+    Date.prototype.toISOString = function toUtcEvening() {
+      const shifted = new Date(this.getTime() + 8 * 60 * 60 * 1000);
+      return iso.call(shifted);
+    };
+    try {
+      const cells = buildActivityCells(
+        [{ date: "2026-10-14", count: 3 }],
+        evening,
+      );
+      expect(cells.at(-1)?.date).toBe("2026-10-14");
+      expect(cells.at(-1)?.count).toBe(3);
+    } finally {
+      Date.prototype.toISOString = iso;
+    }
+  });
+
+  it("accepts a real timezone and ignores a forged one", () => {
+    expect(activityTimeZone("America/Los_Angeles")).toBe("America/Los_Angeles");
+    expect(activityTimeZone("  UTC  ")).toBe("UTC");
+    expect(activityTimeZone("Not/AZone")).toBe("UTC");
+    expect(activityTimeZone("UTC'; drop")).toBe("UTC");
+    expect(activityTimeZone(null)).toBe("UTC");
+  });
+
+  it("asks statistics for the viewer's timezone", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        totalLinks: 1,
+        totalGroups: 1,
+        linksByGroup: [{ id: "g1", name: "Reading", count: 1 }],
+        linkFrequency: [],
+      }),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<StatsTab bannerStyle="midnight" />);
+    expect(await screen.findByText("Link addition activity")).toBeInTheDocument();
+
+    const url = String(fetchMock.mock.calls[0]?.[0]);
+    expect(new URL(url, "http://localhost").searchParams.get("tz")).toBe(
+      activityTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone),
+    );
   });
 
   it("moves by weekday inside a week and by week sideways", () => {
