@@ -724,6 +724,17 @@
   border-color: rgba(255, 255, 255, 0.3);
 }
 
+#m404-save-root .note-count {
+  margin: 0 2px;
+  font-size: 11px;
+  line-height: 1.3;
+  color: var(--subtle);
+}
+
+#m404-save-root .note-count.is-over {
+  color: var(--danger);
+}
+
 #m404-save-root .field-error {
   color: var(--danger);
 }
