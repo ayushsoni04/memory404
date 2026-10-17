@@ -1,7 +1,9 @@
 /**
- * YouTube videos and X posts people paste from share sheets.
+ * Share links people paste for the same page.
  * A youtu.be link, an embed, and a watch page are one video.
- * twitter.com and x.com are one post. Other links are left alone.
+ * twitter.com and x.com are one post.
+ * A Wikipedia article, a Reddit post, and a Spotify page collapse the same way.
+ * Other links are left alone.
  */
 
 const VIDEO_ID = /^[A-Za-z0-9_-]{11}$/;
@@ -98,8 +100,64 @@ function xProfile(url: URL): string | null {
   return handle.toLowerCase();
 }
 
+const REDDIT_ID = /^[a-z0-9]{4,12}$/i;
+const SPOTIFY_ID = /^[A-Za-z0-9]{10,40}$/;
+const SPOTIFY_KINDS = new Set([
+  "album",
+  "artist",
+  "episode",
+  "playlist",
+  "show",
+  "track",
+]);
+
+/** en.m.wikipedia.org is the same article as en.wikipedia.org. */
+function wikipediaDesktop(url: URL): URL | null {
+  const host = url.hostname.replace(/\.$/, "").replace(/^www\./i, "").toLowerCase();
+  const mobile = host.match(/^([a-z0-9-]+)\.m\.wikipedia\.org$/);
+  if (!mobile || mobile[1] === "m") return null;
+  const next = new URL(url.href);
+  next.hostname = `${mobile[1]}.wikipedia.org`;
+  return next;
+}
+
 /**
- * A stable page for a YouTube video or an X post.
+ * A Reddit post, without the title slug or the old/new/mobile host.
+ * A comment on that post stays its own page.
+ */
+function redditPost(url: URL): URL | null {
+  const host = bareHost(url.hostname);
+  if (host === "redd.it") {
+    const id = url.pathname.split("/").filter(Boolean)[0] ?? "";
+    if (!REDDIT_ID.test(id)) return null;
+    return new URL(`https://reddit.com/comments/${id.toLowerCase()}`);
+  }
+  if (host !== "reddit.com" && !host.endsWith(".reddit.com")) return null;
+  const parts = url.pathname.split("/").filter(Boolean);
+  const at = parts.findIndex((part) => part.toLowerCase() === "comments");
+  if (at < 0) return null;
+  const id = parts[at + 1] ?? "";
+  if (!REDDIT_ID.test(id)) return null;
+  const afterId = parts.length - (at + 2);
+  if (afterId > 1) return null;
+  return new URL(`https://reddit.com/comments/${id.toLowerCase()}`);
+}
+
+/** A Spotify track, album, or playlist, without the country prefix or share id. */
+function spotifyPage(url: URL): URL | null {
+  const host = bareHost(url.hostname);
+  if (host !== "open.spotify.com" && host !== "play.spotify.com") return null;
+  const parts = url.pathname.split("/").filter(Boolean);
+  if (parts[0]?.toLowerCase().startsWith("intl-")) parts.shift();
+  const kind = (parts[0] ?? "").toLowerCase();
+  const id = parts[1] ?? "";
+  if (!SPOTIFY_KINDS.has(kind) || !SPOTIFY_ID.test(id)) return null;
+  return new URL(`https://open.spotify.com/${kind}/${id}`);
+}
+
+/**
+ * A stable page for a YouTube video, an X post, a Wikipedia article,
+ * a Reddit post, or a Spotify page.
  * Returns null for every other link.
  */
 export function sharePageUrl(url: URL): URL | null {
@@ -114,7 +172,7 @@ export function sharePageUrl(url: URL): URL | null {
   if (statusId) return new URL(`https://x.com/status/${statusId}`);
   const profile = xProfile(url);
   if (profile) return new URL(`https://x.com/${profile}`);
-  return null;
+  return wikipediaDesktop(url) ?? redditPost(url) ?? spotifyPage(url);
 }
 
 /** Hosts that can hold the same video or post as this one. */
@@ -128,5 +186,15 @@ export function shareHostAliases(hostname: string): string[] | null {
     return ["youtube.com", "youtu.be", "youtube-nocookie.com"];
   }
   if (host === "x.com" || host === "twitter.com") return ["x.com", "twitter.com"];
+  const wiki = host.match(/^([a-z0-9-]+)\.wikipedia\.org$/);
+  if (wiki && wiki[1] !== "m") {
+    return [`${wiki[1]}.wikipedia.org`, `${wiki[1]}.m.wikipedia.org`];
+  }
+  if (host === "reddit.com" || host.endsWith(".reddit.com") || host === "redd.it") {
+    return ["reddit.com", "old.reddit.com", "new.reddit.com", "np.reddit.com", "redd.it"];
+  }
+  if (host === "open.spotify.com" || host === "play.spotify.com") {
+    return ["open.spotify.com", "play.spotify.com"];
+  }
   return null;
 }
