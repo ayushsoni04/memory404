@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { ThinkingOrb } from "thinking-orbs";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
+import { loginEmailIssue } from "./login-email";
 import { classifyLinkSave, saveHeadline } from "./save-outcome";
 import "./styles.css";
 
@@ -610,6 +611,11 @@ function App() {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    const emailProblem = loginEmailIssue(loginEmail);
+    if (emailProblem) {
+      setLoginError(emailProblem);
+      return;
+    }
     setLoginError("");
     setIsLoggingIn(true);
     try {
@@ -679,7 +685,11 @@ function App() {
                   autoComplete="current-password"
                   required
                 />
-                {loginError ? <p className="error-panel-message">{loginError}</p> : null}
+                {loginError ? (
+                  <p className="error-panel-message" role="alert">
+                    {loginError}
+                  </p>
+                ) : null}
                 <button type="submit" className="save-btn" disabled={isLoggingIn}>
                   {isLoggingIn ? "Signing in…" : "Sign in"}
                 </button>
@@ -722,7 +732,11 @@ function App() {
               autoComplete="current-password"
               required
             />
-            {loginError ? <p className="error-panel-message">{loginError}</p> : null}
+            {loginError ? (
+              <p className="error-panel-message" role="alert">
+                {loginError}
+              </p>
+            ) : null}
             <button type="submit" className="save-btn" disabled={isLoggingIn}>
               {isLoggingIn ? "Signing in…" : "Sign in"}
             </button>
