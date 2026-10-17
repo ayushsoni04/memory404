@@ -1,7 +1,18 @@
 /**
- * A 409 from POST /api/links is an existing URL, including one in Trash.
+ * A 409 from POST /api/links is an existing page, including one in Trash.
  * It is not a newly saved link.
  */
+
+const SAVE_FAILED = "Couldn't save this page. Try again.";
+const ALREADY_SAVED = "This page is already saved.";
+
+function plainSaveError(message) {
+  const value = typeof message === "string" ? message.trim() : "";
+  if (!value || /^failed to save\b/i.test(value) || /^save failed\b/i.test(value)) {
+    return SAVE_FAILED;
+  }
+  return value;
+}
 /**
  * @param {number} status
  * @param {unknown} data
@@ -20,7 +31,7 @@ export function classifyLinkSave(status, data) {
     return {
       kind: "duplicate",
       link: link || { id: existingId },
-      message: serverMessage || "A link with this URL already exists.",
+      message: serverMessage || ALREADY_SAVED,
     };
   }
 
@@ -28,7 +39,7 @@ export function classifyLinkSave(status, data) {
   return {
     kind: "error",
     link: null,
-    message: serverMessage || `Save failed (${status})`,
+    message: plainSaveError(serverMessage),
   };
 }
 
@@ -59,7 +70,7 @@ export function saveHeadline({
       title: "Already in memory404",
       detail:
         already === 1
-          ? duplicateMessage || "A link with this URL already exists."
+          ? duplicateMessage || ALREADY_SAVED
           : `${already} links were already saved.`,
       offerNote: false,
     };

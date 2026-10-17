@@ -72,16 +72,18 @@ function statusBadge(status, index) {
   return <SpinnerRing>{index + 1}</SpinnerRing>;
 }
 
-/** Skipped and in-progress rows start open so the reason is visible. */
+/** Failed, skipped, and in-progress rows start open so the reason is visible. */
 export function taskRowStartsOpen(status) {
-  return status === "saving" || status === "skipped";
+  return status === "saving" || status === "skipped" || status === "failed";
 }
 
 /** Short pill and the sentence shown when a save row is opened. */
 export function taskStatusCopy(status, error) {
   const detail = typeof error === "string" ? error.trim() : "";
   if (status === "saved") return { pill: "Completed", detail: "Saved" };
-  if (status === "failed") return { pill: "Failed", detail: detail || "Failed" };
+  if (status === "failed") {
+    return { pill: "Failed", detail: detail || "Couldn't save this page." };
+  }
   if (status === "already") {
     return { pill: "Already saved", detail: detail || "Already saved" };
   }
@@ -180,7 +182,7 @@ export default function SaveTaskRows({ items = [] }) {
                   <span aria-hidden className="task-row-rail" />
                   <div className="task-row-detail-list">
                     <div className="task-row-detail">
-                      <span>URL</span>
+                      <span>Link</span>
                       <span className="task-row-detail-meta" title={row.url}>
                         {row.url || "—"}
                       </span>

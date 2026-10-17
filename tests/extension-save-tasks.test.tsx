@@ -16,6 +16,10 @@ describe("task status copy", () => {
       pill: "Failed",
       detail: "Session expired",
     });
+    expect(taskStatusCopy("failed", "  ")).toEqual({
+      pill: "Failed",
+      detail: "Couldn't save this page.",
+    });
     expect(taskStatusCopy("saved", null)).toEqual({
       pill: "Completed",
       detail: "Saved",
@@ -25,6 +29,8 @@ describe("task status copy", () => {
   it("opens a skipped row so the reason is on screen", () => {
     expect(taskRowStartsOpen("skipped")).toBe(true);
     expect(taskRowStartsOpen("saving")).toBe(true);
+    expect(taskRowStartsOpen("failed")).toBe(true);
     expect(taskRowStartsOpen("saved")).toBe(false);
+    expect(taskRowStartsOpen("pending")).toBe(false);
   });
 });
