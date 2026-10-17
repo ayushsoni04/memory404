@@ -4,7 +4,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { noteCountLabel, noteIssue } from "./note-limit";
-import { chooseSaveGroup, groupPickerKeyAction } from "./group-picker";
+import { chooseSaveGroup, groupPickerKeyAction, libraryGroupForTitle } from "./group-picker";
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { phaseForSaveStatus } from "./save-cancel";
 import { saveHeadline } from "./save-outcome";
@@ -454,10 +454,7 @@ function App({ onClose }) {
     setSaveMode(mode);
     setCreateName("");
     if (mode === "group" && activeTabGroup && activeTabGroup.title) {
-      const existingGroup = groups.find(
-        (g) =>
-          g.name.toLowerCase() === activeTabGroup.title.trim().toLowerCase(),
-      );
+      const existingGroup = libraryGroupForTitle(groups, activeTabGroup.title);
       if (existingGroup) {
         setSelectedGroupId(existingGroup.id);
         setGroupQuery(displayGroupName(existingGroup.name));
