@@ -119,6 +119,80 @@ describe("savedPageKey for a shared video or post", () => {
     expect(savedPageKey("https://open.spotify.com/search/ada")).not.toBe(key);
   });
 
+  it("treats a Google Doc, its preview, and the Drive view as one file", () => {
+    const id = "1BxiMVs0XRA5nFMdKvBdBZjgmUUqptlbs74OgvE2upms";
+    const key = savedPageKey(`https://docs.google.com/document/d/${id}/edit`);
+    expect(
+      savedPageKey(`https://docs.google.com/document/d/${id}/edit?usp=sharing`),
+    ).toBe(key);
+    expect(savedPageKey(`https://docs.google.com/document/u/0/d/${id}/preview`)).toBe(key);
+    expect(
+      savedPageKey(`https://drive.google.com/file/d/${id}/view?usp=drive_link`),
+    ).toBe(key);
+    expect(savedPageKey(`https://docs.google.com/document/d/${id}x/edit`)).not.toBe(key);
+    expect(
+      savedPageKey(`https://docs.google.com/spreadsheets/d/${id}sheet000000000000000/edit`),
+    ).not.toBe(key);
+
+    const folder = "1FolderIdxxxxxxxxxxxxxxxxxxxx";
+    const folderKey = savedPageKey(
+      `https://drive.google.com/drive/folders/${folder}`,
+    );
+    expect(
+      savedPageKey(`https://drive.google.com/drive/u/1/folders/${folder}?usp=sharing`),
+    ).toBe(folderKey);
+    expect(folderKey).not.toBe(key);
+
+    const pattern = savedPageHostPattern(`https://docs.google.com/document/d/${id}/edit`);
+    const re = new RegExp(pattern!, "i");
+    expect(re.test(`https://drive.google.com/file/d/${id}/view`)).toBe(true);
+    expect(re.test("https://docs.google.com.evil/document/d/nope")).toBe(false);
+    expect(re.test("https://sites.google.com/view/nope")).toBe(false);
+
+    const published = savedPageKey(
+      "https://docs.google.com/forms/d/e/1FAIpQLSdPublishedFormIdxxxxxxxxx/viewform",
+    );
+    expect(
+      savedPageKey(
+        "https://docs.google.com/forms/d/1FAIpQLSdEditorFormIdxxxxxxxxxxxx/edit",
+      ),
+    ).not.toBe(published);
+  });
+
+  it("treats Amazon share links for one product as one save", () => {
+    const asin = "B08N5WRWNW";
+    const key = savedPageKey(`https://www.amazon.com/Some-Product-Name/dp/${asin}/ref=sr_1_1`);
+    expect(savedPageKey(`https://www.amazon.com/dp/${asin}?psc=1&tag=affiliate-20`)).toBe(key);
+    expect(savedPageKey(`https://smile.amazon.com/gp/product/${asin}`)).toBe(key);
+    expect(savedPageKey(`https://m.amazon.com/gp/aw/d/${asin}`)).toBe(key);
+    expect(savedPageKey(`https://www.amazon.co.uk/dp/${asin}`)).not.toBe(key);
+    expect(savedPageKey("https://www.amazon.com/dp/B08N5WRWNX")).not.toBe(key);
+    expect(savedPageKey("https://www.amazon.com/s?k=chair")).not.toBe(key);
+
+    const pattern = savedPageHostPattern(`https://www.amazon.com/dp/${asin}`);
+    const re = new RegExp(pattern!, "i");
+    expect(re.test(`https://smile.amazon.com/dp/${asin}`)).toBe(true);
+    expect(re.test(`https://m.amazon.com/gp/product/${asin}`)).toBe(true);
+    expect(re.test("https://amazon.com.evil/dp/B08N5WRWNW")).toBe(false);
+    expect(re.test(`https://www.amazon.co.uk/dp/${asin}`)).toBe(false);
+  });
+
+  it("treats an Instagram post, reel, and carousel as one post", () => {
+    const code = "CxyzAb12CdE";
+    const key = savedPageKey(`https://www.instagram.com/p/${code}/`);
+    expect(savedPageKey(`https://www.instagram.com/reel/${code}/?igsh=shareSheet`)).toBe(key);
+    expect(savedPageKey(`https://m.instagram.com/reels/${code}`)).toBe(key);
+    expect(savedPageKey(`https://instagram.com/tv/${code}?img_index=2`)).toBe(key);
+    expect(savedPageKey(`https://www.instagram.com/p/${code.toLowerCase()}`)).not.toBe(key);
+    expect(savedPageKey("https://www.instagram.com/figma/")).not.toBe(key);
+    expect(savedPageKey("https://www.instagram.com/stories/figma/1234567890")).not.toBe(key);
+
+    const pattern = savedPageHostPattern(`https://www.instagram.com/p/${code}/`);
+    const re = new RegExp(pattern!, "i");
+    expect(re.test(`https://m.instagram.com/reel/${code}`)).toBe(true);
+    expect(re.test("https://instagram.com.evil/p/nope")).toBe(false);
+  });
+
   it("looks up the alias hosts when searching for an existing copy", () => {
     const pattern = savedPageHostPattern(`https://youtu.be/${VIDEO}`);
     expect(pattern).toBeTruthy();
