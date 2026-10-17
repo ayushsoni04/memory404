@@ -1,8 +1,28 @@
+import {
+  explainLoadError,
+  SESSION_EXPIRED_MESSAGE,
+  UNREACHABLE_MESSAGE,
+} from "@/lib/load-error";
+
 /** Stop a runaway export. A normal library finishes long before this. */
 export const LIBRARY_BACKUP_PAGE_CAP = 500;
 
 export const LIBRARY_BACKUP_TOO_LARGE =
   "This library is too large to download in one backup.";
+
+export const LIBRARY_EXPORT_FAILED = "Could not export your links. Try again.";
+
+/**
+ * A backup that did not download.
+ * A dead session and a dropped connection say what to do. Other failures stay general.
+ */
+export function libraryExportError(message: string | null | undefined): string {
+  const explained = explainLoadError(message);
+  if (explained === SESSION_EXPIRED_MESSAGE || explained === UNREACHABLE_MESSAGE) {
+    return explained;
+  }
+  return LIBRARY_EXPORT_FAILED;
+}
 
 export type LibraryLinkPage = {
   links: unknown[];
