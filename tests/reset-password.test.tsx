@@ -63,6 +63,16 @@ describe("ResetPasswordForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("stays quiet while the new password is still short", async () => {
+    navigation.token = "reset-token";
+    const user = userEvent.setup();
+    render(<ResetPasswordForm />);
+    await user.type(screen.getByLabelText("New password"), "short");
+    expect(screen.queryByText(/Password must include/)).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("New password"), "password");
+    expect(screen.getByRole("alert")).toHaveTextContent(/uppercase/i);
+  });
+
   it("does not call a half-typed confirmation a mismatch", async () => {
     navigation.token = "reset-token";
     const user = userEvent.setup();

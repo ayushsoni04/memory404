@@ -5,7 +5,10 @@ import { clientIp } from "@/lib/client-ip";
 import { isAllowedCorsOrigin } from "@/lib/cors-origin";
 import { duplicateLinkMessage, duplicateSaveError } from "@/lib/links";
 import { hashPassword, verifyPassword } from "@/lib/password";
-import { getPasswordRequirementIssues } from "@/lib/password-policy";
+import {
+  getPasswordRequirementIssues,
+  visiblePasswordRequirementError,
+} from "@/lib/password-policy";
 import {
   getAvatarUrlIssues,
   getUsernameIssues,
@@ -61,6 +64,16 @@ describe("password and reset tokens", () => {
       expect.arrayContaining(["At least 8 characters", "An uppercase letter", "A number"]),
     );
     expect(getPasswordRequirementIssues("Memory404")).toEqual([]);
+  });
+
+  it("keeps a short password quiet until it can be judged", () => {
+    const short = "Password must include: At least 8 characters";
+    const missing = "Password must include: An uppercase letter";
+    expect(visiblePasswordRequirementError("Mem", short, false)).toBeNull();
+    expect(visiblePasswordRequirementError("", short, false)).toBeNull();
+    expect(visiblePasswordRequirementError("password1", missing, false)).toBe(missing);
+    expect(visiblePasswordRequirementError("short", short, true)).toBe(short);
+    expect(visiblePasswordRequirementError("Memory404", undefined, false)).toBeNull();
   });
 
   it("hashes reset tokens without keeping the raw value", () => {

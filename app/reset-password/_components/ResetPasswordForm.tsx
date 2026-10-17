@@ -13,7 +13,7 @@ import {
   authSubmitClass,
 } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
-import { PASSWORD_HINT } from "@/lib/password-policy";
+import { PASSWORD_HINT, visiblePasswordRequirementError } from "@/lib/password-policy";
 import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { resetPasswordErrors } from "@/lib/reset-password";
 
@@ -35,10 +35,11 @@ export function ResetPasswordForm() {
   const [done, setDone] = useState(false);
 
   const fieldErrors = resetPasswordErrors(password, confirm);
-  const passwordError =
-    fieldErrors.password && (attempted || password.length > 0)
-      ? fieldErrors.password
-      : null;
+  const passwordError = visiblePasswordRequirementError(
+    password,
+    fieldErrors.password,
+    attempted,
+  );
   const confirmError = visibleConfirmPasswordError(
     password,
     confirm,

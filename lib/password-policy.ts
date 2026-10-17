@@ -16,3 +16,20 @@ export function getPasswordRequirementIssues(password: string): string[] {
   if (!/[0-9]/.test(password)) issues.push("A number");
   return issues;
 }
+
+/**
+ * When to show a password-rule error.
+ * A password that is still shorter than the minimum is being typed, and the
+ * hint under the field already says what is required. A password long enough
+ * to judge, or a submit, shows the error.
+ */
+export function visiblePasswordRequirementError(
+  password: string,
+  message: string | undefined,
+  attempted: boolean,
+): string | null {
+  if (!message) return null;
+  if (attempted) return message;
+  if (password.length < PASSWORD_MIN_LENGTH) return null;
+  return message;
+}

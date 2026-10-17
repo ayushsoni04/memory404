@@ -74,6 +74,29 @@ describe("password settings", () => {
     expect(screen.getByText("Those new passwords do not match.")).toBeInTheDocument();
   });
 
+  it("does not scold a password that is still short", () => {
+    render(<PasswordSection />);
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "short" },
+    });
+    expect(screen.queryByText(/Password must include/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "password1" },
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(/uppercase/i);
+
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: "Memory404" },
+    });
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "Memory404" },
+    });
+    expect(
+      screen.getByText("Choose a different password than the one you use now."),
+    ).toBeInTheDocument();
+  });
+
   it("explains a weak password before sending it", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

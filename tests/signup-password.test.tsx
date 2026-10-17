@@ -49,6 +49,19 @@ describe("signupPasswordErrors", () => {
 });
 
 describe("SignupForm", () => {
+  it("stays quiet while the password is still short", async () => {
+    const user = userEvent.setup();
+    render(<SignupForm />);
+    await user.type(screen.getByLabelText("Password"), "Mem");
+
+    expect(screen.queryByText(/Password must include/)).not.toBeInTheDocument();
+    expect(screen.getByText(/At least 8 characters/)).toBeInTheDocument();
+
+    await user.clear(screen.getByLabelText("Password"));
+    await user.type(screen.getByLabelText("Password"), "password1");
+    expect(screen.getByRole("alert")).toHaveTextContent(/uppercase/i);
+  });
+
   it("waits to say the passwords differ until the confirmation leaves the password", async () => {
     const user = userEvent.setup();
     render(<SignupForm />);

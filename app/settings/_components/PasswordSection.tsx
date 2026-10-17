@@ -17,6 +17,7 @@ import {
   passwordChangeErrors,
   type PasswordChangeErrors,
 } from "@/lib/password-change";
+import { visiblePasswordRequirementError } from "@/lib/password-policy";
 import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { controlPress } from "@/components/vault/types";
 
@@ -50,7 +51,11 @@ export function PasswordSection() {
     confirmPassword,
   });
   const currentError = visibleError(attempted, currentPassword, errors.currentPassword);
-  const newError = visibleError(attempted, newPassword, errors.newPassword);
+  const newError = visiblePasswordRequirementError(
+    newPassword,
+    errors.newPassword,
+    attempted,
+  );
   const confirmError = visibleConfirmPasswordError(
     newPassword,
     confirmPassword,
