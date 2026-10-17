@@ -36,6 +36,31 @@ describe("coerceHttpUrl", () => {
     );
   });
 
+  it("saves the link inside a sentence, not the sentence", () => {
+    expect(coerceHttpUrl("see https://example.com/docs.")).toBe(
+      "https://example.com/docs",
+    );
+    expect(coerceHttpUrl("Check this: <https://example.com/article>")).toBe(
+      "https://example.com/article",
+    );
+    expect(
+      coerceHttpUrl('Read "https://example.com/watch?v=abc." today'),
+    ).toBe("https://example.com/watch?v=abc");
+    expect(
+      coerceHttpUrl("https://en.wikipedia.org/wiki/Memory_(computing)"),
+    ).toBe("https://en.wikipedia.org/wiki/Memory_(computing)");
+    expect(coerceHttpUrl("(https://example.com/docs).")).toBe(
+      "https://example.com/docs",
+    );
+    expect(linkUrlIssue("see https://example.com/docs please")).toBeNull();
+    expect(linkUrlIssue("design inspiration")).toBe(
+      "Enter a link, like example.com/page",
+    );
+    expect(linkUrlIssue("login at https://user:secret@example.com/docs")).toBe(
+      "Remove the username and password from the link.",
+    );
+  });
+
   it("rejects a link that is too long to store", () => {
     const huge = `https://example.com/${"a".repeat(LINK_URL_MAX)}`;
     expect(coerceHttpUrl(huge)).toBeNull();
