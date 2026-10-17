@@ -4,6 +4,7 @@ import {
   resolveProviderDisplayTitle,
 } from "@/lib/link-providers";
 import { isUnreliableScreenshotUrl } from "@/lib/screenshot";
+import { libraryGroupLabel } from "@/lib/search-group";
 
 export type LinkApiRow = {
   id: string;
@@ -174,10 +175,14 @@ export function linkToApiRow(link: {
   };
 }
 
-export function duplicateLinkMessage(inTrash: boolean): string {
-  return inTrash
-    ? "This URL is in Trash. Restore it to save it again."
-    : "A link with this URL already exists.";
+export function duplicateLinkMessage(
+  inTrash: boolean,
+  groupName?: string | null,
+): string {
+  if (inTrash) return "This URL is in Trash. Restore it to save it again.";
+  const label = libraryGroupLabel(groupName);
+  if (label) return `This page is already in ${label}.`;
+  return "A link with this URL already exists.";
 }
 
 /**

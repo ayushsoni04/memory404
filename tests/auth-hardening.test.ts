@@ -127,6 +127,17 @@ describe("profile, redirects, cors, and duplicate links", () => {
   it("explains when a duplicate url is sitting in trash", () => {
     expect(duplicateLinkMessage(false)).toMatch(/already exists/);
     expect(duplicateLinkMessage(true)).toMatch(/Trash/);
+    expect(duplicateLinkMessage(true, "Reading")).toMatch(/Trash/);
+  });
+
+  it("names the group that already has the page", () => {
+    expect(duplicateLinkMessage(false, "Reading")).toBe(
+      "This page is already in Reading.",
+    );
+    expect(duplicateLinkMessage(false, "General")).toBe(
+      "This page is already in All.",
+    );
+    expect(duplicateLinkMessage(false, "  ")).toMatch(/already exists/);
   });
 
   it("treats a duplicate save as a message, not a new link", () => {

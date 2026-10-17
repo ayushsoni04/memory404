@@ -301,9 +301,13 @@ export async function POST(request: Request) {
       }
     }
     if (existing) {
+      const place =
+        existing.deletedAt == null
+          ? await findGroup({ _id: existing.groupId, userId: auth.id })
+          : null;
       return NextResponse.json(
         {
-          error: duplicateLinkMessage(existing.deletedAt != null),
+          error: duplicateLinkMessage(existing.deletedAt != null, place?.name),
           existingId: existing.id,
           link: linkToApiRow(existing),
         },
