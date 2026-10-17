@@ -61,3 +61,16 @@ export function searchResultGroupLabel(
   if (INBOX_NAMES.has(name.toLowerCase())) return "All";
   return name;
 }
+
+/**
+ * Escape in the group field.
+ * Text in the field is cleared first. An empty open menu just closes.
+ */
+export function groupSearchEscapeAction(
+  query: string,
+  menuOpen: boolean,
+): "clear" | "close" | "ignore" {
+  if (query.length > 0) return "clear";
+  if (menuOpen) return "close";
+  return "ignore";
+}

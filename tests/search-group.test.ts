@@ -3,6 +3,7 @@ import {
   commandPaletteJumpGroups,
   libraryGroupLabel,
   searchResultGroupLabel,
+  groupSearchEscapeAction,
   withInboxInGroupSearch,
 } from "@/lib/search-group";
 
@@ -80,5 +81,14 @@ describe("searchResultGroupLabel", () => {
   it("stays quiet when the group is missing or unnamed", () => {
     expect(searchResultGroupLabel("missing", groups)).toBeNull();
     expect(searchResultGroupLabel("blank", groups)).toBeNull();
+  });
+});
+
+describe("groupSearchEscapeAction", () => {
+  it("clears typed text before it closes an empty menu", () => {
+    expect(groupSearchEscapeAction("read", true)).toBe("clear");
+    expect(groupSearchEscapeAction(" ", false)).toBe("clear");
+    expect(groupSearchEscapeAction("", true)).toBe("close");
+    expect(groupSearchEscapeAction("", false)).toBe("ignore");
   });
 });
