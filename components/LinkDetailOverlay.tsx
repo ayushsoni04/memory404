@@ -247,14 +247,19 @@ export default function LinkDetailOverlay({
     originRect ? toRect(originRect) : null,
   );
   const [flyVisible, setFlyVisible] = useState(Boolean(originRect));
-  const [previewOverride, setPreviewOverride] = useState<string | null>(null);
-  const [previewBroken, setPreviewBroken] = useState(false);
+  const [previewAttempt, setPreviewAttempt] = useState<{
+    id: string;
+    imageUrl: string;
+    override: string | null;
+    broken: boolean;
+  } | null>(null);
   const host = linkHostname(link.url);
-
-  useEffect(() => {
-    setPreviewOverride(null);
-    setPreviewBroken(false);
-  }, [link.id, link.imageUrl]);
+  const previewForLink =
+    previewAttempt?.id === link.id && previewAttempt.imageUrl === link.imageUrl
+      ? previewAttempt
+      : null;
+  const previewOverride = previewForLink?.override ?? null;
+  const previewBroken = previewForLink?.broken ?? false;
 
   useEffect(() => {
     if (originRect) originRectRef.current = toRect(originRect);
@@ -718,11 +723,12 @@ export default function LinkDetailOverlay({
                     googleFaviconUrl(link.url),
                     previewOverride !== null,
                   );
-                  if (next) {
-                    setPreviewOverride(next);
-                    return;
-                  }
-                  setPreviewBroken(true);
+                  setPreviewAttempt({
+                    id: link.id,
+                    imageUrl: link.imageUrl,
+                    override: next ?? previewOverride,
+                    broken: !next,
+                  });
                 }}
               />
             )}
