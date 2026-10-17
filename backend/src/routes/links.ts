@@ -275,8 +275,12 @@ linksRouter.post("/", async (req, res) => {
 
     const existing = await findLink({ userId, url });
     if (existing) {
+      const place =
+        existing.deletedAt == null
+          ? await findGroup({ _id: existing.groupId, userId })
+          : null;
       res.status(409).json({
-        error: duplicateLinkMessage(existing.deletedAt != null),
+        error: duplicateLinkMessage(existing.deletedAt != null, place?.name),
         existingId: existing.id,
         link: linkToApiRow(existing),
       });
