@@ -4,6 +4,7 @@ import { act, renderHook } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { useAddLinkFlow } from "@/components/vault/useAddLinkFlow";
+import { LINK_NOT_WEB } from "@/lib/links";
 import type { GroupRow } from "@/components/vault/types";
 import type { LinkApiRow } from "@/lib/links";
 
@@ -73,6 +74,20 @@ describe("pasting a link without a scheme", () => {
 
     expect(saveLink).toHaveBeenCalledWith("https://linear.app/docs", "group-1");
     expect(result.current.urlInput).toBe("https://linear.app/docs");
+  });
+
+  it("explains a mail or script link instead of ignoring it", async () => {
+    const saveLink = vi.fn();
+    const { result } = renderFlow("group-1", saveLink);
+
+    await act(async () => {
+      pasteUrl("mailto:ada@example.com");
+    });
+
+    expect(saveLink).not.toHaveBeenCalled();
+    expect(result.current.urlInput).toBe("mailto:ada@example.com");
+    expect(result.current.saveError).toBe(LINK_NOT_WEB);
+    expect(result.current.savePhase).toBe("place");
   });
 
   it("ignores a sentence on the clipboard", async () => {
