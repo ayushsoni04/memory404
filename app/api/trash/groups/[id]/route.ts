@@ -7,7 +7,7 @@ import {
   withMongoTransaction,
 } from "@/lib/db/mongodb";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
-import { groupNameConflict } from "@/lib/group-name";
+import { activeGroupName } from "@/lib/group-name";
 import {
   GROUP_NOT_IN_TRASH,
   GROUP_RESTORE_TAKEN,
@@ -41,17 +41,10 @@ export async function PATCH(_req: Request, ctx: Ctx) {
       const active = await groups
         .find({ userId: auth.id, deletedAt: null }, { projection: { name: 1 } })
         .toArray();
-      if (
-        groupNameConflict(
-          group.name,
-          active.map((row) => ({ name: row.name, deletedAt: null })),
-        ) === "active"
-      ) {
-        const target = group.name.trim().toLowerCase();
-        activeName =
-          active.find((row) => row.name.trim().toLowerCase() === target)?.name ??
-          group.name;
-      }
+      activeName = activeGroupName(
+        group.name,
+        active.map((row) => ({ name: row.name, deletedAt: null })),
+      );
     }
     const issue = groupRestoreIssue({
       found: group != null,
