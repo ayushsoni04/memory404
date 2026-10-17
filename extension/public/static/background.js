@@ -579,6 +579,8 @@ async function executeSaveJob(job, opts) {
 
   try {
     for (let i = startIndex; i < items.length; i++) {
+      // saveLoopShouldStop is prepended from extension/src/save-cancel.js.
+      if (saveLoopShouldStop(activeRunnerId, job.id)) return job;
       const item = items[i];
       const url = typeof item.url === "string" ? item.url.trim() : "";
       const results = Array.isArray(job.itemResults)
@@ -641,6 +643,7 @@ async function executeSaveJob(job, opts) {
         }
 
         const result = await saveUrlToApp(url, options);
+        if (saveLoopShouldStop(activeRunnerId, job.id)) return job;
         const link = result.link;
         if (link?.groupId) resolvedGroupId = link.groupId;
         if (!savedLink || item.active) savedLink = link;
@@ -667,6 +670,7 @@ async function executeSaveJob(job, opts) {
           saved += 1;
         }
       } catch (itemErr) {
+        if (saveLoopShouldStop(activeRunnerId, job.id)) return job;
         failed += 1;
         job.lastItemError =
           itemErr instanceof Error ? itemErr.message : "Failed to save link";
@@ -1228,12 +1232,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         const job = stored.activeSaveJob;
         if (job && job.status === "saving") {
           activeRunnerId = null;
-          await setActiveSaveJob({
-            ...job,
-            status: "error",
-            error: "Save cancelled",
-            updatedAt: Date.now(),
-          });
+          // cancelledSaveJob is prepended from extension/src/save-cancel.js.
+          await setActiveSaveJob(cancelledSaveJob(job));
           await setBadge("");
         } else {
           await storageRemove(["activeSaveJob"]);

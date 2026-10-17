@@ -6,6 +6,7 @@ import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { noteCountLabel, noteIssue } from "./note-limit";
 import { chooseSaveGroup, groupPickerKeyAction } from "./group-picker";
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
+import { phaseForSaveStatus } from "./save-cancel";
 import { saveHeadline } from "./save-outcome";
 import { libraryHomeUrl } from "./library-url";
 import SaveTaskRows from "./SaveTaskRows";
@@ -125,10 +126,15 @@ function applyJobToState(job, setters) {
     setSaveItems?.([]);
   }
 
-  if (job.status === "saving") {
+  const nextPhase = phaseForSaveStatus(job.status);
+  if (nextPhase === "saving") {
     setPhase("saving");
     setError("");
-  } else if (job.status === "saved") {
+  } else if (nextPhase === "pick") {
+    setPhase("pick");
+    setError("");
+    setSaveItems?.([]);
+  } else if (nextPhase === "saved") {
     setPhase("saved");
     setLinkId(job.linkId || "multiple");
     if (job.groupId) {
@@ -137,7 +143,7 @@ function applyJobToState(job, setters) {
     }
     if (job.groupName) setGroupQuery(displayGroupName(job.groupName));
     if (job.saveMode) setSaveMode(job.saveMode);
-  } else if (job.status === "error") {
+  } else if (nextPhase === "error") {
     setPhase("error");
     setError(job.error || "Failed to save");
   }
