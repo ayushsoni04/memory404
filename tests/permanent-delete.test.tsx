@@ -21,6 +21,12 @@ describe("permanentDeleteCopy", () => {
     expect(
       permanentDeleteCopy({ kind: "group", id: "g", name: "Reading" }).detail,
     ).toMatch(/Links that were deleted with this group/);
+    expect(
+      permanentDeleteCopy({ kind: "group", id: "g", name: "General" }).title,
+    ).toBe("Delete “All” forever?");
+    expect(
+      permanentDeleteCopy({ kind: "group", id: "g", name: "Reading" }).title,
+    ).toBe("Delete “Reading” forever?");
   });
 });
 
