@@ -3,6 +3,7 @@ import {
   commandPaletteJumpGroups,
   libraryGroupLabel,
   searchResultGroupLabel,
+  withInboxInGroupSearch,
 } from "@/lib/search-group";
 
 const groups = [
@@ -30,6 +31,27 @@ describe("commandPaletteJumpGroups", () => {
         { id: "reading", name: "Reading" },
       ]).map((group) => group.id),
     ).toEqual(["all", "reading"]);
+  });
+});
+
+describe("withInboxInGroupSearch", () => {
+  const reading = { id: "reading", name: "Reading" };
+
+  it("offers All when the query is looking for the inbox", () => {
+    expect(withInboxInGroupSearch([], "all").map((group) => group.name)).toEqual(["All"]);
+    expect(withInboxInGroupSearch([], "  Al ").map((group) => group.id)).toEqual(["all"]);
+    expect(
+      withInboxInGroupSearch([{ id: "links", name: "All links" }], "all").map(
+        (group) => group.name,
+      ),
+    ).toEqual(["All", "All links"]);
+  });
+
+  it("leaves All out of a search for another group", () => {
+    expect(withInboxInGroupSearch([reading], "read").map((group) => group.id)).toEqual([
+      "reading",
+    ]);
+    expect(withInboxInGroupSearch([reading], "")).toEqual([reading]);
   });
 });
 

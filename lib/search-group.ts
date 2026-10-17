@@ -1,4 +1,5 @@
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { groupsMatchingQuery } from "@/lib/group-query";
 
 const INBOX_NAMES = new Set([
   GENERAL_GROUP_NAME.toLowerCase(),
@@ -31,6 +32,23 @@ export function libraryGroupLabel(name: string | null | undefined): string | nul
   if (!trimmed) return null;
   if (INBOX_NAMES.has(trimmed.toLowerCase())) return "All";
   return trimmed;
+}
+
+const INBOX_SEARCH_ROW = { id: "all", name: "All" };
+
+/**
+ * Folder search leaves the inbox out, because that pill is always first.
+ * A query for All should still jump there.
+ */
+export function withInboxInGroupSearch<T extends { id: string; name: string }>(
+  matchedFolders: readonly T[],
+  query: string,
+): Array<T | typeof INBOX_SEARCH_ROW> {
+  const q = query.trim();
+  if (!q) return [...matchedFolders];
+  if (matchedFolders.some((group) => group.id === "all")) return [...matchedFolders];
+  if (!groupsMatchingQuery([INBOX_SEARCH_ROW], q).length) return [...matchedFolders];
+  return [INBOX_SEARCH_ROW, ...matchedFolders];
 }
 
 /** The group name to show under a search hit, using the library's "All" label. */
