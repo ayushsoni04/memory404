@@ -4,7 +4,7 @@ const CopyPlugin = require("copy-webpack-plugin");
 
 function withSaveOutcome(content, absoluteFrom) {
   if (!absoluteFrom.endsWith(`${path.sep}background.js`)) return content;
-  const helpers = ["save-outcome.js", "page-url.js", "save-cancel.js"]
+  const helpers = ["save-outcome.js", "page-url.js", "save-cancel.js", "save-failure.js"]
     .map((file) =>
       fs
         .readFileSync(path.resolve(__dirname, "src", file), "utf8")

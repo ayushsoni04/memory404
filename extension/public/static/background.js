@@ -265,8 +265,9 @@ async function handleSave(url, openAfterSave, options = {}) {
     }
     return link;
   } catch (e) {
-    const message =
-      e instanceof Error ? e.message : "Failed to save from extension";
+    const message = explainSaveFailure(
+      e instanceof Error ? e.message : "Failed to save from extension",
+    );
     const apiBase = await getApiBase();
     const now = Date.now();
     const prev = await storageGet(["lastExtensionErrorAt"]);
@@ -672,8 +673,9 @@ async function executeSaveJob(job, opts) {
       } catch (itemErr) {
         if (saveLoopShouldStop(activeRunnerId, job.id)) return job;
         failed += 1;
-        job.lastItemError =
-          itemErr instanceof Error ? itemErr.message : "Failed to save link";
+        job.lastItemError = explainSaveFailure(
+          itemErr instanceof Error ? itemErr.message : "Failed to save link",
+        );
         console.warn("Save item failed:", url, job.lastItemError);
         if (results[i]) {
           results[i] = {
@@ -739,7 +741,7 @@ async function executeSaveJob(job, opts) {
     const failedJob = {
       ...job,
       status: "error",
-      error: e instanceof Error ? e.message : "Failed to save",
+      error: explainSaveFailure(e instanceof Error ? e.message : "Failed to save"),
       updatedAt: Date.now(),
     };
     await setActiveSaveJob(failedJob);
@@ -1110,7 +1112,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (e) {
         sendResponse({
           ok: false,
-          error: e instanceof Error ? e.message : "Failed to load groups",
+          error: explainSaveFailure(
+            e instanceof Error ? e.message : "Failed to load groups",
+          ),
         });
       }
     })();
@@ -1131,7 +1135,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (e) {
         sendResponse({
           ok: false,
-          error: e instanceof Error ? e.message : "Failed to create group",
+          error: explainSaveFailure(
+            e instanceof Error ? e.message : "Failed to create group",
+          ),
         });
       }
     })();
@@ -1174,7 +1180,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (e) {
         sendResponse({
           ok: false,
-          error: e instanceof Error ? e.message : "Failed to sign in",
+          error: explainSaveFailure(e instanceof Error ? e.message : "Failed to sign in"),
         });
       }
     })();
@@ -1202,7 +1208,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (e) {
         sendResponse({
           ok: false,
-          error: e instanceof Error ? e.message : "Failed to save",
+          error: explainSaveFailure(e instanceof Error ? e.message : "Failed to save"),
         });
       }
     })();
@@ -1218,7 +1224,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (e) {
         sendResponse({
           ok: false,
-          error: e instanceof Error ? e.message : "Failed to resume",
+          error: explainSaveFailure(e instanceof Error ? e.message : "Failed to resume"),
         });
       }
     })();
@@ -1299,7 +1305,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } catch (e) {
         sendResponse({
           ok: false,
-          error: e instanceof Error ? e.message : "Could not save the note",
+          error: explainSaveFailure(
+            e instanceof Error ? e.message : "Could not save the note",
+          ),
         });
       }
     })();
