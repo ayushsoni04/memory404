@@ -13,8 +13,27 @@ function canonicalHttpUrl(value: string): string | null {
 /**
  * Key for "is this page already saved?".
  * www, http or https, a trailing slash, a default port, a hash, and campaign
- * parameters do not make a second page. The path and any other query stay as typed.
+ * parameters do not make a second page. Query parameters match in any order.
+ * The path stays as typed.
  */
+
+/** Same keys and values, in a stable order, are one query. */
+function withStableQueryOrder(url: URL): void {
+  const entries = [...url.searchParams.entries()];
+  if (entries.length < 2) return;
+  const sorted = [...entries].sort((left, right) => {
+    const key = left[0].localeCompare(right[0]);
+    return key !== 0 ? key : left[1].localeCompare(right[1]);
+  });
+  const unchanged = sorted.every(
+    (entry, index) =>
+      entry[0] === entries[index]?.[0] && entry[1] === entries[index]?.[1],
+  );
+  if (unchanged) return;
+  url.search = "";
+  for (const [key, value] of sorted) url.searchParams.append(key, value);
+}
+
 export function savedPageKey(value: string): string | null {
   const prepared = coerceHttpUrl(value) ?? value.trim();
   let url: URL;
@@ -40,6 +59,7 @@ export function savedPageKey(value: string): string | null {
   if (url.pathname.length > 1) {
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
   }
+  withStableQueryOrder(url);
   url.hash = "";
   return url.toString();
 }
