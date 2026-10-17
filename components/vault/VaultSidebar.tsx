@@ -271,7 +271,7 @@ export default function VaultSidebar({
                         onChange={(e) => {
                           const next = e.target.value;
                           setNewGroupNameDraft(next);
-                          setSaveError(groupNameDraftIssue(next));
+                          setSaveError(groupNameDraftIssue(next, groups));
                         }}
                         placeholder="Group name"
                         disabled={saving}
@@ -299,7 +299,7 @@ export default function VaultSidebar({
                           saving ||
                           (creatingNewGroup
                             ? !newGroupNameDraft.trim() ||
-                              Boolean(groupNameDraftIssue(newGroupNameDraft))
+                              Boolean(groupNameDraftIssue(newGroupNameDraft, groups))
                             : !placeGroupId)
                         }
                         className={`inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 cursor-pointer ${controlPress}`}

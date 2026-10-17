@@ -294,6 +294,7 @@ export default function VaultInbox({
               openedGroupId={openedGroupId}
               selectGroup={selectGroup}
               generalGroup={generalGroup}
+              groups={groups}
               filteredFolders={filteredFolders}
               draggingGroupId={draggingGroupId}
               setDraggingGroupId={setDraggingGroupId}

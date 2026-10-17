@@ -5,6 +5,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import AddLinkCard from "@/components/AddLinkCard";
 import PastePrompt from "@/components/vault/PastePrompt";
+import { LINK_NOT_WEB } from "@/lib/links";
 
 vi.mock("framer-motion", () => ({
   useReducedMotion: () => true,
@@ -72,5 +73,25 @@ describe("save fields accept a host without https", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
 
     expect(saveLink).toHaveBeenCalledWith("linear.app/docs", "general");
+  });
+
+  it("explains a mail link while it is typed, before save", () => {
+    const saveLink = vi.fn();
+    render(
+      <PastePrompt
+        variant="empty"
+        emptyMode="library"
+        groupId="general"
+        saveLink={saveLink}
+        onSaved={() => {}}
+      />,
+    );
+
+    fireEvent.change(screen.getByRole("textbox", { name: "Link URL" }), {
+      target: { value: "mailto:ada@example.com" },
+    });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(LINK_NOT_WEB);
+    expect(saveLink).not.toHaveBeenCalled();
   });
 });
