@@ -4,7 +4,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
-import { linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
+import { LINK_URL_HINT, linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
+import { saveFailureMessage } from "@/lib/save-failure";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "@/components/vault/NoteCount";
@@ -85,7 +86,7 @@ export default function AddLinkCard({
   const submit = async () => {
     const trimmed = url.trim();
     if (!trimmed) {
-      setError("Enter a URL");
+      setError(LINK_URL_HINT);
       return;
     }
     if (!groupId) {
@@ -119,7 +120,7 @@ export default function AddLinkCard({
       }
     } catch {
       if (gen !== saveGen.current) return;
-      setError("Network error — try again");
+      setError(saveFailureMessage(null, true));
       setSaving(false);
     }
   };
@@ -186,7 +187,7 @@ export default function AddLinkCard({
                 }}
                 tabIndex={phase === "form" ? 0 : -1}
                 placeholder="example.com/page"
-                aria-label="Link URL"
+                aria-label="Link"
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? "add-link-url-error" : undefined}
                 className={addLinkField}

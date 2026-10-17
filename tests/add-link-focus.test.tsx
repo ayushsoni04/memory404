@@ -31,7 +31,7 @@ describe("AddLinkCard focus", () => {
     expect(opener.className).toContain("focus-visible:ring-2");
     fireEvent.click(opener);
 
-    const url = screen.getByRole("textbox", { name: "Link URL" });
+    const url = screen.getByRole("textbox", { name: "Link" });
     expect(url.className).toContain("focus-visible:ring-2");
     expect(url.className).not.toContain("focus:border-foreground");
     fireEvent.change(url, { target: { value: "https://example.com" } });

@@ -6,7 +6,8 @@ import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
-import { linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
+import { LINK_URL_HINT, linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
+import { saveFailureMessage } from "@/lib/save-failure";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "./NoteCount";
@@ -70,7 +71,7 @@ export default function PastePrompt({
   const submit = async () => {
     const trimmed = url.trim();
     if (!trimmed) {
-      setError("Enter a URL");
+      setError(LINK_URL_HINT);
       return;
     }
     if (!groupId) {
@@ -101,7 +102,7 @@ export default function PastePrompt({
       }
     } catch {
       if (gen !== saveGen.current) return;
-      setError("Network error — try again");
+      setError(saveFailureMessage(null, true));
       setPhase("idle");
     }
   };
@@ -214,7 +215,7 @@ export default function PastePrompt({
                     Nothing in {groupName} yet
                   </p>
                   <p className="text-[12px] text-muted">
-                    Paste a URL to add it here. You can move it later.
+                    Paste a link to add it here. You can move it later.
                   </p>
                 </div>
               ) : (
@@ -235,8 +236,8 @@ export default function PastePrompt({
                     setUrl(e.target.value);
                     setError(linkUrlDraftIssue(e.target.value));
                   }}
-                  placeholder="Paste a URL to save"
-                  aria-label="Link URL"
+                  placeholder="Paste a link to save"
+                  aria-label="Link"
                   aria-invalid={error ? true : undefined}
                   aria-describedby={error ? "paste-url-error" : undefined}
                   disabled={!groupId}
@@ -266,7 +267,7 @@ export default function PastePrompt({
         {variant === "empty" && phase === "idle" && emptyMode === "library" ? (
           <>
             <ol className="mx-auto mt-4 max-w-[28rem] space-y-1.5 text-left text-[12px] text-subtle">
-              <li>1. Paste a URL. It lands in All, so you can sort it later.</li>
+              <li>1. Paste a link. It lands in All, so you can sort it later.</li>
               <li>2. Name a group when a set of links belongs together.</li>
               <li>3. Or save the current tab from the Chrome extension.</li>
             </ol>

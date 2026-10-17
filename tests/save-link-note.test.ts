@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { UNREACHABLE_MESSAGE } from "@/lib/load-error";
 import { NOTE_MAX } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 
@@ -75,7 +76,22 @@ describe("saveLinkNote", () => {
 
     await expect(saveLinkNote("link-1", "note")).resolves.toEqual({
       ok: false,
-      error: "Network error — the note was not saved",
+      error: UNREACHABLE_MESSAGE,
+    });
+  });
+
+  it("says the session expired instead of unauthorized", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      }),
+    );
+
+    await expect(saveLinkNote("link-1", "note")).resolves.toEqual({
+      ok: false,
+      error: "Your session expired. Sign in again.",
     });
   });
 });

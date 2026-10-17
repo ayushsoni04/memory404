@@ -1,6 +1,7 @@
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import { noteIssue } from "@/lib/note-limit";
+import { noteSaveFailureMessage } from "@/lib/save-failure";
 
 export type SaveLinkNoteResult =
   | { ok: true; link: LinkApiRow }
@@ -21,17 +22,10 @@ export async function saveLinkNote(
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok || !data || typeof data !== "object" || !("link" in data) || !data.link) {
-      const error =
-        data &&
-        typeof data === "object" &&
-        "error" in data &&
-        typeof data.error === "string"
-          ? data.error
-          : "Could not save the note";
-      return { ok: false, error };
+      return { ok: false, error: noteSaveFailureMessage(data) };
     }
     return { ok: true, link: data.link as LinkApiRow };
   } catch {
-    return { ok: false, error: "Network error — the note was not saved" };
+    return { ok: false, error: noteSaveFailureMessage(null, true) };
   }
 }
