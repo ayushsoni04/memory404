@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   coerceHttpUrl,
+  LINK_NOT_WEB,
   LINK_URL_MAX,
+  linkUrlDraftIssue,
   linkUrlIssue,
   withoutTrackingParams,
 } from "@/lib/links";
@@ -26,6 +28,16 @@ describe("coerceHttpUrl", () => {
     expect(coerceHttpUrl("localhost")).toBeNull();
     expect(coerceHttpUrl("user:pass@example.com")).toBeNull();
     expect(coerceHttpUrl("")).toBeNull();
+  });
+
+  it("explains a link that is not a web page", () => {
+    expect(linkUrlIssue("javascript:alert(1)")).toBe(LINK_NOT_WEB);
+    expect(linkUrlIssue("mailto:ada@example.com")).toBe(LINK_NOT_WEB);
+    expect(linkUrlIssue("ftp://files.example.com/a")).toBe(LINK_NOT_WEB);
+    expect(linkUrlDraftIssue("mailto:ada@example.com")).toBe(LINK_NOT_WEB);
+    expect(linkUrlDraftIssue("exa")).toBeNull();
+    expect(linkUrlDraftIssue("")).toBeNull();
+    expect(linkUrlIssue("https://example.com/docs")).toBeNull();
   });
 
   it("rejects a link that embeds a username or password", () => {
