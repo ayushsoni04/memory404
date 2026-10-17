@@ -16,7 +16,7 @@ import {
 import { emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
-import { PASSWORD_HINT } from "@/lib/password-policy";
+import { PASSWORD_HINT, visiblePasswordRequirementError } from "@/lib/password-policy";
 import { safeRedirectPath } from "@/lib/safe-redirect";
 import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { signupPasswordErrors } from "@/lib/signup-password";
@@ -40,10 +40,11 @@ export function SignupForm() {
 
   const fieldErrors = signupPasswordErrors(password, confirm);
   const emailError = attempted ? emailIssue(email) : null;
-  const passwordError =
-    fieldErrors.password && (attempted || password.length > 0)
-      ? fieldErrors.password
-      : null;
+  const passwordError = visiblePasswordRequirementError(
+    password,
+    fieldErrors.password,
+    attempted,
+  );
   const confirmError = visibleConfirmPasswordError(
     password,
     confirm,
