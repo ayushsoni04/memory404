@@ -119,8 +119,9 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `link-title-error-${link.id}` : `link-title-hint-${link.id}`}
         onChange={(event) => {
-          setDraft(event.target.value);
-          setError(null);
+          const next = event.target.value;
+          setDraft(next);
+          setError(linkTitleIssue(next));
         }}
         onKeyDown={(event) => {
           if (event.key !== "Escape") return;
@@ -136,7 +137,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
       <div className="mt-2 flex items-center gap-2">
         <button
           type="submit"
-          disabled={saving}
+          disabled={saving || Boolean(linkTitleIssue(draft))}
           className={`inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 ${focusRing}`}
         >
           {saving ? "Saving…" : "Save name"}

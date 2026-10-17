@@ -96,8 +96,8 @@ describe("LinkTitleEditor", () => {
     await user.clear(field);
     await user.click(field);
     await user.paste("a".repeat(LINK_TITLE_MAX + 1));
-    await user.click(screen.getByRole("button", { name: "Save name" }));
 
+    expect(screen.getByRole("button", { name: "Save name" })).toBeDisabled();
     expect(screen.getByRole("alert")).toHaveTextContent("Names must be 200 characters or fewer.");
     expect(fetchMock).not.toHaveBeenCalled();
   });
