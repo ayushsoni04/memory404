@@ -17,7 +17,11 @@ import type { LinkApiRow } from "@/lib/links";
 import MorphText from "@/components/MorphText";
 import SearchResultText from "@/components/vault/SearchResultText";
 import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
-import { matchingPalettePages, palettePagesForUser } from "@/lib/palette-pages";
+import {
+  matchingPalettePages,
+  paletteMissCopy,
+  palettePagesForUser,
+} from "@/lib/palette-pages";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "@/components/vault/NoteCount";
@@ -334,9 +338,18 @@ export default function CommandPalette({
         !linkResults.length &&
         !pages.length &&
         !offerUrl ? (
-          <p className="px-2 py-3 text-[13px] text-subtle">
-            No matches for “{search.trim()}”. Try a title, a note, or a full URL.
-          </p>
+          <div className="flex flex-col items-start gap-2 px-2 py-3">
+            <p className="text-[13px] text-subtle" role="status">
+              {paletteMissCopy(search)}
+            </p>
+            <button
+              type="button"
+              onClick={() => handleSearchChange("")}
+              className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] font-medium text-foreground outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97]"
+            >
+              Clear search
+            </button>
+          </div>
         ) : null}
 
         {offerUrl && !loadingLinks && !searchError && onSaveUrl ? (
