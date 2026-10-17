@@ -6,6 +6,7 @@ import { Check, ChevronDown, Plus, RotateCw, Search, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { groupNameDraftIssue } from "@/lib/group-name";
 import { playUiSound } from "@/lib/ui-sound";
 import { nextOptionIndex } from "./feed-keyboard";
 import { activeGroupPill, groupPillIds, nextGroupPill } from "./group-pills";
@@ -522,8 +523,9 @@ export default function VaultGroupToolbar({
               aria-invalid={createGroupError ? true : undefined}
               aria-describedby={createGroupError ? "create-group-error" : undefined}
               onChange={(e) => {
-                setCreateGroupName(e.target.value);
-                if (createGroupError) setCreateGroupError(null);
+                const next = e.target.value;
+                setCreateGroupName(next);
+                setCreateGroupError(groupNameDraftIssue(next));
               }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {

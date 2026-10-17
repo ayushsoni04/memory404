@@ -5,6 +5,7 @@ import {
   GROUP_NAME_TAKEN,
   groupNameConflict,
   groupNameConflictMessage,
+  groupNameDraftIssue,
   groupNameIssue,
 } from "@/lib/group-name";
 
@@ -30,6 +31,16 @@ describe("groupNameIssue", () => {
     expect(groupNameIssue("Reading\nlist")).toBe(
       "Group names can't include line breaks.",
     );
+  });
+});
+
+describe("groupNameDraftIssue", () => {
+  it("stays quiet until there is a name, then reports the same problems", () => {
+    expect(groupNameDraftIssue("")).toBeNull();
+    expect(groupNameDraftIssue("   ")).toBeNull();
+    expect(groupNameDraftIssue("Reading")).toBeNull();
+    expect(groupNameDraftIssue("R".repeat(GROUP_NAME_MAX + 1))).toMatch(/60/);
+    expect(groupNameDraftIssue("Reading\nlist")).toMatch(/line breaks/);
   });
 });
 
