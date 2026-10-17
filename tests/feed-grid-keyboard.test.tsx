@@ -67,6 +67,8 @@ describe("sort menu keyboard", () => {
 
     const newest = screen.getByRole("button", { name: "Newest" });
     const oldest = screen.getByRole("button", { name: "Oldest" });
+    expect(screen.getByRole("option", { name: "Site" })).toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Domain" })).not.toBeInTheDocument();
     expect(newest).toHaveFocus();
     expect(newest.className).toContain("focus-visible:ring-2");
     expect(newest.querySelector("svg")).toBeTruthy();

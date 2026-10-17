@@ -20,7 +20,7 @@ import {
 const SORT_OPTIONS: { value: SortBy; label: string }[] = [
   { value: "newest", label: "Newest" },
   { value: "oldest", label: "Oldest" },
-  { value: "domain", label: "Domain" },
+  { value: "domain", label: "Site" },
   { value: "type", label: "Link Type" },
   { value: "details", label: "Details Size" },
 ];

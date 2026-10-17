@@ -2,13 +2,17 @@ import { describe, expect, it } from "vitest";
 import { getLinkDomain, getLinkType, sortLinks } from "@/components/vault/link-utils";
 import type { LinkApiRow } from "@/lib/links";
 
-function link(url: string, createdAt = "2026-10-01T00:00:00.000Z"): LinkApiRow {
+function link(
+  url: string,
+  createdAt = "2026-10-01T00:00:00.000Z",
+  title = url,
+): LinkApiRow {
   return {
     id: url,
     url,
-    title: url,
+    title,
     customTitle: null,
-    displayTitle: url,
+    displayTitle: title,
     description: null,
     imageUrl: "",
     faviconUrl: "",
@@ -51,5 +55,19 @@ describe("sortLinks by site", () => {
       "https://WWW.apple.com/b",
       "https://www.Zebra.com/z",
     ]);
+  });
+
+  it("orders pages from the same site by name, ignoring letter case", () => {
+    const sorted = sortLinks(
+      [
+        link("https://figma.com/z", "2026-10-03T00:00:00.000Z", "Zebra file"),
+        link("https://www.figma.com/a", "2026-10-01T00:00:00.000Z", "alpha file"),
+        link("https://dribbble.com/x", "2026-10-02T00:00:00.000Z", "Shot"),
+        link("https://figma.com/b", "2026-10-04T00:00:00.000Z", "Alpha file"),
+      ],
+      "domain",
+    ).map((item) => item.displayTitle);
+
+    expect(sorted).toEqual(["Shot", "Alpha file", "alpha file", "Zebra file"]);
   });
 });
