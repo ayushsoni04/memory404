@@ -1,4 +1,5 @@
 import type { LinkApiRow } from "@/lib/links";
+import { explainLoadError, UNREACHABLE_MESSAGE } from "@/lib/load-error";
 
 /** How long an undo stays available. Trash remains the later way back. */
 export const UNDO_MS = 10_000;
@@ -28,6 +29,17 @@ export function deleteUndoMessage(): string {
 
 export function moveUndoMessage(groupName: string): string {
   return `Moved to ${groupName}`;
+}
+
+export const MOVE_FAILED = "Couldn't move that link. Try again.";
+
+/** Sentence for a move that did not stick. A dropped request uses the offline message. */
+export function moveFailureNotice(data: unknown, offline = false): string {
+  if (offline) return UNREACHABLE_MESSAGE;
+  const error =
+    data && typeof data === "object" ? (data as { error?: unknown }).error : null;
+  const raw = typeof error === "string" && error.trim() ? error.trim() : MOVE_FAILED;
+  return explainLoadError(raw) ?? MOVE_FAILED;
 }
 
 /** Arrow and undo shortcuts belong to the field while someone is typing. */

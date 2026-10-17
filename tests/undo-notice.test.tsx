@@ -157,6 +157,42 @@ describe("undo after delete and move", () => {
     });
   });
 
+  it("puts the link back and says why a move failed", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        status: 404,
+        json: async () => ({ error: "Group not found" }),
+      })),
+    );
+
+    render(<Harness openedGroupId="general" />);
+    fireEvent.click(screen.getByRole("button", { name: "Move link" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent("Group not found");
+    expect(screen.getByRole("button", { name: "Dismiss" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
+    expect(screen.getByText("Pricing page")).toBeInTheDocument();
+  });
+
+  it("says when a move never reaches the server", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+
+    render(<Harness openedGroupId="general" />);
+    fireEvent.click(screen.getByRole("button", { name: "Move link" }));
+
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Couldn't reach memory404. Check your connection and try again.",
+    );
+    expect(screen.getByText("Pricing page")).toBeInTheDocument();
+  });
+
   it("does not undo from Ctrl+Z while a note is focused", async () => {
     vi.stubGlobal(
       "fetch",

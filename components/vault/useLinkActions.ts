@@ -10,6 +10,7 @@ import { writeLinksCacheToStorage } from "./storage";
 import {
   cacheWithLink,
   deleteUndoMessage,
+  moveFailureNotice,
   moveUndoMessage,
   UNDO_MS,
   type UndoNoticeModel,
@@ -330,9 +331,10 @@ export function useLinkActions({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setLinks(originalLinks);
-        const msg =
-          typeof data.error === "string" ? data.error : "Failed to move link";
+        const msg = moveFailureNotice(data);
         setPatchErrors((p) => ({ ...p, [link.id]: msg }));
+        playUiSound("error");
+        showUndo(msg, null, msg);
         return;
       }
 
@@ -361,10 +363,10 @@ export function useLinkActions({
       showUndo(moveUndoMessage(groupLabel(nextGroupId)), () => undoMove(link));
     } catch {
       setLinks(originalLinks);
-      setPatchErrors((p) => ({
-        ...p,
-        [link.id]: "Network error — try again",
-      }));
+      const msg = moveFailureNotice(null, true);
+      setPatchErrors((p) => ({ ...p, [link.id]: msg }));
+      playUiSound("error");
+      showUndo(msg, null, msg);
     }
   };
 
