@@ -101,10 +101,9 @@ describe("group pill toolbar", () => {
     expect(all).toHaveAttribute("tabindex", "0");
     expect(reading).toHaveAttribute("tabindex", "-1");
     expect(design).toHaveAttribute("tabindex", "-1");
-    expect(screen.getByRole("button", { name: "Move Reading to Trash" })).toHaveAttribute(
-      "tabindex",
-      "-1",
-    );
+    const trash = screen.getByRole("button", { name: "Move Reading to Trash" });
+    expect(trash).toHaveAttribute("tabindex", "-1");
+    expect(trash.className).toContain("size-6");
     expect(all.closest("[data-drop-target]")?.className).toContain("focus-within:ring-2");
 
     fireEvent.keyDown(all, { key: "ArrowRight" });
