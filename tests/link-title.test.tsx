@@ -102,6 +102,48 @@ describe("LinkTitleEditor", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("explains a dead session and keeps the name you typed", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      })),
+    );
+
+    render(<LinkTitleEditor link={sample()} />);
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const field = screen.getByLabelText("Name");
+    await user.clear(field);
+    await user.type(field, "Launch notes");
+    await user.click(screen.getByRole("button", { name: "Save name" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/session expired/i);
+    expect(field).toHaveValue("Launch notes");
+  });
+
+  it("explains a dropped connection when the rename cannot be saved", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+
+    render(<LinkTitleEditor link={sample()} />);
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const field = screen.getByLabelText("Name");
+    await user.clear(field);
+    await user.type(field, "Launch notes");
+    await user.click(screen.getByRole("button", { name: "Save name" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /Couldn't reach memory404/,
+    );
+  });
+
   it("leaves the name alone when Escape cancels", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();

@@ -24,6 +24,7 @@ import { nextCardPreview } from "@/components/vault/preview-fallback";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
 import { apiUrl } from "@/lib/api-base";
+import { explainLoadError } from "@/lib/load-error";
 import LinkTitleEditor from "@/components/vault/LinkTitleEditor";
 import MindCardActions from "@/components/vault/MindCardActions";
 import { isTextEntryTarget } from "@/components/vault/feed-keyboard";
@@ -110,14 +111,16 @@ const NoteEditor = forwardRef<
         });
         const data = await res.json().catch(() => ({}));
         if (!res.ok) {
-          setError(typeof data.error === "string" ? data.error : "Could not save the note");
+          const serverMessage = typeof data.error === "string" ? data.error : "";
+          setError(explainLoadError(serverMessage) ?? "Could not save the note");
           return false;
         }
         onSaved(next);
         savedRef.current = next ?? "";
         return true;
-      } catch {
-        setError("Could not save the note. Try again.");
+      } catch (error: unknown) {
+        const raw = error instanceof Error ? error.message : "";
+        setError(explainLoadError(raw) ?? "Could not save the note. Try again.");
         return false;
       } finally {
         setSaving(false);

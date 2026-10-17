@@ -177,6 +177,41 @@ describe("leaving a link keeps the note", () => {
     );
   });
 
+  it("explains a dead session and keeps the note", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      })),
+    );
+    renderOverlay();
+    fireEvent.change(screen.getByLabelText("Note"), {
+      target: { value: "Do not lose this" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/session expired/i);
+    expect(screen.getByLabelText("Note")).toHaveValue("Do not lose this");
+  });
+
+  it("explains a dropped connection and keeps the note", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    renderOverlay();
+    fireEvent.change(screen.getByLabelText("Note"), {
+      target: { value: "Do not lose this" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      /Couldn't reach memory404/,
+    );
+    expect(screen.getByLabelText("Note")).toHaveValue("Do not lose this");
+  });
+
   it("stays open when Trash is chosen and the note cannot be saved", async () => {
     vi.stubGlobal(
       "fetch",
