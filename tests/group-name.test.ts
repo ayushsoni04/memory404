@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   GROUP_NAME_IN_TRASH,
   GROUP_NAME_MAX,
+  GROUP_NAME_NEEDS_WORD,
   GROUP_NAME_RESERVED,
   GROUP_NAME_TAKEN,
+  activeGroupName,
   groupNameConflict,
   groupNameConflictMessage,
   groupNameDraftIssue,
@@ -41,6 +43,12 @@ describe("groupNameIssue", () => {
     expect(groupNameIssue("All links")).toBeNull();
     expect(groupNameIssue("Reading")).toBeNull();
   });
+
+  it("rejects a name made only of spaces and dashes", () => {
+    expect(groupNameIssue("---")).toBe(GROUP_NAME_NEEDS_WORD);
+    expect(groupNameIssue(" / ")).toBe(GROUP_NAME_NEEDS_WORD);
+    expect(groupNameIssue("A/B tests")).toBeNull();
+  });
 });
 
 describe("groupNameDraftIssue", () => {
@@ -59,6 +67,11 @@ describe("groupNameDraftIssue", () => {
     expect(groupNameDraftIssue(" Archive ", [trashed])).toBe(GROUP_NAME_IN_TRASH);
     expect(groupNameDraftIssue("Design", [reading, trashed])).toBeNull();
     expect(groupNameDraftIssue("All", [reading])).toBe(GROUP_NAME_RESERVED);
+    expect(groupNameDraftIssue("side-projects", [reading])).toBeNull();
+    expect(
+      groupNameDraftIssue("side-projects", [{ name: "Side Projects", deletedAt: null }]),
+    ).toBe(GROUP_NAME_TAKEN);
+    expect(groupNameDraftIssue("---", [reading])).toBe(GROUP_NAME_NEEDS_WORD);
   });
 });
 
@@ -84,5 +97,19 @@ describe("groupNameConflict", () => {
   it("allows a name nobody is using", () => {
     expect(groupNameConflict("Design", [reading, trashed])).toBeNull();
     expect(groupNameConflictMessage(null)).toBeNull();
+  });
+
+  it("treats hyphens, slashes, and extra spaces as the same name", () => {
+    const side = { name: "Side Projects", deletedAt: null };
+    expect(groupNameConflict("side-projects", [side])).toBe("active");
+    expect(groupNameConflict("side/projects", [side])).toBe("active");
+    expect(groupNameConflict("Side  Projects", [side])).toBe("active");
+    expect(activeGroupName("side-projects", [side])).toBe("Side Projects");
+    expect(groupNameConflict("side projects notes", [side])).toBeNull();
+    expect(
+      groupNameConflict("side-projects", [
+        { name: "Side Projects", deletedAt: "2026-10-01T00:00:00.000Z" },
+      ]),
+    ).toBe("trash");
   });
 });
