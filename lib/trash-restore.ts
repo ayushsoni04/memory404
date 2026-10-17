@@ -1,7 +1,7 @@
 export const LINK_NOT_IN_TRASH = "That link is not in Trash.";
 
 export const LINK_ALREADY_SAVED =
-  "This URL is already in your library. Leave this copy in Trash, or delete the other one.";
+  "This page is already in your library. Leave this copy in Trash, or delete the other one.";
 
 export const GROUP_NOT_IN_TRASH = "That group is not in Trash.";
 

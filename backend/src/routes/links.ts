@@ -323,7 +323,7 @@ linksRouter.post("/", async (req, res) => {
   } catch (e) {
     console.error("POST /api/links:", e);
     if (isDuplicateKeyError(e)) {
-      res.status(409).json({ error: "A link with this URL already exists." });
+      res.status(409).json({ error: duplicateLinkMessage(false) });
       return;
     }
     res.status(500).json({ error: "Failed to save link" });

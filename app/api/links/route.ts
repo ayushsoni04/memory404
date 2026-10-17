@@ -375,7 +375,7 @@ export async function POST(request: Request) {
     console.error("POST /api/links:", e);
     if (isDuplicateKeyError(e)) {
       return NextResponse.json(
-        { error: "A link with this URL already exists." },
+        { error: duplicateLinkMessage(false) },
         { status: 409 },
       );
     }
