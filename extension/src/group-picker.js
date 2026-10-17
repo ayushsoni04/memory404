@@ -1,3 +1,23 @@
+import { groupNamesMatchExactly, normalizeGroupQuery } from "./group-query.js";
+
+const INBOX_NAMES = new Set(["all", "general", "uncategorized"]);
+
+/**
+ * The library group a browser tab group should save into.
+ * Hyphens and extra spaces match. All, General, and Uncategorized mean the inbox.
+ * @param {unknown} groups
+ * @param {unknown} title
+ */
+export function libraryGroupForTitle(groups, title) {
+  const list = Array.isArray(groups)
+    ? groups.filter((group) => group && group.id && typeof group.name === "string")
+    : [];
+  const exact = list.find((group) => groupNamesMatchExactly(group.name, title));
+  if (exact) return exact;
+  if (!INBOX_NAMES.has(normalizeGroupQuery(title))) return null;
+  return list.find((group) => INBOX_NAMES.has(normalizeGroupQuery(group.name))) ?? null;
+}
+
 /** Arrow keys through the save panel's group list. Stops at the ends. */
 export function nextGroupHighlight(current, key, count) {
   if (count <= 0) return null;

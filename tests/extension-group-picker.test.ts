@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   chooseSaveGroup,
   groupPickerKeyAction,
+  libraryGroupForTitle,
   nextGroupHighlight,
 } from "../extension/src/group-picker.js";
 
@@ -101,6 +102,26 @@ describe("groupPickerKeyAction", () => {
         hasQuery: false,
       }),
     ).toEqual({ type: "noop" });
+  });
+});
+
+describe("libraryGroupForTitle", () => {
+  const groups = [
+    { id: "inbox", name: "General" },
+    { id: "side", name: "Side Projects" },
+  ];
+
+  it("matches a browser tab group that differs by hyphens or spaces", () => {
+    expect(libraryGroupForTitle(groups, "side-projects")).toEqual(groups[1]);
+    expect(libraryGroupForTitle(groups, "Side  Projects")).toEqual(groups[1]);
+    expect(libraryGroupForTitle(groups, "side/projects")).toEqual(groups[1]);
+  });
+
+  it("saves All, General, and Uncategorized into the inbox", () => {
+    expect(libraryGroupForTitle(groups, "All")?.id).toBe("inbox");
+    expect(libraryGroupForTitle(groups, "uncategorized")?.id).toBe("inbox");
+    expect(libraryGroupForTitle(groups, "Reading")).toBeNull();
+    expect(libraryGroupForTitle(null, "Side Projects")).toBeNull();
   });
 });
 
