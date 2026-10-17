@@ -9,6 +9,7 @@ import { cacheAfterMove, linkStaysInOpenGroup } from "./move-link";
 import { writeLinksCacheToStorage } from "./storage";
 import {
   cacheWithLink,
+  deleteFailureNotice,
   deleteUndoMessage,
   moveFailureNotice,
   moveUndoMessage,
@@ -217,13 +218,7 @@ export function useLinkActions({
       const res = await fetch(apiUrl(`/api/links/${id}`), { method: "DELETE" });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const msg =
-          typeof data.error === "string" ? data.error : "Failed to delete";
-        const hint =
-          typeof data.hint === "string" && data.hint.trim()
-            ? ` — ${data.hint.trim()}`
-            : "";
-        reportDeleteFailure(`${msg}${hint}`);
+        reportDeleteFailure(deleteFailureNotice(data));
         return;
       }
 
@@ -249,7 +244,7 @@ export function useLinkActions({
         showUndo(deleteUndoMessage(), () => restoreDeleted(removed));
       }
     } catch {
-      reportDeleteFailure("Network error — failed to delete");
+      reportDeleteFailure(deleteFailureNotice(null, true));
     }
   };
 
