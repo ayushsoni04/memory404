@@ -49,6 +49,19 @@ describe("signupPasswordErrors", () => {
 });
 
 describe("SignupForm", () => {
+  it("waits to say the passwords differ until the confirmation leaves the password", async () => {
+    const user = userEvent.setup();
+    render(<SignupForm />);
+    await user.type(screen.getByLabelText("Password"), "Memory404");
+    await user.type(screen.getByLabelText("Confirm password"), "Memor");
+
+    expect(screen.queryByText("Those passwords do not match.")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Confirm password")).not.toHaveAttribute("aria-invalid");
+
+    await user.type(screen.getByLabelText("Confirm password"), "y405");
+    expect(screen.getByText("Those passwords do not match.")).toBeInTheDocument();
+  });
+
   it("does not send a password that was typed differently the second time", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();
