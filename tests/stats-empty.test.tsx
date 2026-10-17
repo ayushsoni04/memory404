@@ -40,6 +40,34 @@ describe("empty statistics", () => {
     expect(screen.queryByText("Link addition activity")).not.toBeInTheDocument();
   });
 
+  it("points at Trash when every saved link is there", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          success: true,
+          totalLinks: 0,
+          trashedLinks: 3,
+          totalGroups: 1,
+          linksByGroup: [],
+          linkFrequency: [],
+        }),
+      }),
+    );
+
+    render(<StatsTab bannerStyle="midnight" />);
+
+    expect(await screen.findByText("Your links are in Trash")).toBeInTheDocument();
+    expect(screen.getByText(/Restore a link/)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Trash" })).toHaveAttribute(
+      "href",
+      "/trash",
+    );
+    expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
   it("keeps the counters when the library has links", async () => {
     vi.stubGlobal(
       "fetch",

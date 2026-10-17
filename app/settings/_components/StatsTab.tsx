@@ -5,8 +5,7 @@ import { AppLoader } from "@/components/AppLoader";
 import { activityTimeZone, buildActivityCells } from "@/lib/activity-grid";
 import {
   EMPTY_GROUP_DENSITY,
-  EMPTY_LIBRARY_STATS,
-  isEmptyLibraryStats,
+  libraryStatsEmptyState,
 } from "@/lib/stats-empty";
 import { libraryGroupLabel } from "@/lib/search-group";
 import { STATS_GROUP_CAPTION, STATS_LINK_CAPTION } from "@/lib/stats-scope";
@@ -30,6 +29,7 @@ type StatsTabProps = {
 
 export function StatsTab({ bannerStyle }: StatsTabProps) {
   const [totalLinks, setTotalLinks] = useState(0);
+  const [trashedLinks, setTrashedLinks] = useState(0);
   const [totalGroups, setTotalGroups] = useState(0);
   const [linksByGroup, setLinksByGroup] = useState<GroupStat[]>([]);
   const [linkFrequency, setLinkFrequency] = useState<FrequencyStat[]>([]);
@@ -53,6 +53,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
         throw new Error(message);
       }
       setTotalLinks(typeof data.totalLinks === "number" ? data.totalLinks : 0);
+      setTrashedLinks(typeof data.trashedLinks === "number" ? data.trashedLinks : 0);
       setTotalGroups(typeof data.totalGroups === "number" ? data.totalGroups : 0);
       setLinksByGroup(Array.isArray(data.linksByGroup) ? data.linksByGroup : []);
       setLinkFrequency(Array.isArray(data.linkFrequency) ? data.linkFrequency : []);
@@ -88,16 +89,17 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
     );
   }
 
-  if (!loadingStats && isEmptyLibraryStats(totalLinks)) {
+  const emptyStats = libraryStatsEmptyState(totalLinks, trashedLinks);
+  if (!loadingStats && emptyStats) {
     return (
       <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface p-6">
-        <p className="text-sm font-medium text-foreground">{EMPTY_LIBRARY_STATS.title}</p>
-        <p className="max-w-md text-[13px] text-subtle">{EMPTY_LIBRARY_STATS.body}</p>
+        <p className="text-sm font-medium text-foreground">{emptyStats.title}</p>
+        <p className="max-w-md text-[13px] text-subtle">{emptyStats.body}</p>
         <Link
-          href={EMPTY_LIBRARY_STATS.href}
+          href={emptyStats.href}
           className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
         >
-          {EMPTY_LIBRARY_STATS.action}
+          {emptyStats.action}
         </Link>
       </div>
     );
