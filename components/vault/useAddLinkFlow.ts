@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { groupNameIssue } from "@/lib/group-name";
-import { coerceHttpUrl, type LinkApiRow } from "@/lib/links";
+import { coerceHttpUrl, linkUrlDraftIssue, linkUrlIssue, type LinkApiRow } from "@/lib/links";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { writeLinksCacheToStorage } from "./storage";
 import type { GroupRow } from "./types";
@@ -336,6 +336,16 @@ export function useAddLinkFlow({
     pasteActionRef.current = (url: string) => {
       urlRef.current = url;
       setUrlInput(url);
+      const issue = linkUrlIssue(url);
+      if (issue) {
+        setSaveError(issue);
+        setSaving(false);
+        setPlaceGroupId(null);
+        setCreatingNewGroup(false);
+        setNewGroupNameDraft("");
+        setSavePhase("place");
+        return;
+      }
       setSaveError(null);
       if (!openedGroupId || openedGroupId === "all") {
         setPlaceGroupId(null);
@@ -358,10 +368,16 @@ export function useAddLinkFlow({
         return;
       }
       const text = event.clipboardData?.getData("text/plain")?.trim() ?? "";
+      if (!text) return;
       const link = coerceHttpUrl(text);
-      if (!link) return;
+      if (link) {
+        event.preventDefault();
+        pasteActionRef.current(link);
+        return;
+      }
+      if (!linkUrlDraftIssue(text)) return;
       event.preventDefault();
-      pasteActionRef.current(link);
+      pasteActionRef.current(text);
     };
     window.addEventListener("paste", onPaste);
     return () => window.removeEventListener("paste", onPaste);

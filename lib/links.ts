@@ -308,6 +308,9 @@ export function withoutTrackingParams(raw: string): string {
 
 export const LINK_URL_HINT = "Enter a link, like example.com/page";
 
+export const LINK_NOT_WEB =
+  "That isn't a web page. Use a link that starts with http or https.";
+
 function urlHasCredentials(url: URL): boolean {
   return Boolean(url.username || url.password);
 }
@@ -351,6 +354,7 @@ export function linkUrlIssue(raw: string): string | null {
   const trimmed = pastedLinkCandidate(raw);
   if (!trimmed) return LINK_URL_HINT;
   if (trimmed.length > LINK_URL_MAX) return "That link is too long to save.";
+  if (EXPLICIT_SCHEME.test(trimmed) && !isValidHttpUrl(trimmed)) return LINK_NOT_WEB;
 
   let parsed: URL | null = null;
   if (isValidHttpUrl(trimmed)) {
@@ -367,6 +371,18 @@ export function linkUrlIssue(raw: string): string | null {
   }
   if (!coerceHttpUrl(trimmed)) return LINK_URL_HINT;
   return null;
+}
+
+/**
+ * A problem worth showing while a link is being typed.
+ * An unfinished host stays quiet. A script, a mail link, a password, or a
+ * link that is too long is explained immediately.
+ */
+export function linkUrlDraftIssue(raw: string): string | null {
+  if (!raw.trim()) return null;
+  const issue = linkUrlIssue(raw);
+  if (!issue || issue === LINK_URL_HINT) return null;
+  return issue;
 }
 
 export function truncateUrl(url: string, max = 48): string {

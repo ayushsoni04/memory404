@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
-import type { LinkApiRow } from "@/lib/links";
+import { linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "./NoteCount";
@@ -231,9 +231,14 @@ export default function PastePrompt({
                   type="text"
                   inputMode="url"
                   value={url}
-                  onChange={(e) => setUrl(e.target.value)}
+                  onChange={(e) => {
+                    setUrl(e.target.value);
+                    setError(linkUrlDraftIssue(e.target.value));
+                  }}
                   placeholder="Paste a URL to save"
                   aria-label="Link URL"
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? "paste-url-error" : undefined}
                   disabled={!groupId}
                   className={`${FIELD_CLASS} flex-1`}
                   autoComplete="off"
@@ -250,7 +255,7 @@ export default function PastePrompt({
                 </button>
               </div>
               {error ? (
-                <p className="w-full text-left text-[11px] text-danger" role="alert">
+                <p id="paste-url-error" className="w-full text-left text-[11px] text-danger" role="alert">
                   {error}
                 </p>
               ) : null}

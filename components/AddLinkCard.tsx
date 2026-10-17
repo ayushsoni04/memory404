@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
-import type { LinkApiRow } from "@/lib/links";
+import { linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "@/components/vault/NoteCount";
@@ -174,7 +174,10 @@ export default function AddLinkCard({
                 type="text"
                 inputMode="url"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => {
+                  setUrl(e.target.value);
+                  setError(linkUrlDraftIssue(e.target.value));
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Escape") {
                     e.preventDefault();
