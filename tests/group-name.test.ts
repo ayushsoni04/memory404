@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   GROUP_NAME_IN_TRASH,
   GROUP_NAME_MAX,
+  GROUP_NAME_RESERVED,
   GROUP_NAME_TAKEN,
   groupNameConflict,
   groupNameConflictMessage,
@@ -30,6 +31,14 @@ describe("groupNameIssue", () => {
     expect(groupNameIssue("Reading\nlist")).toBe(
       "Group names can't include line breaks.",
     );
+  });
+
+  it("rejects a name the library already uses for the inbox", () => {
+    expect(groupNameIssue("All")).toBe(GROUP_NAME_RESERVED);
+    expect(groupNameIssue("  general ")).toBe(GROUP_NAME_RESERVED);
+    expect(groupNameIssue("Uncategorized")).toBe(GROUP_NAME_RESERVED);
+    expect(groupNameIssue("All links")).toBeNull();
+    expect(groupNameIssue("Reading")).toBeNull();
   });
 });
 
