@@ -24,6 +24,18 @@ describe("savedPageKey for a shared video or post", () => {
     expect(savedPageKey(`https://youtu.be/${VIDEO}?t=0`)).toBe(start);
   });
 
+  it("keeps the timestamp when a watch link lists t before v", () => {
+    const moment = savedPageKey(`https://www.youtube.com/watch?v=${VIDEO}&t=62`);
+    expect(savedPageKey(`https://www.youtube.com/watch?t=1m2s&v=${VIDEO}`)).toBe(moment);
+    expect(savedPageKey(`https://youtu.be/${VIDEO}?t=62`)).toBe(moment);
+    expect(savedPageKey(`https://www.youtube.com/watch?v=${VIDEO}`)).not.toBe(moment);
+    expect(savedPageKey(`https://www.youtube.com/watch?t=63&v=${VIDEO}`)).not.toBe(moment);
+
+    const plain = savedPageKey("https://example.com/watch?v=abc&t=1m2s");
+    expect(savedPageKey("https://example.com/watch?t=1m2s&v=abc")).toBe(plain);
+    expect(plain).not.toBe(savedPageKey("https://example.com/watch?v=abc&t=62"));
+  });
+
   it("does not merge a different video, a channel, or YouTube Music", () => {
     const video = savedPageKey(`https://youtu.be/${VIDEO}`);
     expect(savedPageKey("https://youtu.be/abcdefghijk")).not.toBe(video);
