@@ -53,8 +53,18 @@ export async function collectLibraryLinks(
   return { links, truncated: true };
 }
 
-export function libraryBackupFilename(now = new Date()): string {
-  return `memory404-backup-${now.toISOString().slice(0, 10)}.json`;
+/**
+ * Name the file for the viewer's calendar day.
+ * UTC would date an evening export as tomorrow for anyone west of Greenwich.
+ */
+export function libraryBackupFilename(now = new Date(), timeZone?: string): string {
+  const day = new Intl.DateTimeFormat("en-CA", {
+    timeZone,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(now);
+  return `memory404-backup-${day}.json`;
 }
 
 /** A backup someone can read later: which groups exist, then the links. */
