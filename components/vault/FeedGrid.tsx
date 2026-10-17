@@ -34,7 +34,11 @@ export default function FeedGrid({
         const current = cards.findIndex(
           (card) => card === document.activeElement || card.contains(document.activeElement),
         );
-        const next = nextFeedCardIndex(current, event.key, cards.length);
+        const rects = cards.map((card) => {
+          const box = card.getBoundingClientRect();
+          return { left: box.left, top: box.top, width: box.width, height: box.height };
+        });
+        const next = nextFeedCardIndex(current, event.key, cards.length, rects);
         if (next === null) return;
         event.preventDefault();
         cards[next]?.focus();

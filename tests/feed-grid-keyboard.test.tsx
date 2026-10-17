@@ -40,6 +40,60 @@ describe("feed card focus", () => {
     expect(first).toHaveFocus();
   });
 
+  it("moves into the next column when the cards are side by side", () => {
+    render(
+      <FeedGrid gridSize="default">
+        <button type="button" data-feed-card="">
+          Top left
+        </button>
+        <button type="button" data-feed-card="">
+          Bottom left
+        </button>
+        <button type="button" data-feed-card="">
+          Top right
+        </button>
+        <button type="button" data-feed-card="">
+          Bottom right
+        </button>
+      </FeedGrid>,
+    );
+
+    const boxes = [
+      { left: 0, top: 0, width: 100, height: 80 },
+      { left: 0, top: 96, width: 100, height: 80 },
+      { left: 128, top: 0, width: 100, height: 80 },
+      { left: 128, top: 96, width: 100, height: 80 },
+    ];
+    const cards = [
+      screen.getByRole("button", { name: "Top left" }),
+      screen.getByRole("button", { name: "Bottom left" }),
+      screen.getByRole("button", { name: "Top right" }),
+      screen.getByRole("button", { name: "Bottom right" }),
+    ];
+    cards.forEach((card, index) => {
+      const box = boxes[index];
+      card.getBoundingClientRect = () =>
+        ({
+          ...box,
+          right: box.left + box.width,
+          bottom: box.top + box.height,
+          x: box.left,
+          y: box.top,
+          toJSON: () => ({}),
+        }) as DOMRect;
+    });
+
+    cards[0].focus();
+    fireEvent.keyDown(cards[0], { key: "ArrowRight" });
+    expect(cards[2]).toHaveFocus();
+    fireEvent.keyDown(cards[2], { key: "ArrowDown" });
+    expect(cards[3]).toHaveFocus();
+    fireEvent.keyDown(cards[3], { key: "ArrowDown" });
+    expect(cards[3]).toHaveFocus();
+    fireEvent.keyDown(cards[3], { key: "ArrowLeft" });
+    expect(cards[1]).toHaveFocus();
+  });
+
   it("leaves arrow keys alone while a note field is focused", () => {
     render(
       <FeedGrid gridSize="large">
