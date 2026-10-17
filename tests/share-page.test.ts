@@ -65,6 +65,60 @@ describe("savedPageKey for a shared video or post", () => {
     );
   });
 
+  it("treats a Wikipedia article on the mobile host as the desktop article", () => {
+    const key = savedPageKey("https://en.wikipedia.org/wiki/Ada_Lovelace");
+    expect(savedPageKey("https://en.m.wikipedia.org/wiki/Ada_Lovelace")).toBe(key);
+    expect(
+      savedPageKey("https://en.m.wikipedia.org/wiki/Ada_Lovelace?wprov=sfla1"),
+    ).toBe(key);
+    expect(savedPageKey("https://de.wikipedia.org/wiki/Ada_Lovelace")).not.toBe(key);
+    expect(savedPageKey("https://en.wikipedia.org/wiki/Alan_Turing")).not.toBe(key);
+
+    const pattern = savedPageHostPattern("https://en.wikipedia.org/wiki/Ada_Lovelace");
+    const re = new RegExp(pattern!, "i");
+    expect(re.test("https://en.m.wikipedia.org/wiki/Ada_Lovelace")).toBe(true);
+    expect(re.test("https://en.wikipedia.org.evil/wiki/Ada_Lovelace")).toBe(false);
+  });
+
+  it("treats a Reddit post as one page across hosts and title slugs", () => {
+    const key = savedPageKey(
+      "https://www.reddit.com/r/Design/comments/abc123/a_long_title/",
+    );
+    expect(savedPageKey("https://old.reddit.com/r/Design/comments/abc123/other_title")).toBe(
+      key,
+    );
+    expect(savedPageKey("https://np.reddit.com/comments/abc123")).toBe(key);
+    expect(savedPageKey("https://redd.it/abc123")).toBe(key);
+    expect(
+      savedPageKey("https://www.reddit.com/r/Design/comments/abc123/title/comment/def456"),
+    ).not.toBe(key);
+    expect(savedPageKey("https://www.reddit.com/r/Design/comments/xyz789/title")).not.toBe(
+      key,
+    );
+    expect(savedPageKey("https://www.reddit.com/r/Design/")).not.toBe(key);
+
+    const pattern = savedPageHostPattern(
+      "https://old.reddit.com/r/Design/comments/abc123/title",
+    );
+    const re = new RegExp(pattern!, "i");
+    expect(re.test("https://www.reddit.com/r/Design/comments/abc123/title")).toBe(true);
+    expect(re.test("https://redd.it/abc123")).toBe(true);
+    expect(re.test("https://reddit.com.evil/r/Design")).toBe(false);
+  });
+
+  it("treats a Spotify share link as the same track", () => {
+    const key = savedPageKey("https://open.spotify.com/track/4cOdK2wGLETKBW3PvgPWqT");
+    expect(
+      savedPageKey(
+        "https://open.spotify.com/intl-de/track/4cOdK2wGLETKBW3PvgPWqT?si=shareSheet",
+      ),
+    ).toBe(key);
+    expect(
+      savedPageKey("https://open.spotify.com/track/1111111111111111111111"),
+    ).not.toBe(key);
+    expect(savedPageKey("https://open.spotify.com/search/ada")).not.toBe(key);
+  });
+
   it("looks up the alias hosts when searching for an existing copy", () => {
     const pattern = savedPageHostPattern(`https://youtu.be/${VIDEO}`);
     expect(pattern).toBeTruthy();
