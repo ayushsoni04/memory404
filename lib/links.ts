@@ -280,6 +280,7 @@ const TRACKING_PARAM_NAMES = new Set([
   "ttclid",
   "twclid",
   "wbraid",
+  "wprov",
   "yclid",
 ]);
 
