@@ -10,6 +10,7 @@ import {
   authRevealClass,
 } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
+import { explainLoadError } from "@/lib/load-error";
 import {
   firstPasswordChangeError,
   PASSWORD_HINT,
@@ -70,7 +71,8 @@ export function PasswordSection() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setServerError(authFailureMessage(data, "Could not update your password."));
+        const message = authFailureMessage(data, "Could not update your password.");
+        setServerError(explainLoadError(message) ?? message);
         return;
       }
       setCurrentPassword("");
