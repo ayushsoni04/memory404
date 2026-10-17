@@ -57,6 +57,23 @@ describe("password settings", () => {
     expect(screen.queryByRole("button", { name: "Update password" })).not.toBeInTheDocument();
   });
 
+  it("does not call a half-typed confirmation a mismatch", () => {
+    render(<PasswordSection />);
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "NewPass" },
+    });
+
+    expect(screen.queryByText("Those new passwords do not match.")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "NewPassword3" },
+    });
+    expect(screen.getByText("Those new passwords do not match.")).toBeInTheDocument();
+  });
+
   it("explains a weak password before sending it", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);

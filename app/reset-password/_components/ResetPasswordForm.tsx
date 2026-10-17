@@ -14,6 +14,7 @@ import {
 } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { PASSWORD_HINT } from "@/lib/password-policy";
+import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { resetPasswordErrors } from "@/lib/reset-password";
 
 export function ResetPasswordForm() {
@@ -38,10 +39,12 @@ export function ResetPasswordForm() {
     fieldErrors.password && (attempted || password.length > 0)
       ? fieldErrors.password
       : null;
-  const confirmError =
-    fieldErrors.confirm && (attempted || confirm.length > 0)
-      ? fieldErrors.confirm
-      : null;
+  const confirmError = visibleConfirmPasswordError(
+    password,
+    confirm,
+    fieldErrors.confirm,
+    attempted,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

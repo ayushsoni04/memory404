@@ -17,6 +17,7 @@ import {
   passwordChangeErrors,
   type PasswordChangeErrors,
 } from "@/lib/password-change";
+import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { controlPress } from "@/components/vault/types";
 
 const labelClass = "block text-xs font-medium text-muted";
@@ -50,7 +51,12 @@ export function PasswordSection() {
   });
   const currentError = visibleError(attempted, currentPassword, errors.currentPassword);
   const newError = visibleError(attempted, newPassword, errors.newPassword);
-  const confirmError = visibleError(attempted, confirmPassword, errors.confirmPassword);
+  const confirmError = visibleConfirmPasswordError(
+    newPassword,
+    confirmPassword,
+    errors.confirmPassword,
+    attempted,
+  );
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();

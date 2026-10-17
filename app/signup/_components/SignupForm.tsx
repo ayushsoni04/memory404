@@ -18,6 +18,7 @@ import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { PASSWORD_HINT } from "@/lib/password-policy";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { signupPasswordErrors } from "@/lib/signup-password";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
 
@@ -43,10 +44,12 @@ export function SignupForm() {
     fieldErrors.password && (attempted || password.length > 0)
       ? fieldErrors.password
       : null;
-  const confirmError =
-    fieldErrors.confirm && (attempted || confirm.length > 0)
-      ? fieldErrors.confirm
-      : null;
+  const confirmError = visibleConfirmPasswordError(
+    password,
+    confirm,
+    fieldErrors.confirm,
+    attempted,
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

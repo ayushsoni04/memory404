@@ -63,6 +63,16 @@ describe("ResetPasswordForm", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
+  it("does not call a half-typed confirmation a mismatch", async () => {
+    navigation.token = "reset-token";
+    const user = userEvent.setup();
+    render(<ResetPasswordForm />);
+    await user.type(screen.getByLabelText("New password"), "Memory404");
+    await user.type(screen.getByLabelText("Confirm new password"), "Memor");
+
+    expect(screen.queryByText("Those new passwords do not match.")).not.toBeInTheDocument();
+  });
+
   it("does not send a password that was typed differently the second time", async () => {
     navigation.token = "reset-token";
     const user = userEvent.setup();
