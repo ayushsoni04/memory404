@@ -16,9 +16,11 @@ import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { NoteCount } from "@/components/vault/NoteCount";
 import {
   formatRelativeTime,
+  googleFaviconUrl,
   linkHostname,
   requiresLoginPlaceholder,
 } from "@/lib/links";
+import { nextCardPreview } from "@/components/vault/preview-fallback";
 import { brandThumbnailInvertInDark } from "@/lib/link-providers";
 import { getFeedImageUrl, getProxiedImageUrl } from "@/lib/screenshot";
 import { apiUrl } from "@/lib/api-base";
@@ -245,23 +247,31 @@ export default function LinkDetailOverlay({
     originRect ? toRect(originRect) : null,
   );
   const [flyVisible, setFlyVisible] = useState(Boolean(originRect));
+  const [previewOverride, setPreviewOverride] = useState<string | null>(null);
+  const [previewBroken, setPreviewBroken] = useState(false);
   const host = linkHostname(link.url);
+
+  useEffect(() => {
+    setPreviewOverride(null);
+    setPreviewBroken(false);
+  }, [link.id, link.imageUrl]);
 
   useEffect(() => {
     if (originRect) originRectRef.current = toRect(originRect);
   }, [originRect]);
 
-  const previewSrc = requiresLoginPlaceholder(link.url)
+  const loginGated = requiresLoginPlaceholder(link.url);
+  const storedPreview = loginGated
     ? "/placeholder-unicorn.jpg"
     : (getFeedImageUrl(link.imageUrl, 960) ??
       getProxiedImageUrl(link.imageUrl));
+  const previewSrc = previewOverride ?? storedPreview;
   const invertClass =
-    !requiresLoginPlaceholder(link.url) && brandThumbnailInvertInDark(link.url)
-      ? "invert"
-      : "";
+    !loginGated && brandThumbnailInvertInDark(link.url) ? "invert" : "";
   const faviconSrc = !isJunkFavicon(link.faviconUrl)
     ? getProxiedImageUrl(link.faviconUrl)
-    : undefined;
+    : getProxiedImageUrl(googleFaviconUrl(link.url, 64) ?? undefined);
+  const markLetter = (host[0] ?? "•").toUpperCase();
 
   const showSettled = useCallback(() => {
     const backdrop = backdropRef.current;
@@ -680,14 +690,42 @@ export default function LinkDetailOverlay({
             className="mind-overlay-stage group relative w-full max-w-[min(90vw,920px)] overflow-hidden rounded-[4px] bg-surface-elevated shadow-[0_20px_60px_rgba(0,0,0,0.45)]"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={previewSrc}
-              alt={link.displayTitle}
-              referrerPolicy="no-referrer"
-              decoding="async"
-              className={`mx-auto block max-h-[min(62vh,720px)] w-auto max-w-full object-contain ${invertClass}`}
-            />
+            {previewBroken || !previewSrc ? (
+              <span
+                data-preview="missing"
+                className="flex min-h-60 flex-col items-center justify-center gap-2 bg-surface px-6 py-16 text-center"
+              >
+                <span
+                  aria-hidden
+                  className="flex size-12 items-center justify-center rounded-full border border-border bg-surface-elevated text-lg font-medium text-muted"
+                >
+                  {markLetter}
+                </span>
+                <span className="text-[12px] text-subtle">{host}</span>
+              </span>
+            ) : (
+              /* eslint-disable-next-line @next/next/no-img-element */
+              <img
+                src={previewSrc}
+                alt={link.displayTitle}
+                referrerPolicy="no-referrer"
+                decoding="async"
+                className={`mx-auto block max-h-[min(62vh,720px)] w-auto max-w-full object-contain ${invertClass}`}
+                onError={() => {
+                  if (loginGated) return;
+                  const next = nextCardPreview(
+                    previewSrc,
+                    googleFaviconUrl(link.url),
+                    previewOverride !== null,
+                  );
+                  if (next) {
+                    setPreviewOverride(next);
+                    return;
+                  }
+                  setPreviewBroken(true);
+                }}
+              />
+            )}
             <MindCardActions url={link.url} host={host} />
           </div>
 
