@@ -54,7 +54,17 @@ describe("library backup", () => {
 
   it("names the file for the day and includes the groups", () => {
     const now = new Date("2026-10-16T15:04:00.000Z");
-    expect(libraryBackupFilename(now)).toBe("memory404-backup-2026-10-16.json");
+    expect(libraryBackupFilename(now, "UTC")).toBe("memory404-backup-2026-10-16.json");
+    expect(libraryBackupFilename(new Date("2026-10-18T06:30:00.000Z"), "America/Los_Angeles")).toBe(
+      "memory404-backup-2026-10-17.json",
+    );
+    expect(libraryBackupFilename(now)).toBe(
+      `memory404-backup-${new Intl.DateTimeFormat("en-CA", {
+        year: "numeric",
+        month: "2-digit",
+        day: "2-digit",
+      }).format(now)}.json`,
+    );
     expect(
       libraryBackupPayload([{ id: "g1", name: "Reading" }], [{ id: "link-1" }], now),
     ).toEqual({
