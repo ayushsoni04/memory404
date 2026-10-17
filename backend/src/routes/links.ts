@@ -18,6 +18,7 @@ import {
 } from "@/lib/db/repositories";
 import type { LinkDocument } from "@/lib/db/types";
 import { groupNameIssue } from "@/lib/group-name";
+import { groupNameTakenMessage } from "@/lib/group-name-lookup";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { isGeneralName } from "@/lib/groups";
 import { linkTextSearchWhere } from "@/lib/link-search";
@@ -93,6 +94,8 @@ async function resolveTargetGroupIdForCreate(
       const id = await getOrCreateGeneralGroup(userId);
       return { ok: true, groupId: id };
     }
+    const taken = await groupNameTakenMessage(userId, newName);
+    if (taken) return { ok: false, status: 409, error: taken };
     try {
       const g = await createGroup({ userId, name: newName });
       return { ok: true, groupId: g.id };

@@ -1,3 +1,5 @@
+import { normalizeGroupQuery } from "@/lib/group-query";
+
 /** Long enough for a real collection name, short enough to read on a pill. */
 export const GROUP_NAME_MAX = 60;
 
@@ -12,28 +14,50 @@ export const GROUP_NAME_RESERVED =
 export const GROUP_NAME_IN_TRASH =
   "That name is in Trash. Restore the group, or pick a different name.";
 
+export const GROUP_NAME_NEEDS_WORD =
+  "Use a name with a letter or number.";
+
+/** Same reading as group search: letter case, hyphens, slashes, and extra spaces. */
+export function groupNameKey(name: string): string {
+  return normalizeGroupQuery(name);
+}
+
 export type NamedGroup = {
   name: string;
   deletedAt: Date | string | null;
 };
 
 /**
- * Whether this name is already used, ignoring letter case.
+ * Whether this name is already used.
+ * Letter case, hyphens, slashes, and extra spaces do not make a second group.
  * An active group wins over one sitting in Trash.
  */
 export function groupNameConflict(
   name: string,
   groups: readonly NamedGroup[],
 ): "active" | "trash" | null {
-  const target = name.trim().toLowerCase();
+  const target = groupNameKey(name);
   if (!target) return null;
   let inTrash = false;
   for (const group of groups) {
-    if (group.name.trim().toLowerCase() !== target) continue;
+    if (groupNameKey(group.name) !== target) continue;
     if (group.deletedAt == null) return "active";
     inTrash = true;
   }
   return inTrash ? "trash" : null;
+}
+
+/** The live group this name would collide with, using the same reading as search. */
+export function activeGroupName(
+  name: string,
+  groups: readonly NamedGroup[],
+): string | null {
+  const target = groupNameKey(name);
+  if (!target) return null;
+  const match = groups.find(
+    (group) => group.deletedAt == null && groupNameKey(group.name) === target,
+  );
+  return match?.name ?? null;
 }
 
 export function groupNameConflictMessage(
@@ -55,6 +79,7 @@ export function groupNameIssue(name: string): string | null {
     return `Group names must be ${GROUP_NAME_MAX} characters or fewer.`;
   }
   if (RESERVED_GROUP_NAMES.has(trimmed.toLowerCase())) return GROUP_NAME_RESERVED;
+  if (!groupNameKey(trimmed)) return GROUP_NAME_NEEDS_WORD;
   return null;
 }
 
