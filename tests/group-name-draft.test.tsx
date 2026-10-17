@@ -5,7 +5,8 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import VaultSidebar from "@/components/vault/VaultSidebar";
-import { GROUP_NAME_MAX } from "@/lib/group-name";
+import { GROUP_NAME_MAX, GROUP_NAME_TAKEN } from "@/lib/group-name";
+import type { GroupRow } from "@/components/vault/types";
 
 vi.mock("next/image", () => ({
   default: () => null,
@@ -47,7 +48,15 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function PlaceSave() {
+const reading: GroupRow = {
+  id: "reading",
+  name: "Reading",
+  createdAt: "2026-10-01T00:00:00.000Z",
+  linksCount: 2,
+  previewTitles: [],
+};
+
+function PlaceSave({ groups = [] }: { groups?: GroupRow[] }) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
   Object.defineProperty(window, "matchMedia", {
@@ -73,7 +82,7 @@ function PlaceSave() {
       setSavePhase={() => {}}
       urlInput="https://example.com/docs"
       handleSubmit={(event) => event.preventDefault()}
-      groups={[]}
+      groups={groups}
       creatingNewGroup
       setCreatingNewGroup={() => {}}
       placeGroupId={null}
@@ -116,5 +125,23 @@ describe("sidebar new group name", () => {
     fireEvent.change(input, { target: { value: "Reading" } });
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+  });
+
+  it("says the name is already used before save, and keeps Save off", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          user: { name: "Ada", username: "ada", avatarUrl: null },
+        }),
+      }),
+    );
+    render(<PlaceSave groups={[reading]} />);
+    const input = screen.getByRole("textbox", { name: "Group name" });
+    fireEvent.change(input, { target: { value: "reading" } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent(GROUP_NAME_TAKEN);
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
   });
 });
