@@ -61,8 +61,23 @@ export function groupNameIssue(name: string): string | null {
 /**
  * Problems to show while a name is being typed.
  * An empty field stays quiet until the person tries to save it.
+ * When the library's groups are passed, a name already in use is reported too.
  */
-export function groupNameDraftIssue(name: string): string | null {
+export function groupNameDraftIssue(
+  name: string,
+  groups?: readonly { name: string; deletedAt?: Date | string | null }[],
+): string | null {
   if (!name.trim()) return null;
-  return groupNameIssue(name);
+  const issue = groupNameIssue(name);
+  if (issue) return issue;
+  if (!groups) return null;
+  return groupNameConflictMessage(
+    groupNameConflict(
+      name,
+      groups.map((group) => ({
+        name: group.name,
+        deletedAt: group.deletedAt ?? null,
+      })),
+    ),
+  );
 }

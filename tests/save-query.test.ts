@@ -105,6 +105,20 @@ describe("savedPageKey", () => {
     expect(savedPageKey("http://example.com:80/docs")).toBe(key);
     expect(savedPageKey("http://example.com:8080/docs")).not.toBe(key);
   });
+
+  it("treats the same query parameters in a different order as one page", () => {
+    const key = savedPageKey("https://example.com/search?a=1&b=2");
+    expect(savedPageKey("https://example.com/search?b=2&a=1")).toBe(key);
+    expect(savedPageKey("https://www.example.com/search/?b=2&a=1#top")).toBe(key);
+    expect(savedPageKey("https://example.com/search?tag=b&tag=a")).toBe(
+      savedPageKey("https://example.com/search?tag=a&tag=b"),
+    );
+    expect(savedPageKey("https://example.com/search?a=1&b=3")).not.toBe(key);
+    expect(savedPageKey("https://example.com/search?a=1")).not.toBe(key);
+    expect(savedPageKey("https://example.com/watch?v=abc&utm_source=share")).toBe(
+      savedPageKey("https://example.com/watch?v=abc"),
+    );
+  });
 });
 
 describe("pickExistingSavedPage", () => {
