@@ -42,6 +42,13 @@ describe("saveOfferUrl", () => {
     ).toBeNull();
   });
 
+  it("offers the link inside a sentence, not the sentence", () => {
+    expect(saveOfferUrl("see https://example.com/docs.", [])).toBe(
+      "https://example.com/docs",
+    );
+    expect(saveOfferUrl("design inspiration", [])).toBeNull();
+  });
+
   it("offers a host without a scheme, and stays quiet when it is already saved", () => {
     expect(saveOfferUrl("linear.app/docs", [])).toBe("https://linear.app/docs");
     expect(

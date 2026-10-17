@@ -207,6 +207,58 @@ const EXPLICIT_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 /** Long enough for a signed download link, short enough to store and show. */
 export const LINK_URL_MAX = 8_192;
 
+/** A chat message can wrap a link. Longer than this is not a paste. */
+const PASTE_SCAN_MAX = 16_384;
+
+function countChar(value: string, char: string): number {
+  let count = 0;
+  for (const item of value) {
+    if (item === char) count += 1;
+  }
+  return count;
+}
+
+/**
+ * The link inside a paste.
+ * A sentence, angle brackets, and trailing punctuation do not become part of the URL.
+ * A paste with no http(s) link returns null when it also contains spaces.
+ */
+export function pastedLinkCandidate(raw: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  if (trimmed.length > PASTE_SCAN_MAX) {
+    return /\s/.test(trimmed) ? null : trimmed;
+  }
+
+  let candidate = trimmed;
+  if (/\s/.test(trimmed)) {
+    const match = trimmed.match(/https?:\/\/[^\s<>]+/i);
+    if (!match) return null;
+    candidate = match[0];
+  }
+
+  candidate = candidate.replace(/^[<('"`]+/, "");
+  let guard = 0;
+  while (candidate && guard < 12) {
+    guard += 1;
+    const last = candidate.at(-1) ?? "";
+    if (".,;:!?\"'`>".includes(last)) {
+      candidate = candidate.slice(0, -1);
+      continue;
+    }
+    if (last === ")" && countChar(candidate, "(") < countChar(candidate, ")")) {
+      candidate = candidate.slice(0, -1);
+      continue;
+    }
+    if (last === "]" && countChar(candidate, "[") < countChar(candidate, "]")) {
+      candidate = candidate.slice(0, -1);
+      continue;
+    }
+    break;
+  }
+  return candidate || null;
+}
+
 /**
  * Query keys that identify a campaign, not the page.
  * `utm_*` covers the usual set. The rest are click ids from ad and share links.
@@ -264,11 +316,13 @@ function urlHasCredentials(url: URL): boolean {
  * Turn a pasted link into an http(s) URL.
  * `linear.app/docs` becomes `https://linear.app/docs`.
  * A URL that is already http(s) is kept as typed.
- * Sentences, `javascript:`, credentialed URLs, and hosts with no dot return null.
+ * A sentence that contains an http(s) link uses that link, without the
+ * trailing period or closing quote. A sentence with no link, `javascript:`,
+ * a credentialed URL, and a host with no dot return null.
  */
 export function coerceHttpUrl(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed || trimmed.length > LINK_URL_MAX || /\s/.test(trimmed)) return null;
+  const trimmed = pastedLinkCandidate(raw);
+  if (!trimmed || trimmed.length > LINK_URL_MAX) return null;
   if (isValidHttpUrl(trimmed)) {
     if (urlHasCredentials(new URL(trimmed))) return null;
     return withoutTrackingParams(trimmed);
@@ -294,8 +348,8 @@ export function coerceHttpUrl(raw: string): string | null {
  * Null means `coerceHttpUrl` will accept it.
  */
 export function linkUrlIssue(raw: string): string | null {
-  const trimmed = raw.trim();
-  if (!trimmed || /\s/.test(trimmed)) return LINK_URL_HINT;
+  const trimmed = pastedLinkCandidate(raw);
+  if (!trimmed) return LINK_URL_HINT;
   if (trimmed.length > LINK_URL_MAX) return "That link is too long to save.";
 
   let parsed: URL | null = null;
