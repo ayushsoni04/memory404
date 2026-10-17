@@ -67,9 +67,17 @@ export function sortLinks(links: LinkApiRow[], sortBy: SortBy): LinkApiRow[] {
     );
   }
   if (sortBy === "domain") {
-    return list.sort((a, b) =>
-      getLinkDomain(a.url).localeCompare(getLinkDomain(b.url)),
-    );
+    return list.sort((a, b) => {
+      const domain = getLinkDomain(a.url).localeCompare(getLinkDomain(b.url));
+      if (domain !== 0) return domain;
+      const title = (a.displayTitle || a.title).localeCompare(
+        b.displayTitle || b.title,
+        undefined,
+        { sensitivity: "base" },
+      );
+      if (title !== 0) return title;
+      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    });
   }
   if (sortBy === "details") {
     const getDetailSize = (l: LinkApiRow) => {
