@@ -39,6 +39,19 @@ describe("getLinkDomain", () => {
   });
 });
 
+describe("getLinkType", () => {
+  it("matches the site, not a name that happens to contain it", () => {
+    expect(getLinkType("https://x.com/ayush")).toBe("Twitter/X");
+    expect(getLinkType("https://mobile.twitter.com/ayush")).toBe("Twitter/X");
+    expect(getLinkType("https://www.netflix.com/title")).toBe("General");
+    expect(getLinkType("https://dropbox.com/s/abc")).toBe("General");
+    expect(getLinkType("https://box.com/s/abc")).toBe("General");
+    expect(getLinkType("https://figma.com.evil.test/file")).toBe("General");
+    expect(getLinkType("https://www.figma.com/file")).toBe("Figma");
+    expect(getLinkType("https://www.youtube.com/watch")).toBe("YouTube");
+  });
+});
+
 describe("sortLinks by site", () => {
   it("puts www and capitalised hosts next to the bare host", () => {
     const sorted = sortLinks(
@@ -69,5 +82,18 @@ describe("sortLinks by site", () => {
     ).map((item) => item.displayTitle);
 
     expect(sorted).toEqual(["Shot", "Alpha file", "alpha file", "Zebra file"]);
+  });
+
+  it("orders numbered names from the same site as 1, 2, 10", () => {
+    const sorted = sortLinks(
+      [
+        link("https://figma.com/10", "2026-10-01T00:00:00.000Z", "File 10"),
+        link("https://figma.com/2", "2026-10-02T00:00:00.000Z", "File 2"),
+        link("https://figma.com/1", "2026-10-03T00:00:00.000Z", "File 1"),
+      ],
+      "domain",
+    ).map((item) => item.displayTitle);
+
+    expect(sorted).toEqual(["File 1", "File 2", "File 10"]);
   });
 });
