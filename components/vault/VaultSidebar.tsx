@@ -13,6 +13,7 @@ import {
   EXTENSION_ZIP_HREF,
 } from "@/lib/extension-download";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
+import { groupNameDraftIssue } from "@/lib/group-name";
 import { explainLoadError } from "@/lib/load-error";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
 import { GridSizeControl } from "./GridSizeControl";
@@ -263,7 +264,14 @@ export default function VaultSidebar({
                       <input
                         type="text"
                         value={newGroupNameDraft}
-                        onChange={(e) => setNewGroupNameDraft(e.target.value)}
+                        aria-label="Group name"
+                        aria-invalid={saveError ? true : undefined}
+                        aria-describedby={saveError ? "save-flow-error" : undefined}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setNewGroupNameDraft(next);
+                          setSaveError(groupNameDraftIssue(next));
+                        }}
                         placeholder="Group name"
                         disabled={saving}
                         className={FIELD_CLASS}
@@ -289,7 +297,8 @@ export default function VaultSidebar({
                         disabled={
                           saving ||
                           (creatingNewGroup
-                            ? !newGroupNameDraft.trim()
+                            ? !newGroupNameDraft.trim() ||
+                              Boolean(groupNameDraftIssue(newGroupNameDraft))
                             : !placeGroupId)
                         }
                         className={`inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 cursor-pointer ${controlPress}`}
@@ -300,7 +309,7 @@ export default function VaultSidebar({
                   </>
                 )}
                 {saveError ? (
-                  <p className="text-xs text-danger" role="alert">
+                  <p id="save-flow-error" className="text-xs text-danger" role="alert">
                     {saveError}
                   </p>
                 ) : null}

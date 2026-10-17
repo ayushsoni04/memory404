@@ -57,3 +57,12 @@ export function groupNameIssue(name: string): string | null {
   if (RESERVED_GROUP_NAMES.has(trimmed.toLowerCase())) return GROUP_NAME_RESERVED;
   return null;
 }
+
+/**
+ * Problems to show while a name is being typed.
+ * An empty field stays quiet until the person tries to save it.
+ */
+export function groupNameDraftIssue(name: string): string | null {
+  if (!name.trim()) return null;
+  return groupNameIssue(name);
+}

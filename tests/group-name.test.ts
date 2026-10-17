@@ -6,6 +6,7 @@ import {
   GROUP_NAME_TAKEN,
   groupNameConflict,
   groupNameConflictMessage,
+  groupNameDraftIssue,
   groupNameIssue,
 } from "@/lib/group-name";
 
@@ -39,6 +40,16 @@ describe("groupNameIssue", () => {
     expect(groupNameIssue("Uncategorized")).toBe(GROUP_NAME_RESERVED);
     expect(groupNameIssue("All links")).toBeNull();
     expect(groupNameIssue("Reading")).toBeNull();
+  });
+});
+
+describe("groupNameDraftIssue", () => {
+  it("stays quiet until there is a name, then reports the same problems", () => {
+    expect(groupNameDraftIssue("")).toBeNull();
+    expect(groupNameDraftIssue("   ")).toBeNull();
+    expect(groupNameDraftIssue("Reading")).toBeNull();
+    expect(groupNameDraftIssue("R".repeat(GROUP_NAME_MAX + 1))).toMatch(/60/);
+    expect(groupNameDraftIssue("Reading\nlist")).toMatch(/line breaks/);
   });
 });
 
