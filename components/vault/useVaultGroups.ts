@@ -5,7 +5,7 @@ import useSWR from "swr";
 import { useQueryState } from "nuqs";
 import { apiUrl } from "@/lib/api-base";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
-import { groupNameIssue } from "@/lib/group-name";
+import { groupNameDraftIssue, groupNameIssue } from "@/lib/group-name";
 import { groupsMatchingQuery } from "@/lib/group-query";
 import { createGroupErrorMessage } from "./create-group";
 import { groupTrashFailureMessage } from "./GroupTrashConfirm";
@@ -165,7 +165,8 @@ export function useVaultGroups(
 
   const createGroup = async () => {
     const name = createGroupName.trim();
-    const issue = groupNameIssue(name);
+    const issue =
+      groupNameIssue(name) ?? groupNameDraftIssue(createGroupName, groups);
     if (issue) {
       setCreateGroupError(issue);
       return;

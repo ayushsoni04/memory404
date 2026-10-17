@@ -51,6 +51,15 @@ describe("groupNameDraftIssue", () => {
     expect(groupNameDraftIssue("R".repeat(GROUP_NAME_MAX + 1))).toMatch(/60/);
     expect(groupNameDraftIssue("Reading\nlist")).toMatch(/line breaks/);
   });
+
+  it("says a name is taken while it is being typed", () => {
+    const reading = { name: "Reading", deletedAt: null };
+    const trashed = { name: "Archive", deletedAt: "2026-10-01T00:00:00.000Z" };
+    expect(groupNameDraftIssue("reading", [reading])).toBe(GROUP_NAME_TAKEN);
+    expect(groupNameDraftIssue(" Archive ", [trashed])).toBe(GROUP_NAME_IN_TRASH);
+    expect(groupNameDraftIssue("Design", [reading, trashed])).toBeNull();
+    expect(groupNameDraftIssue("All", [reading])).toBe(GROUP_NAME_RESERVED);
+  });
 });
 
 describe("groupNameConflict", () => {
