@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { activityTimeZone } from "@/lib/activity-grid";
 import { requireAuth } from "@/lib/auth";
 import { getCollections } from "@/lib/db/mongodb";
-import { activeLibraryMatch } from "@/lib/stats-scope";
+import { activeLibraryMatch, trashedLibraryMatch } from "@/lib/stats-scope";
 
 export async function GET(request: Request) {
   const auth = await requireAuth();
@@ -12,8 +12,9 @@ export async function GET(request: Request) {
   try {
     const { groups: groupsCollection, links } = await getCollections();
     const library = activeLibraryMatch(auth.id);
-    const [totalLinks, totalGroups, groups, frequency] = await Promise.all([
+    const [totalLinks, trashedLinks, totalGroups, groups, frequency] = await Promise.all([
       links.countDocuments(library),
+      links.countDocuments(trashedLibraryMatch(auth.id)),
       groupsCollection.countDocuments(library),
       groupsCollection
         .aggregate<{ _id: string; name: string; count: number }>([
@@ -81,6 +82,7 @@ export async function GET(request: Request) {
     return NextResponse.json({
       success: true,
       totalLinks,
+      trashedLinks,
       totalGroups,
       linksByGroup,
       linkFrequency
