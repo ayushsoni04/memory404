@@ -1,4 +1,5 @@
 import { coerceHttpUrl, withoutTrackingParams } from "@/lib/links";
+import { shareHostAliases, sharePageUrl } from "@/lib/share-page";
 
 function canonicalHttpUrl(value: string): string | null {
   try {
@@ -14,7 +15,7 @@ function canonicalHttpUrl(value: string): string | null {
  * Key for "is this page already saved?".
  * www, http or https, a trailing slash, a default port, a hash, and campaign
  * parameters do not make a second page. Query parameters match in any order.
- * The path stays as typed.
+ * A YouTube share link and an X post use one identity. The path stays as typed.
  */
 
 /** Same keys and values, in a stable order, are one query. */
@@ -43,6 +44,7 @@ export function savedPageKey(value: string): string | null {
     return null;
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") return null;
+  url = sharePageUrl(url) ?? url;
 
   const host = url.hostname.replace(/\.$/, "").toLowerCase();
   const withoutWww = host.startsWith("www.") ? host.slice(4) : host;
@@ -96,8 +98,12 @@ export function savedPageHostPattern(value: string): string | null {
     return null;
   }
   if (!host.includes(".")) return null;
-  const escaped = host.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  return `^https?://(?:www\\.)?${escaped}(?::\\d+)?(?:[/?#]|$)`;
+  const aliases = shareHostAliases(host) ?? [host];
+  const escaped = aliases
+    .map((name) => name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+    .join("|");
+  const prefix = aliases.length > 1 ? "(?:www\\.|m\\.|mobile\\.)?" : "(?:www\\.)?";
+  return `^https?://${prefix}(?:${escaped})(?::\\d+)?(?:[/?#]|$)`;
 }
 
 /**
