@@ -30,6 +30,7 @@ type VaultGroupToolbarProps = {
   openedGroupId: string | null;
   selectGroup: (id: string) => void;
   generalGroup: GroupRow | null;
+  groups?: readonly GroupRow[];
   filteredFolders: GroupRow[];
   draggingGroupId: string | null;
   setDraggingGroupId: (id: string | null) => void;
@@ -238,6 +239,7 @@ export default function VaultGroupToolbar({
   openedGroupId,
   selectGroup,
   generalGroup,
+  groups = [],
   filteredFolders,
   draggingGroupId,
   setDraggingGroupId,
@@ -525,7 +527,7 @@ export default function VaultGroupToolbar({
               onChange={(e) => {
                 const next = e.target.value;
                 setCreateGroupName(next);
-                setCreateGroupError(groupNameDraftIssue(next));
+                setCreateGroupError(groupNameDraftIssue(next, groups));
               }}
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
