@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
+import { explainLoadError } from "@/lib/load-error";
 import { linkTitleIssue } from "@/lib/link-title";
 import type { LinkApiRow } from "@/lib/links";
 
@@ -56,20 +57,21 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok || !data || typeof data !== "object" || !("link" in data) || !data.link) {
-        setError(
+        const serverMessage =
           data &&
-            typeof data === "object" &&
-            "error" in data &&
-            typeof data.error === "string"
+          typeof data === "object" &&
+          "error" in data &&
+          typeof data.error === "string"
             ? data.error
-            : "Could not rename the link.",
-        );
+            : "";
+        setError(explainLoadError(serverMessage) ?? "Could not rename the link.");
         return;
       }
       onSaved?.(data.link as LinkApiRow);
       setEditing(false);
-    } catch {
-      setError("Could not rename the link. Try again.");
+    } catch (error: unknown) {
+      const raw = error instanceof Error ? error.message : "";
+      setError(explainLoadError(raw) ?? "Could not rename the link. Try again.");
     } finally {
       setSaving(false);
     }
