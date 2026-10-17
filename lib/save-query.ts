@@ -12,8 +12,8 @@ function canonicalHttpUrl(value: string): string | null {
 
 /**
  * Key for "is this page already saved?".
- * www, a trailing slash, a default port, a hash, and campaign parameters
- * do not make a second page. The path and any other query stay as typed.
+ * www, http or https, a trailing slash, a default port, a hash, and campaign
+ * parameters do not make a second page. The path and any other query stay as typed.
  */
 export function savedPageKey(value: string): string | null {
   const prepared = coerceHttpUrl(value) ?? value.trim();
@@ -35,6 +35,8 @@ export function savedPageKey(value: string): string | null {
   ) {
     url.port = "";
   }
+  // An old http link and the https page are the same save.
+  url.protocol = "https:";
   if (url.pathname.length > 1) {
     url.pathname = url.pathname.replace(/\/+$/, "") || "/";
   }

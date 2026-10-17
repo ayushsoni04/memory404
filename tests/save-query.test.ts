@@ -56,6 +56,15 @@ describe("saveOfferUrl", () => {
     ).toBeNull();
   });
 
+  it("treats http and https as the same saved page", () => {
+    expect(
+      saveOfferUrl("http://example.com/docs", ["https://example.com/docs"]),
+    ).toBeNull();
+    expect(
+      saveOfferUrl("https://example.com/docs", ["http://example.com/docs"]),
+    ).toBeNull();
+  });
+
   it("treats www, a trailing slash, and a hash as the same saved page", () => {
     expect(
       saveOfferUrl("https://www.example.com/docs/", [
@@ -92,7 +101,9 @@ describe("savedPageKey", () => {
     expect(savedPageKey("https://example.com:443/docs")).toBe(key);
     expect(savedPageKey("https://example.com/docs?utm_source=share")).toBe(key);
     expect(savedPageKey("https://example.com/docs?v=1")).not.toBe(key);
-    expect(savedPageKey("http://example.com/docs")).not.toBe(key);
+    expect(savedPageKey("http://example.com/docs")).toBe(key);
+    expect(savedPageKey("http://example.com:80/docs")).toBe(key);
+    expect(savedPageKey("http://example.com:8080/docs")).not.toBe(key);
   });
 });
 
