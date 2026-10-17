@@ -15,6 +15,7 @@ import {
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { explainLoadError } from "@/lib/load-error";
 import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { withInboxInGroupSearch } from "@/lib/search-group";
 import { GridSizeControl } from "./GridSizeControl";
 import { NoteCount } from "./NoteCount";
 import GroupSearchCommand from "./GroupSearchCommand";
@@ -329,7 +330,7 @@ export default function VaultSidebar({
               <GroupSearchCommand
                 value={groupSearch}
                 onChange={setGroupSearch}
-                groups={filteredFolders}
+                groups={withInboxInGroupSearch(filteredFolders, groupSearch)}
                 onSelectGroup={selectGroup}
                 placeholder="Search groups"
                 className="w-full"

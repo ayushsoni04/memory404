@@ -3,13 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "cmdk";
 import { X } from "lucide-react";
-import type { GroupRow } from "./types";
 
 type Props = {
   value: string;
   onChange: (val: string) => void;
   /** Already-filtered candidates to jump to, in display order. */
-  groups: GroupRow[];
+  groups: readonly { id: string; name: string }[];
   onSelectGroup: (id: string) => void;
   placeholder?: string;
   className?: string;
