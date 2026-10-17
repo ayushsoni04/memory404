@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import Link from "next/link";
 import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/trash/route";
 import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
@@ -18,6 +18,8 @@ export default function TrashPage() {
   const [exitingIds, setExitingIds] = useState<Set<string>>(() => new Set());
   const [pendingDelete, setPendingDelete] = useState<PermanentDelete | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
+  const actionRef = useRef(false);
 
   const loadTrash = useCallback(async () => {
     setLoading(true);
@@ -56,68 +58,89 @@ export default function TrashPage() {
       const res = await fetch(apiUrl(path), { method });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setActionError(typeof data.error === "string" ? data.error : "Request failed");
+        const raw = typeof data.error === "string" ? data.error : "Request failed";
+        setActionError(explainLoadError(raw) ?? raw);
         return false;
       }
       setActionError(null);
       return true;
-    } catch {
-      setActionError("Network error — try again");
+    } catch (error: unknown) {
+      const raw = error instanceof Error ? error.message : "";
+      setActionError(explainLoadError(raw) ?? explainLoadError("Failed to fetch"));
       return false;
     }
   };
 
-  const restoreLink = async (id: string) => {
-    if (await runTrashAction(`/api/trash/links/${id}`, "PATCH")) {
-      await removeWithExit([id]);
-    }
+  const beginAction = () => {
+    if (actionRef.current) return false;
+    actionRef.current = true;
+    setActionBusy(true);
+    return true;
   };
 
-  const deleteLink = async (id: string) => {
-    if (!(await runTrashAction(`/api/trash/links/${id}`, "DELETE"))) return false;
-    await removeWithExit([id]);
-    return true;
+  const endAction = () => {
+    actionRef.current = false;
+    setActionBusy(false);
+  };
+
+  const restoreLink = async (id: string) => {
+    if (!beginAction()) return;
+    try {
+      if (await runTrashAction(`/api/trash/links/${id}`, "PATCH")) {
+        await removeWithExit([id]);
+      }
+    } finally {
+      endAction();
+    }
   };
 
   const restoreGroup = async (id: string) => {
-    if (await runTrashAction(`/api/trash/groups/${id}`, "PATCH")) {
-      await removeWithExit([id]);
+    if (!beginAction()) return;
+    try {
+      if (await runTrashAction(`/api/trash/groups/${id}`, "PATCH")) {
+        await removeWithExit([id]);
+      }
+    } finally {
+      endAction();
     }
   };
 
-  const deleteGroup = async (id: string) => {
-    if (!(await runTrashAction(`/api/trash/groups/${id}`, "DELETE"))) return false;
-    const removedIds = items
-      .filter(
-        (item) =>
-          item.id === id || (item.type === "link" && item.groupId === id),
-      )
-      .map((item) => item.id);
-    await removeWithExit(removedIds);
-    return true;
-  };
-
-  const emptyTrash = async () => {
-    setEmptying(true);
-    const ok = await runTrashAction("/api/trash", "DELETE");
-    if (ok) await removeWithExit(items.map((item) => item.id));
-    setEmptying(false);
-    return ok;
-  };
-
   const askPermanentDelete = (pending: PermanentDelete) => {
+    if (actionRef.current) return;
     setActionError(null);
     setPendingDelete(pending);
   };
 
   const confirmPermanentDelete = async () => {
-    if (!pendingDelete || confirming) return;
+    if (!pendingDelete || !beginAction()) return;
     setConfirming(true);
+    if (pendingDelete.kind === "empty") setEmptying(true);
     let ok = false;
-    if (pendingDelete.kind === "empty") ok = await emptyTrash();
-    else if (pendingDelete.kind === "link") ok = await deleteLink(pendingDelete.id);
-    else ok = await deleteGroup(pendingDelete.id);
-    setConfirming(false);
+    try {
+      if (pendingDelete.kind === "empty") {
+        ok = await runTrashAction("/api/trash", "DELETE");
+        if (ok) await removeWithExit(items.map((item) => item.id));
+      } else if (pendingDelete.kind === "link") {
+        ok = await runTrashAction(`/api/trash/links/${pendingDelete.id}`, "DELETE");
+        if (ok) await removeWithExit([pendingDelete.id]);
+      } else {
+        ok = await runTrashAction(`/api/trash/groups/${pendingDelete.id}`, "DELETE");
+        if (ok) {
+          const removedIds = items
+            .filter(
+              (item) =>
+                item.id === pendingDelete.id ||
+                (item.type === "link" && item.groupId === pendingDelete.id),
+            )
+            .map((item) => item.id);
+          await removeWithExit(removedIds);
+        }
+      }
+    } finally {
+      setConfirming(false);
+      setEmptying(false);
+      endAction();
+    }
     if (ok) setPendingDelete(null);
   };
 
@@ -149,7 +172,7 @@ export default function TrashPage() {
             <button
               type="button"
               onClick={() => askPermanentDelete({ kind: "empty", count: items.length })}
-              disabled={emptying}
+              disabled={emptying || actionBusy}
               className="rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2 text-[13px] font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
             >
               {emptying ? "Emptying…" : "Empty Trash"}
@@ -230,6 +253,7 @@ export default function TrashPage() {
                   key={g.id}
                   item={g}
                   exiting={exitingIds.has(g.id)}
+                  busy={actionBusy}
                   onRestore={() => void restoreGroup(g.id)}
                   onDelete={() =>
                     askPermanentDelete({ kind: "group", id: g.id, name: g.name })
@@ -252,6 +276,7 @@ export default function TrashPage() {
                   key={l.id}
                   item={l}
                   exiting={exitingIds.has(l.id)}
+                  busy={actionBusy}
                   onRestore={() => void restoreLink(l.id)}
                   onDelete={() =>
                     askPermanentDelete({

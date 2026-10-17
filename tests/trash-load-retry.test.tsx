@@ -105,4 +105,97 @@ describe("Trash load errors", () => {
     expect(screen.getByText("Pricing")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("explains a dead session and a connection failure", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              type: "link",
+              id: "link-1",
+              url: "https://example.com/pricing",
+              title: "Pricing",
+              displayTitle: "Pricing",
+              imageUrl: "/placeholder-unicorn.jpg",
+              faviconUrl: "/placeholder-unicorn.jpg",
+              groupId: "group-1",
+              groupName: "Reading",
+              deletedAt: new Date().toISOString(),
+              daysLeft: 12,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"));
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrashPage />);
+    expect(await screen.findByText("Pricing")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your session expired. Sign in again.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't reach memory404. Check your connection and try again.",
+    );
+    expect(screen.getByText("Pricing")).toBeInTheDocument();
+  });
+
+  it("ignores a second restore while the first is still running", async () => {
+    let resolveRestore: (value: { ok: boolean; json: () => Promise<unknown> }) => void =
+      () => {};
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              type: "link",
+              id: "link-1",
+              url: "https://example.com/pricing",
+              title: "Pricing",
+              displayTitle: "Pricing",
+              imageUrl: "/placeholder-unicorn.jpg",
+              faviconUrl: "/placeholder-unicorn.jpg",
+              groupId: "group-1",
+              groupName: "Reading",
+              deletedAt: new Date().toISOString(),
+              daysLeft: 12,
+            },
+          ],
+        }),
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRestore = resolve;
+          }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrashPage />);
+    expect(await screen.findByText("Pricing")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+
+    resolveRestore({ ok: true, json: async () => ({}) });
+    await waitFor(() => {
+      expect(screen.queryByText("Pricing")).not.toBeInTheDocument();
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
 });

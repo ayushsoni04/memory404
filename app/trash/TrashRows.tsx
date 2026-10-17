@@ -23,9 +23,9 @@ const rowClass =
 const actionsClass =
   "trash-card-actions flex items-center gap-1.5 opacity-100 sm:opacity-0";
 
-const restoreClass = `rounded-lg border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background ${controlPress}`;
+const restoreClass = `rounded-lg border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background disabled:opacity-50 ${controlPress}`;
 
-const deleteClass = `rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 ${controlPress}`;
+const deleteClass = `rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 ${controlPress}`;
 
 function RowBody({
   title,
@@ -33,6 +33,7 @@ function RowBody({
   days,
   onRestore,
   onDelete,
+  busy = false,
   media,
 }: {
   title: string;
@@ -40,6 +41,7 @@ function RowBody({
   days: number;
   onRestore: () => void;
   onDelete: () => void;
+  busy?: boolean;
   media: ReactNode;
 }) {
   return (
@@ -55,10 +57,10 @@ function RowBody({
         <div className="flex shrink-0 items-center justify-end gap-2">
           <DaysLeft days={days} />
           <div className={actionsClass}>
-            <button type="button" onClick={onRestore} className={restoreClass}>
+            <button type="button" onClick={onRestore} disabled={busy} className={restoreClass}>
               Restore
             </button>
-            <button type="button" onClick={onDelete} className={deleteClass}>
+            <button type="button" onClick={onDelete} disabled={busy} className={deleteClass}>
               Delete Now
             </button>
           </div>
@@ -71,11 +73,13 @@ function RowBody({
 export function TrashGroupRow({
   item,
   exiting,
+  busy = false,
   onRestore,
   onDelete,
 }: {
   item: TrashGroupItem;
   exiting: boolean;
+  busy?: boolean;
   onRestore: () => void;
   onDelete: () => void;
 }) {
@@ -87,6 +91,7 @@ export function TrashGroupRow({
         days={item.daysLeft}
         onRestore={onRestore}
         onDelete={onDelete}
+        busy={busy}
         media={
           <div className="flex size-9 shrink-0 items-center justify-center rounded-lg bg-background text-muted">
             <svg viewBox="0 0 20 20" fill="currentColor" className="size-4" aria-hidden>
@@ -102,11 +107,13 @@ export function TrashGroupRow({
 export function TrashLinkRow({
   item,
   exiting,
+  busy = false,
   onRestore,
   onDelete,
 }: {
   item: TrashLinkItem;
   exiting: boolean;
+  busy?: boolean;
   onRestore: () => void;
   onDelete: () => void;
 }) {
@@ -119,6 +126,7 @@ export function TrashLinkRow({
         days={item.daysLeft}
         onRestore={onRestore}
         onDelete={onDelete}
+        busy={busy}
         media={
           <Image
             src={item.faviconUrl}
