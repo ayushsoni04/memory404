@@ -139,6 +139,48 @@ describe("library export", () => {
     expect(urls.filter((url) => url.includes("/api/links"))).toHaveLength(2);
   });
 
+  it("says the session expired instead of a raw unauthorized", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = requestUrl(input);
+        if (url.includes("/api/me")) {
+          return { ok: true, json: async () => ({ user: profile }) };
+        }
+        return { ok: false, status: 401, json: async () => ({ error: "Unauthorized" }) };
+      }),
+    );
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Export backup JSON" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your session expired. Sign in again.",
+    );
+    expect(screen.queryByText("Unauthorized")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Downloaded memory404-backup/)).not.toBeInTheDocument();
+  });
+
+  it("says when the backup cannot reach memory404", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (input: RequestInfo | URL) => {
+        const url = requestUrl(input);
+        if (url.includes("/api/me")) {
+          return { ok: true, json: async () => ({ user: profile }) };
+        }
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Export backup JSON" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/Check your connection/);
+  });
+
   it("names the backup file after it downloads", async () => {
     vi.stubGlobal(
       "fetch",

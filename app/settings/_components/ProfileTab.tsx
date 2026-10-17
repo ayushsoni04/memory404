@@ -23,6 +23,7 @@ import {
   LIBRARY_BACKUP_TOO_LARGE,
   libraryBackupFilename,
   libraryBackupPayload,
+  libraryExportError,
 } from "@/lib/library-backup";
 import {
   getAvatarFileIssues,
@@ -102,8 +103,10 @@ export function ProfileTab({
         const params = new URLSearchParams({ limit: "100" });
         if (cursor) params.set("cursor", cursor);
         const res = await fetch(`/api/links?${params.toString()}`);
-        if (!res.ok) throw new Error("Could not export your links");
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(typeof data.error === "string" ? data.error : "");
+        }
         return {
           links: Array.isArray(data.links) ? data.links : [],
           hasMore: Boolean(data.hasMore),
@@ -123,8 +126,10 @@ export function ProfileTab({
       }
 
       const groupsRes = await fetch("/api/groups");
-      if (!groupsRes.ok) throw new Error("Could not export your links");
-      const groupsData = await groupsRes.json();
+      const groupsData = await groupsRes.json().catch(() => ({}));
+      if (!groupsRes.ok) {
+        throw new Error(typeof groupsData.error === "string" ? groupsData.error : "");
+      }
       const groups = Array.isArray(groupsData.groups) ? groupsData.groups : [];
 
       const filename = libraryBackupFilename();
@@ -142,8 +147,9 @@ export function ProfileTab({
       window.setTimeout(() => URL.revokeObjectURL(href), 1000);
       setExportNoticeTone("ok");
       setExportNotice(`Downloaded ${filename}`);
-    } catch {
-      setExportError("Could not export your links. Try again.");
+    } catch (error) {
+      const raw = error instanceof Error ? error.message : "";
+      setExportError(libraryExportError(raw));
     } finally {
       setIsExporting(false);
     }
