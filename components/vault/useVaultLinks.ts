@@ -6,12 +6,14 @@ import useSWR from "swr";
 import useSWRInfinite from "swr/infinite";
 import { apiUrl } from "@/lib/api-base";
 import { clearCardRectsCache } from "@/lib/card-vicinity-stroke";
+import { joinInflight } from "@/lib/join-inflight";
 import {
   coerceHttpUrl,
   duplicateSaveError,
   linkUrlIssue,
   type LinkApiRow,
 } from "@/lib/links";
+import { savedPageKey } from "@/lib/save-query";
 import { isLaterLinksPage } from "./feed-load";
 import { sortLinks } from "./link-utils";
 import {
@@ -451,6 +453,13 @@ export function useVaultLinks(
     };
   }, [hasMoreLinks, loadMoreLinks, sortedLinks.length]);
 
+  const inflightSaves = useRef(
+    new Map<
+      string,
+      Promise<{ ok: true; link: LinkApiRow } | { ok: false; error: string }>
+    >(),
+  );
+
   const saveLink = useCallback(
     async (
       url: string,
@@ -469,47 +478,50 @@ export function useVaultLinks(
         playUiSound("error");
         return { ok: false, error: "Enter a link, like example.com/page" };
       }
-      const payload: Record<string, string> = { url: normalized };
-      if (options?.newGroupName?.trim()) {
-        payload.newGroupName = options.newGroupName.trim();
-      } else {
-        payload.groupId = groupId;
-      }
+      const pageKey = savedPageKey(normalized) ?? normalized;
+      return joinInflight(inflightSaves.current, pageKey, async () => {
+        const payload: Record<string, string> = { url: normalized };
+        if (options?.newGroupName?.trim()) {
+          payload.newGroupName = options.newGroupName.trim();
+        } else {
+          payload.groupId = groupId;
+        }
 
-      // Fire during the initiating gesture so AudioContext unlocks before await.
-      playUiSound("loading");
-      try {
-        const res = await fetch(apiUrl("/api/links"), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          const duplicate = duplicateSaveError(res.status, data);
-          if (duplicate) {
+        // Fire during the initiating gesture so AudioContext unlocks before await.
+        playUiSound("loading");
+        try {
+          const res = await fetch(apiUrl("/api/links"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok) {
+            const duplicate = duplicateSaveError(res.status, data);
+            if (duplicate) {
+              playUiSound("error");
+              return { ok: false as const, error: duplicate };
+            }
             playUiSound("error");
-            return { ok: false, error: duplicate };
+            const msg =
+              typeof data.error === "string" ? data.error : "Failed to save";
+            const hint =
+              typeof data.hint === "string" && data.hint.trim()
+                ? ` — ${data.hint.trim()}`
+                : "";
+            return { ok: false as const, error: `${msg}${hint}` };
+          }
+          if (data.link && typeof data.link === "object") {
+            playUiSound("success");
+            return { ok: true as const, link: data.link as LinkApiRow };
           }
           playUiSound("error");
-          const msg =
-            typeof data.error === "string" ? data.error : "Failed to save";
-          const hint =
-            typeof data.hint === "string" && data.hint.trim()
-              ? ` — ${data.hint.trim()}`
-              : "";
-          return { ok: false, error: `${msg}${hint}` };
+          return { ok: false as const, error: "Failed to save" };
+        } catch {
+          playUiSound("error");
+          return { ok: false as const, error: "Network error — try again" };
         }
-        if (data.link && typeof data.link === "object") {
-          playUiSound("success");
-          return { ok: true, link: data.link as LinkApiRow };
-        }
-        playUiSound("error");
-        return { ok: false, error: "Failed to save" };
-      } catch {
-        playUiSound("error");
-        return { ok: false, error: "Network error — try again" };
-      }
+      });
     },
     [],
   );
