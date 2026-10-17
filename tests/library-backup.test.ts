@@ -3,7 +3,9 @@ import {
   collectLibraryLinks,
   libraryBackupFilename,
   libraryBackupPayload,
+  libraryExportError,
   LIBRARY_BACKUP_TOO_LARGE,
+  LIBRARY_EXPORT_FAILED,
 } from "@/lib/library-backup";
 
 describe("library backup", () => {
@@ -41,6 +43,13 @@ describe("library backup", () => {
     expect(result.links).toHaveLength(2);
     expect(fetchPage).toHaveBeenCalledTimes(2);
     expect(LIBRARY_BACKUP_TOO_LARGE).toMatch(/too large/i);
+  });
+
+  it("explains a dead session and a dropped connection", () => {
+    expect(libraryExportError("Unauthorized")).toMatch(/session expired/i);
+    expect(libraryExportError("Failed to fetch")).toMatch(/connection/i);
+    expect(libraryExportError("Failed to fetch links")).toBe(LIBRARY_EXPORT_FAILED);
+    expect(libraryExportError("")).toBe(LIBRARY_EXPORT_FAILED);
   });
 
   it("names the file for the day and includes the groups", () => {
