@@ -9,6 +9,7 @@ import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { phaseForSaveStatus } from "./save-cancel";
 import { saveHeadline } from "./save-outcome";
 import { libraryHomeUrl } from "./library-url";
+import { loginEmailIssue } from "./login-email";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
@@ -664,6 +665,11 @@ function App({ onClose }) {
   const needsSignIn = /sign in/i.test(error);
 
   const submitSignIn = async () => {
+    const emailProblem = loginEmailIssue(loginEmail);
+    if (emailProblem) {
+      setError(emailProblem);
+      return;
+    }
     setLoginPending(true);
     const res = await sendMessage({
       type: "SIGN_IN",
@@ -813,6 +819,9 @@ function App({ onClose }) {
                   autoComplete="email"
                   value={loginEmail}
                   onChange={(event) => setLoginEmail(event.target.value)}
+                  aria-invalid={
+                    error && loginEmailIssue(loginEmail) === error ? true : undefined
+                  }
                   required
                 />
                 <label className="field-label" htmlFor="m404-password">
