@@ -10,20 +10,25 @@ export const getLinkDomain = (url: string): string => {
   }
 };
 
+/** The site itself, or a subdomain of it. A name that merely contains the site does not count. */
+function hostIs(domain: string, site: string): boolean {
+  return domain === site || domain.endsWith(`.${site}`);
+}
+
 export const getLinkType = (url: string): string => {
   try {
-    const domain = getLinkDomain(url).toLowerCase();
-    if (domain.includes("figma.com")) return "Figma";
-    if (domain.includes("pinterest.com") || domain.includes("pin.it"))
+    const domain = getLinkDomain(url);
+    if (hostIs(domain, "figma.com")) return "Figma";
+    if (hostIs(domain, "pinterest.com") || hostIs(domain, "pin.it"))
       return "Pinterest";
-    if (domain.includes("dribbble.com")) return "Dribbble";
-    if (domain.includes("github.com")) return "GitHub";
-    if (domain.includes("youtube.com") || domain.includes("youtu.be"))
+    if (hostIs(domain, "dribbble.com")) return "Dribbble";
+    if (hostIs(domain, "github.com")) return "GitHub";
+    if (hostIs(domain, "youtube.com") || hostIs(domain, "youtu.be"))
       return "YouTube";
-    if (domain.includes("twitter.com") || domain.includes("x.com"))
+    if (hostIs(domain, "twitter.com") || hostIs(domain, "x.com"))
       return "Twitter/X";
-    if (domain.includes("behance.net")) return "Behance";
-    if (domain.includes("notion.so")) return "Notion";
+    if (hostIs(domain, "behance.net")) return "Behance";
+    if (hostIs(domain, "notion.so")) return "Notion";
     return "General";
   } catch {
     return "General";
@@ -73,7 +78,7 @@ export function sortLinks(links: LinkApiRow[], sortBy: SortBy): LinkApiRow[] {
       const title = (a.displayTitle || a.title).localeCompare(
         b.displayTitle || b.title,
         undefined,
-        { sensitivity: "base" },
+        { numeric: true, sensitivity: "base" },
       );
       if (title !== 0) return title;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
