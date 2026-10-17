@@ -3,6 +3,12 @@ export const GROUP_NAME_MAX = 60;
 
 export const GROUP_NAME_TAKEN = "A group with this name already exists.";
 
+/** Names the library already uses for the inbox, whatever the stored spelling is. */
+const RESERVED_GROUP_NAMES = new Set(["all", "general", "uncategorized"]);
+
+export const GROUP_NAME_RESERVED =
+  "All is your whole library. Pick a different name.";
+
 export const GROUP_NAME_IN_TRASH =
   "That name is in Trash. Restore the group, or pick a different name.";
 
@@ -48,5 +54,6 @@ export function groupNameIssue(name: string): string | null {
   if (trimmed.length > GROUP_NAME_MAX) {
     return `Group names must be ${GROUP_NAME_MAX} characters or fewer.`;
   }
+  if (RESERVED_GROUP_NAMES.has(trimmed.toLowerCase())) return GROUP_NAME_RESERVED;
   return null;
 }
