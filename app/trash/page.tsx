@@ -6,6 +6,7 @@ import type { TrashApiItem, TrashLinkItem, TrashGroupItem } from "@/app/api/tras
 import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
 import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
 import type { PermanentDelete } from "@/app/trash/permanent-delete";
+import LoadRecovery, { SessionSignInLink } from "@/components/LoadRecovery";
 import { apiUrl } from "@/lib/api-base";
 import { trashActionMessage, trashLoadHint, trashLoadMessage } from "@/lib/trash-messages";
 
@@ -196,13 +197,11 @@ export default function TrashPage() {
           >
             <p className="text-sm text-danger">{loadError}</p>
             <p className="text-[13px] text-subtle">{trashLoadHint(loadError)}</p>
-            <button
-              type="button"
-              onClick={() => void loadTrash()}
-              className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-            >
-              Retry
-            </button>
+            <LoadRecovery
+              message={loadError}
+              returnPath="/trash"
+              onRetry={() => void loadTrash()}
+            />
           </div>
         ) : null}
         {actionError && !pendingDelete ? (
@@ -212,13 +211,16 @@ export default function TrashPage() {
           >
             <p className="text-sm text-danger">{actionError}</p>
             <p className="text-[13px] text-subtle">Nothing changed.</p>
-            <button
-              type="button"
-              onClick={() => setActionError(null)}
-              className="inline-flex h-8 items-center justify-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-            >
-              Dismiss
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <SessionSignInLink message={actionError} returnPath="/trash" />
+              <button
+                type="button"
+                onClick={() => setActionError(null)}
+                className="inline-flex h-8 items-center justify-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+              >
+                Dismiss
+              </button>
+            </div>
           </div>
         ) : null}
         {!loading && !loadError && items.length === 0 && (

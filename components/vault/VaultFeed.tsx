@@ -4,7 +4,9 @@ import { useEffect } from "react";
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
 import MorphText from "@/components/MorphText";
+import LoadRecovery from "@/components/LoadRecovery";
 import { explainLoadError } from "@/lib/load-error";
+import { isSessionExpiredMessage } from "@/lib/session-recovery";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
 import { scrollFeedToTop } from "./feed-scroll";
@@ -79,23 +81,26 @@ export default function VaultFeed({
   }, [openedGroupId, scrollRootRef]);
 
   const groupsLoadMessage = explainLoadError(groupsError);
+  const groupsSessionEnded = isSessionExpiredMessage(groupsLoadMessage);
   const groupsFailedToLoad = Boolean(
     groupsError &&
       (groupsLoadMessage !== groupsError || /load groups/i.test(groupsError)),
   );
   const feedBody = groupsFailedToLoad && !loadingLinks && sortedLinks.length === 0 ? (
     <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface-elevated p-6">
-      <p className="text-sm text-foreground">Groups could not be loaded.</p>
-      <p className="text-[13px] text-subtle">
-        Check your connection, then try again.
+      <p className="text-sm text-foreground">
+        {groupsSessionEnded ? groupsLoadMessage : "Groups could not be loaded."}
       </p>
-      <button
-        type="button"
-        onClick={() => void loadGroups()}
-        className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-      >
-        Retry
-      </button>
+      <p className="text-[13px] text-subtle">
+        {groupsSessionEnded
+          ? "Sign in, then open your library again."
+          : "Check your connection, then try again."}
+      </p>
+      <LoadRecovery
+        message={groupsLoadMessage}
+        returnPath="/"
+        onRetry={() => void loadGroups()}
+      />
     </div>
   ) : !openedGroupId || loadingLinks ? (
     <div className="mind-grid" data-grid-size={gridSize} aria-busy="true" aria-label="Loading links">
@@ -120,14 +125,16 @@ export default function VaultFeed({
   ) : replaceFeedWithLoadError(fetchError, sortedLinks.length) ? (
     <div className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6">
       <p className="text-sm text-danger">{explainLoadError(fetchError)}</p>
-      <p className="text-[13px] text-subtle">Something went wrong loading this group.</p>
-      <button
-        type="button"
-        onClick={() => void loadLinks()}
-        className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-      >
-        Retry
-      </button>
+      <p className="text-[13px] text-subtle">
+        {isSessionExpiredMessage(explainLoadError(fetchError))
+          ? "Sign in, then open your library again."
+          : "Something went wrong loading this group."}
+      </p>
+      <LoadRecovery
+        message={explainLoadError(fetchError)}
+        returnPath="/"
+        onRetry={() => void loadLinks()}
+      />
     </div>
   ) : sortedLinks.length === 0 ? (
     <PastePrompt
@@ -166,13 +173,11 @@ export default function VaultFeed({
         >
           <p className="text-sm text-danger">{explainLoadError(loadMoreError)}</p>
           <p className="text-[13px] text-subtle">The links above are still here.</p>
-          <button
-            type="button"
-            onClick={() => void retryLoadMore()}
-            className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-          >
-            Retry
-          </button>
+          <LoadRecovery
+            message={explainLoadError(loadMoreError)}
+            returnPath="/"
+            onRetry={() => void retryLoadMore()}
+          />
         </div>
       ) : hasMoreLinks ? (
         <div
@@ -241,13 +246,11 @@ export default function VaultFeed({
               <p className="text-[13px] text-subtle">
                 The links on screen are still here.
               </p>
-              <button
-                type="button"
-                onClick={() => void loadLinks()}
-                className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-              >
-                Retry
-              </button>
+              <LoadRecovery
+                message={explainLoadError(fetchError)}
+                returnPath="/"
+                onRetry={() => void loadLinks()}
+              />
             </div>
           ) : null}
           {feedBody}
