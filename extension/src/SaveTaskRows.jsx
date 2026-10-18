@@ -72,9 +72,14 @@ function statusBadge(status, index) {
   return <SpinnerRing>{index + 1}</SpinnerRing>;
 }
 
-/** Failed, skipped, and in-progress rows start open so the reason is visible. */
+/** Failed, skipped, duplicate, and in-progress rows start open so the reason is visible. */
 export function taskRowStartsOpen(status) {
-  return status === "saving" || status === "skipped" || status === "failed";
+  return (
+    status === "saving" ||
+    status === "skipped" ||
+    status === "failed" ||
+    status === "already"
+  );
 }
 
 /** Name for the row button, including the page and whether details are open. */

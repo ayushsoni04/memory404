@@ -53,6 +53,7 @@ describe("task status copy", () => {
     expect(taskRowStartsOpen("skipped")).toBe(true);
     expect(taskRowStartsOpen("saving")).toBe(true);
     expect(taskRowStartsOpen("failed")).toBe(true);
+    expect(taskRowStartsOpen("already")).toBe(true);
     expect(taskRowStartsOpen("saved")).toBe(false);
     expect(taskRowStartsOpen("pending")).toBe(false);
   });
