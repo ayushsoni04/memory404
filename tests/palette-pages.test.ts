@@ -37,6 +37,15 @@ describe("matchingPalettePages", () => {
     );
   });
 
+  it("shortens a pasted address in the miss", () => {
+    const address = `https://example.com/${"segment/".repeat(20)}`;
+    const copy = paletteMissCopy(address);
+    expect(copy.startsWith("No matches for “https://example.com/")).toBe(true);
+    expect(copy.endsWith("”. Try a title, a note, or part of the link.")).toBe(true);
+    expect(copy).toContain("…");
+    expect(copy.length).toBeLessThan(address.length);
+  });
+
   it("hides every page when the query is a link or a title", () => {
     expect(matchingPalettePages("linear.app", owner)).toEqual([]);
     expect(matchingPalettePages("zzzz", member)).toEqual([]);

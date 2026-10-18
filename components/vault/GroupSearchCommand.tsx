@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "cmdk";
 import { X } from "lucide-react";
-import { groupSearchEscapeAction } from "@/lib/search-group";
+import { groupSearchEscapeAction, groupSearchMiss } from "@/lib/search-group";
 
 type Props = {
   value: string;
@@ -98,15 +98,15 @@ export default function GroupSearchCommand({
                     onChange("");
                     setOpen(false);
                   }}
-                  className="cursor-pointer rounded-lg px-2 py-1.5 text-[13px] text-foreground transition-[background-color] duration-[var(--duration-press)] data-[selected=true]:bg-pill-hover"
+                  className="min-w-0 cursor-pointer rounded-lg px-2 py-1.5 text-[13px] text-foreground transition-[background-color] duration-[var(--duration-press)] data-[selected=true]:bg-pill-hover"
                 >
-                  {g.name}
+                  <span className="block min-w-0 truncate">{g.name}</span>
                 </CommandItem>
               ))}
             </CommandGroup>
           ) : (
             <div className="space-y-1 px-2.5 py-2">
-              <p className="text-[12px] text-subtle">No groups match “{query}”</p>
+              <p className="break-words text-[12px] text-subtle">{groupSearchMiss(query)}</p>
               <button
                 type="button"
                 onClick={() => {

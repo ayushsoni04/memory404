@@ -1,3 +1,5 @@
+import { clipLabel } from "@/lib/clip-label";
+
 export type PalettePage = {
   id: "workspace" | "settings" | "trash";
   label: string;
@@ -27,7 +29,7 @@ export function palettePagesForUser(isOwner: boolean): PalettePage[] {
  * A partial link is enough; the field does not need a full address.
  */
 export function paletteMissCopy(query: string): string {
-  return `No matches for “${query.trim()}”. Try a title, a note, or part of the link.`;
+  return `No matches for “${clipLabel(query)}”. Try a title, a note, or part of the link.`;
 }
 
 export function matchingPalettePages(

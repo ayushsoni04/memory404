@@ -98,4 +98,23 @@ describe("command palette search groups", () => {
     expect(screen.getByText("Reading")).toBeInTheDocument();
     expect(screen.queryByText("General")).not.toBeInTheDocument();
   });
+
+  it("keeps a long group name inside the row", () => {
+    const name = "Research-notes-for-the-quarterly-review-archive-2026";
+    render(
+      <CommandPalette
+        open
+        onOpenChange={() => {}}
+        groups={[
+          { id: "all", name: "All" },
+          { id: "research", name },
+        ]}
+        onSelectGroup={() => {}}
+      />,
+    );
+
+    const label = screen.getByText(name);
+    expect(label.className).toContain("truncate");
+    expect(label.parentElement?.className).toContain("min-w-0");
+  });
 });
