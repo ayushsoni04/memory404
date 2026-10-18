@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatRelativeTime } from "@/lib/links";
+import { formatRelativeTime, formatSavedDate } from "@/lib/links";
 
 const now = Date.parse("2026-10-16T12:00:00.000Z");
 
@@ -25,5 +25,18 @@ describe("formatRelativeTime", () => {
 
   it("stays quiet when the timestamp cannot be read", () => {
     expect(formatRelativeTime("not-a-date", now)).toBe("");
+    expect(formatSavedDate("not-a-date")).toBeNull();
+  });
+
+  it("names the calendar day a link was saved", () => {
+    const iso = "2026-10-16T12:00:00.000Z";
+    expect(formatSavedDate(iso)).toBe(
+      new Intl.DateTimeFormat("en-US", {
+        month: "long",
+        day: "numeric",
+        year: "numeric",
+      }).format(new Date(iso)),
+    );
+    expect(formatSavedDate(iso)).toMatch(/2026/);
   });
 });

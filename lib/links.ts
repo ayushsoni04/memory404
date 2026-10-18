@@ -397,6 +397,19 @@ export function truncateUrl(url: string, max = 48): string {
   return `${t.slice(0, max - 1)}…`;
 }
 
+const SAVED_DATE = new Intl.DateTimeFormat("en-US", {
+  month: "long",
+  day: "numeric",
+  year: "numeric",
+});
+
+/** Calendar day for a saved link. Null when the timestamp cannot be read. */
+export function formatSavedDate(iso: string): string | null {
+  const time = new Date(iso).getTime();
+  if (Number.isNaN(time)) return null;
+  return SAVED_DATE.format(time);
+}
+
 export function formatRelativeTime(iso: string, now = Date.now()): string {
   const d = new Date(iso);
   const time = d.getTime();
