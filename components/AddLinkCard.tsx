@@ -37,6 +37,8 @@ export default function AddLinkCard({
   const [error, setError] = useState<string | null>(null);
   const [skipMotion, setSkipMotion] = useState(false);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const openerRef = useRef<HTMLButtonElement | null>(null);
+  const notesRef = useRef<HTMLTextAreaElement | null>(null);
   const saveGen = useRef(0);
 
   const [showNotesForm, setShowNotesForm] = useState(false);
@@ -45,9 +47,16 @@ export default function AddLinkCard({
 
   useEffect(() => {
     if (open) {
-      window.setTimeout(() => inputRef.current?.focus(), 30);
+      const id = window.setTimeout(() => inputRef.current?.focus(), 30);
+      return () => window.clearTimeout(id);
     }
   }, [open]);
+
+  useEffect(() => {
+    if (!showNotesForm) return;
+    const id = window.setTimeout(() => notesRef.current?.focus(), 30);
+    return () => window.clearTimeout(id);
+  }, [showNotesForm]);
 
   const finishFlow = useCallback(async () => {
     if (!savedLink) return;
@@ -70,6 +79,7 @@ export default function AddLinkCard({
     setShowNotesForm(false);
     setNotes("");
     setSavedLink(null);
+    openerRef.current?.focus();
   }, [notes, onSaved, savedLink]);
 
   const cancel = (keyboardInitiated = false) => {
@@ -78,6 +88,7 @@ export default function AddLinkCard({
     setOpen(false);
     setUrl("");
     setError(null);
+    openerRef.current?.focus();
     if (keyboardInitiated) {
       window.requestAnimationFrame(() => setSkipMotion(false));
     }
@@ -150,6 +161,7 @@ export default function AddLinkCard({
             aria-hidden={phase !== "idle"}
           >
             <button
+              ref={openerRef}
               type="button"
               onClick={() => setOpen(true)}
               disabled={!groupId}
@@ -250,11 +262,17 @@ export default function AddLinkCard({
             <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
               <span className="text-[11px] text-muted">Add a note</span>
               <textarea
+                ref={notesRef}
                 aria-label="Notes"
                 value={notes}
                 onChange={(e) => {
                   setNotes(e.target.value);
                   setError(noteIssue(e.target.value));
+                }}
+                onKeyDown={(e) => {
+                  if (e.key !== "Escape" || notes.trim()) return;
+                  e.preventDefault();
+                  void finishFlow();
                 }}
                 tabIndex={phase === "notes" ? 0 : -1}
                 placeholder="What should you remember?"
