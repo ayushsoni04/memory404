@@ -7,6 +7,7 @@ import { noteCountLabel, noteIssue } from "./note-limit";
 import {
   chooseSaveGroup,
   groupListEmptyCopy,
+  groupChevronLabel,
   groupListIsShown,
   groupPickerKeyAction,
   libraryGroupForTitle,
@@ -17,6 +18,7 @@ import { savingStageLabel } from "./save-progress";
 import { saveHeadline, saveRowsToReview } from "./save-outcome";
 import { signInSaveHint } from "./sign-in-hint";
 import { libraryHomeUrl } from "./library-url";
+import { APP_URL_HINT, normalizeApiBase } from "./api-base";
 import { EMAIL_INVALID, keepSignInForm, loginEmailIssue } from "./login-email";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
@@ -172,6 +174,7 @@ function applyJobToState(job, setters) {
 
 function App({ onClose }) {
   const [apiBase, setApiBase] = useState(DEFAULT_API_BASE);
+  const [apiBaseError, setApiBaseError] = useState("");
   const [showSettings, setShowSettings] = useState(false);
   const [phase, setPhase] = useState("pick");
   const [linkId, setLinkId] = useState(null);
@@ -713,9 +716,25 @@ function App({ onClose }) {
   };
 
   const saveApiBase = async () => {
-    const res = await sendMessage({ type: "SET_API_BASE", apiBase });
-    if (res?.ok) setApiBase(res.apiBase);
+    const normalized = normalizeApiBase(apiBase);
+    if (!normalized.ok) {
+      setApiBaseError(normalized.error);
+      return;
+    }
+    setApiBaseError("");
+    const res = await sendMessage({ type: "SET_API_BASE", apiBase: normalized.apiBase });
+    if (!res?.ok) {
+      setApiBaseError(res?.error || APP_URL_HINT);
+      return;
+    }
+    setApiBase(res.apiBase);
     setShowSettings(false);
+    if (res.signedOut) {
+      setGroups([]);
+      setSelectedGroupId(null);
+      setGroupQuery("");
+      setBootToken((n) => n + 1);
+    }
   };
 
   if (showSettings) {
@@ -746,10 +765,21 @@ function App({ onClose }) {
             id="m404-app-url"
             className="settings-input"
             value={apiBase}
-            onChange={(e) => setApiBase(e.target.value)}
+            onChange={(e) => {
+              setApiBase(e.target.value);
+              setApiBaseError("");
+            }}
             placeholder="http://localhost:3000"
+            aria-invalid={apiBaseError ? true : undefined}
+            aria-describedby={apiBaseError ? "m404-app-url-error" : undefined}
           />
-          <p className="hint">Change this if your app runs on a different host.</p>
+          {apiBaseError ? (
+            <p id="m404-app-url-error" className="field-error" role="alert">
+              {apiBaseError}
+            </p>
+          ) : (
+            <p className="hint">Change this if your app runs on a different host.</p>
+          )}
           <div className="group-section" style={{ borderTop: 0, paddingTop: 0 }}>
             <button type="button" className="save-btn" onClick={() => void saveApiBase()}>
               Save App URL
@@ -1016,7 +1046,8 @@ function App({ onClose }) {
                     <button
                       type="button"
                       className="chevron-btn"
-                      aria-label="Show groups"
+                      aria-label={groupChevronLabel(dropdownOpen)}
+                      aria-expanded={dropdownOpen}
                       disabled={phase === "saved"}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {

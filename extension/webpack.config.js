@@ -10,6 +10,7 @@ function withSaveOutcome(content, absoluteFrom) {
     "save-cancel.js",
     "save-failure.js",
     "context-menus.js",
+    "api-base.js",
   ]
     .map((file) =>
       fs

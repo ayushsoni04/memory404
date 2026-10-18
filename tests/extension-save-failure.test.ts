@@ -38,7 +38,7 @@ describe("explainSaveFailure", () => {
     expect(worker).not.toContain("Session expired —");
     expect(build).toContain("save-failure.js");
     expect(readFileSync("extension/public/static/manifest.json", "utf8")).toContain(
-      '"version": "0.2.17"',
+      '"version": "0.2.18"',
     );
   });
 });
