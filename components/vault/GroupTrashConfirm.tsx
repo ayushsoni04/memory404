@@ -97,7 +97,7 @@ export default function GroupTrashConfirm({
         aria-labelledby="group-trash-title"
         className="relative w-full max-w-sm rounded-xl border border-border bg-surface-elevated p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
       >
-        <h2 id="group-trash-title" className="text-sm font-medium text-foreground">
+        <h2 id="group-trash-title" className="break-words text-sm font-medium text-foreground">
           Move {name} to Trash?
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-muted">

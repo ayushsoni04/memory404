@@ -49,6 +49,20 @@ describe("groupTrashFailureMessage", () => {
 });
 
 describe("GroupTrashConfirm", () => {
+  it("keeps a long group name inside the dialog", () => {
+    const name = "A".repeat(60);
+    render(
+      <GroupTrashConfirm
+        name={name}
+        linksCount={1}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    const title = screen.getByRole("heading", { name: `Move ${name} to Trash?` });
+    expect(title.className).toContain("break-words");
+  });
+
   it("asks before moving the group and cancels on Escape", () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();
