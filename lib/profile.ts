@@ -19,6 +19,17 @@ export function normalizeUsername(raw: string): string {
   return raw.trim().toLowerCase();
 }
 
+/** Two letters for the profile mark. A long name stays inside the circle. */
+export function profileInitials(name: string): string {
+  const letters = name
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((word) => word[0]?.toUpperCase() ?? "");
+  return letters.join("") || "M";
+}
+
 export function getNameIssues(name: string): string[] {
   const trimmed = name.trim();
   if (/[\u0000-\u001F\u007F]/.test(trimmed)) {

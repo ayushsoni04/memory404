@@ -31,6 +31,7 @@ import {
   getAvatarFileIssues,
   getNameIssues,
   getUsernameIssues,
+  profileInitials,
 } from "@/lib/profile";
 import { PasswordSection } from "./PasswordSection";
 
@@ -247,7 +248,7 @@ export function ProfileTab({
               />
             ) : (
               <span className="text-xl font-semibold tracking-wider text-muted font-mono uppercase transition duration-300 group-hover/avatar:brightness-50">
-                {name ? name.split(" ").map((w) => w[0]).join("") : "M"}
+                {profileInitials(name)}
               </span>
             )}
             <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition duration-300 group-hover/avatar:opacity-100 group-focus-within/avatar:opacity-100">
@@ -255,11 +256,17 @@ export function ProfileTab({
             </div>
           </label>
 
-          <div className="pt-2 sm:pt-0">
-            <h3 className="text-base font-semibold text-foreground flex items-center gap-1.5">
+          <div className="min-w-0 flex-1 pt-2 sm:pt-0">
+            <h3
+              className="break-words text-base font-semibold text-foreground"
+              title={name.trim() || undefined}
+            >
               {name || "Your name"}
             </h3>
-            <p className="text-xs text-subtle font-mono mt-0.5">
+            <p
+              className="mt-0.5 break-all font-mono text-xs text-subtle"
+              title={username.trim() ? `@${username.trim()}` : undefined}
+            >
               {username ? `@${username}` : "Set a username"}
             </p>
           </div>
