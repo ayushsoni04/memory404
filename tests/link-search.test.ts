@@ -35,6 +35,7 @@ describe("link search separators", () => {
         { description: { $regex: "side[-_/\\s]+projects", $options: "i" } },
         { url: { $regex: "side[-_/\\s]+projects", $options: "i" } },
         { notes: { $regex: "side[-_/\\s]+projects", $options: "i" } },
+        { tags: { $regex: "side[-_/\\s]+projects", $options: "i" } },
       ],
     });
   });

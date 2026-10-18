@@ -1163,10 +1163,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
   if (message.type === "SET_API_BASE") {
     void (async () => {
-      const value =
-        typeof message.apiBase === "string" ? message.apiBase.trim() : "";
-      await storageSet({ apiBase: value || DEFAULT_API_BASE });
-      sendResponse({ ok: true, apiBase: value || DEFAULT_API_BASE });
+      const normalized = normalizeApiBase(message.apiBase, DEFAULT_API_BASE);
+      if (!normalized.ok) {
+        sendResponse({ ok: false, error: normalized.error });
+        return;
+      }
+      const prev = await storageGet(["apiBase"]);
+      const previous =
+        typeof prev.apiBase === "string" && prev.apiBase.trim()
+          ? prev.apiBase.trim()
+          : DEFAULT_API_BASE;
+      const signedOut = apiBaseChanged(previous, normalized.apiBase);
+      await storageSet({ apiBase: normalized.apiBase });
+      if (signedOut) {
+        await clearAuthToken();
+        await storageRemove(["cachedGroups", "lastSavedGroupId"]);
+      }
+      sendResponse({ ok: true, apiBase: normalized.apiBase, signedOut });
     })();
     return true;
   }

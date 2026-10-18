@@ -29,6 +29,11 @@ export function groupListIsShown(phase, dropdownOpen) {
   return phase === "pick" && Boolean(dropdownOpen);
 }
 
+/** Name for the button that opens and closes the group list. */
+export function groupChevronLabel(open) {
+  return open ? "Hide groups" : "Show groups";
+}
+
 /** Arrow keys through the save panel's group list. Stops at the ends. */
 export function nextGroupHighlight(current, key, count) {
   if (count <= 0) return null;

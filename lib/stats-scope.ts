@@ -1,3 +1,8 @@
+import {
+  SESSION_EXPIRED_MESSAGE,
+  UNREACHABLE_MESSAGE,
+} from "@/lib/load-error";
+
 /** Library counts ignore Trash. Activity still includes a link you later deleted. */
 export function activeLibraryMatch(userId: string): {
   userId: string;
@@ -27,3 +32,10 @@ export const STATS_GROUPS_LABEL = "Links in each group";
 /** The sentence under the Stats heading. */
 export const STATS_INTRO =
   "See how many links you have saved, which groups hold them, and the days you added them.";
+
+/** The line under a Stats load error. A dead session and a dropped connection say what to do. */
+export function statsLoadHint(message: string): string {
+  if (message === UNREACHABLE_MESSAGE) return "Check your connection, then try again.";
+  if (message === SESSION_EXPIRED_MESSAGE) return "Sign in, then open Stats again.";
+  return "Your saved links are still in the library.";
+}

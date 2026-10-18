@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   chooseSaveGroup,
+  groupChevronLabel,
   groupListEmptyCopy,
   groupListIsShown,
   groupPickerKeyAction,
@@ -15,6 +16,8 @@ describe("group list empty state", () => {
     expect(groupListIsShown("pick", true)).toBe(true);
     expect(groupListIsShown("pick", false)).toBe(false);
     expect(groupListIsShown("saved", true)).toBe(false);
+    expect(groupChevronLabel(false)).toBe("Show groups");
+    expect(groupChevronLabel(true)).toBe("Hide groups");
   });
 });
 
