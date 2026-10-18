@@ -10,7 +10,7 @@ import {
 } from "@/lib/trash-restore";
 
 describe("link restore", () => {
-  it("explains a missing link and one whose URL is already saved", () => {
+  it("explains a missing link and one that is already in the library", () => {
     expect(linkRestoreIssue({ found: false, inTrash: false, urlTaken: false })).toEqual({
       status: 404,
       message: LINK_NOT_IN_TRASH,
@@ -23,6 +23,7 @@ describe("link restore", () => {
       message: LINK_ALREADY_SAVED,
     });
     expect(linkRestoreIssue({ found: true, inTrash: true, urlTaken: false })).toBeNull();
+    expect(LINK_ALREADY_SAVED).toMatch(/This page is already in your library/);
   });
 });
 

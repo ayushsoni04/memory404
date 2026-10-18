@@ -179,10 +179,10 @@ export function duplicateLinkMessage(
   inTrash: boolean,
   groupName?: string | null,
 ): string {
-  if (inTrash) return "This URL is in Trash. Restore it to save it again.";
+  if (inTrash) return "This page is in Trash. Restore it to save it again.";
   const label = libraryGroupLabel(groupName);
   if (label) return `This page is already in ${label}.`;
-  return "A link with this URL already exists.";
+  return "This page is already saved.";
 }
 
 /**
