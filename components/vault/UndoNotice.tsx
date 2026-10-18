@@ -74,7 +74,7 @@ export default function UndoNotice({ notice, onUndo, onDismiss }: Props) {
       >
         {notice ? (
           <>
-            <p className="min-w-0 text-[13px] text-foreground">{message}</p>
+            <p className="min-w-0 break-words text-[13px] text-foreground">{message}</p>
             {offer ? (
               <>
                 <UndoCountdown token={notice.token} />
