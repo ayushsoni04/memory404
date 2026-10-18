@@ -4,6 +4,7 @@ import {
   libraryBackupFilename,
   libraryBackupPayload,
   libraryExportError,
+  LIBRARY_BACKUP_SUMMARY,
   LIBRARY_BACKUP_TOO_LARGE,
   LIBRARY_EXPORT_FAILED,
 } from "@/lib/library-backup";
@@ -43,6 +44,11 @@ describe("library backup", () => {
     expect(result.links).toHaveLength(2);
     expect(fetchPage).toHaveBeenCalledTimes(2);
     expect(LIBRARY_BACKUP_TOO_LARGE).toMatch(/too large/i);
+  });
+
+  it("says the download leaves Trash out", () => {
+    expect(LIBRARY_BACKUP_SUMMARY).toMatch(/Trash is not included/);
+    expect(LIBRARY_BACKUP_SUMMARY).not.toMatch(/every saved link/);
   });
 
   it("explains a dead session and a dropped connection", () => {

@@ -12,6 +12,10 @@ export const LIBRARY_BACKUP_TOO_LARGE =
 
 export const LIBRARY_EXPORT_FAILED = "Could not export your links. Try again.";
 
+/** Shown above the download button. The file is the active library, not Trash. */
+export const LIBRARY_BACKUP_SUMMARY =
+  "Download a JSON backup of your groups and saved links. Trash is not included.";
+
 /**
  * A backup that did not download.
  * A dead session and a dropped connection say what to do. Other failures stay general.

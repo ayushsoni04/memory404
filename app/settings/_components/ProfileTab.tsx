@@ -20,6 +20,7 @@ import { controlPress } from "@/components/vault/types";
 import { BANNER_GRADIENTS, nextBannerStyle } from "./constants";
 import {
   collectLibraryLinks,
+  LIBRARY_BACKUP_SUMMARY,
   LIBRARY_BACKUP_TOO_LARGE,
   libraryBackupFilename,
   libraryBackupPayload,
@@ -443,7 +444,7 @@ export function ProfileTab({
       <section className="border-t border-border pt-6 space-y-3">
         <div>
           <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">Data archive</h3>
-          <p className="text-xs text-subtle mt-0.5">Download a JSON backup of your groups and every saved link.</p>
+          <p className="text-xs text-subtle mt-0.5">{LIBRARY_BACKUP_SUMMARY}</p>
         </div>
         <div className="rounded-xl border border-border bg-surface p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 hover:border-neutral-800 transition duration-300">
           <div className="space-y-0.5">
