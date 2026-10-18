@@ -118,6 +118,19 @@ export function saveHeadline({
  * A batch that only skipped pages is not a successful save.
  * @param {{ saved?: number, already?: number, failed?: number, skipped?: number }} [counts]
  */
+/**
+ * Rows still worth reading after a batch finishes.
+ * A failed, skipped, or already-saved page should stay on screen.
+ * @param {unknown} items
+ */
+export function saveRowsToReview(items) {
+  if (!Array.isArray(items)) return [];
+  return items.filter((item) => {
+    const status = item && item.status;
+    return status === "failed" || status === "skipped" || status === "already";
+  });
+}
+
 export function saveJobSettled({
   saved = 0,
   already = 0,

@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
+  EXTENSION_SESSION_EXPIRED,
   EXTENSION_UNREACHABLE,
   explainSaveFailure,
 } from "../extension/src/save-failure.js";
@@ -19,8 +20,9 @@ describe("explainSaveFailure", () => {
 
   it("leaves a message that already says what happened", () => {
     expect(explainSaveFailure("Session expired — sign in again")).toBe(
-      "Session expired — sign in again",
+      EXTENSION_SESSION_EXPIRED,
     );
+    expect(explainSaveFailure(EXTENSION_SESSION_EXPIRED)).toBe(EXTENSION_SESSION_EXPIRED);
     expect(explainSaveFailure("Sign in to memory404 to save links")).toMatch(/sign in/i);
     expect(explainSaveFailure("A group with this name already exists.")).toMatch(
       /already exists/,
@@ -32,9 +34,11 @@ describe("explainSaveFailure", () => {
     const worker = readFileSync("extension/public/static/background.js", "utf8");
     const build = readFileSync("extension/webpack.config.js", "utf8");
     expect(worker).toContain("explainSaveFailure");
+    expect(worker).toContain("Your session expired. Sign in again.");
+    expect(worker).not.toContain("Session expired —");
     expect(build).toContain("save-failure.js");
     expect(readFileSync("extension/public/static/manifest.json", "utf8")).toContain(
-      '"version": "0.2.15"',
+      '"version": "0.2.16"',
     );
   });
 });

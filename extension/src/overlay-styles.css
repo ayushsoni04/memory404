@@ -630,6 +630,13 @@
   background: var(--surface);
 }
 
+#m404-save-root .group-empty {
+  margin: 0;
+  padding: 8px 10px;
+  font-size: 13px;
+  color: var(--subtle);
+}
+
 #m404-save-root .group-option {
   width: 100%;
   border: 0;

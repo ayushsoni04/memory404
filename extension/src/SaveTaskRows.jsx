@@ -77,6 +77,14 @@ export function taskRowStartsOpen(status) {
   return status === "saving" || status === "skipped" || status === "failed";
 }
 
+/** Name for the row button, including the page and whether details are open. */
+export function taskRowButtonName({ label, status, error, open }) {
+  const copy = taskStatusCopy(status, error);
+  const name = String(label || "Link").trim() || "Link";
+  const state = copy.pill || "Queued";
+  return `${name}. ${state}. ${open ? "Hide details" : "Show details"}`;
+}
+
 /** Short pill and the sentence shown when a save row is opened. */
 export function taskStatusCopy(status, error) {
   const detail = typeof error === "string" ? error.trim() : "";
@@ -140,6 +148,7 @@ export default function SaveTaskRows({ items = [] }) {
             <button
               type="button"
               aria-expanded={open}
+              aria-label={taskRowButtonName({ label, status, error: row.error, open })}
               className="task-row-head"
               onClick={() =>
                 setManualOpen((current) => ({ ...current, [key]: !open }))

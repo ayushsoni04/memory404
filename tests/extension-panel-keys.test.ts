@@ -2,6 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   containPanelTab,
+  focusOverlayPanel,
   panelEscapeAction,
 } from "../extension/src/panel-keys.js";
 
@@ -19,6 +20,29 @@ describe("panelEscapeAction", () => {
     expect(
       panelEscapeAction({ key: "Enter", groupListOpen: true, settingsOpen: false }),
     ).toBe("ignore");
+  });
+});
+
+describe("focusOverlayPanel", () => {
+  it("focuses the group field, and leaves a field that is already in use", () => {
+    document.body.innerHTML = `
+      <div id="panel">
+        <button type="button" id="settings">Settings</button>
+        <input class="group-input" id="group" />
+        <button type="button" id="save">Save</button>
+      </div>
+    `;
+    const panel = document.getElementById("panel")!;
+    const group = document.getElementById("group") as HTMLInputElement;
+    expect(focusOverlayPanel(panel)).toBe(true);
+    expect(document.activeElement).toBe(group);
+
+    (document.getElementById("settings") as HTMLButtonElement).focus();
+    expect(focusOverlayPanel(panel)).toBe(true);
+    expect(document.activeElement).toBe(group);
+
+    expect(focusOverlayPanel(panel)).toBe(false);
+    expect(document.activeElement).toBe(group);
   });
 });
 

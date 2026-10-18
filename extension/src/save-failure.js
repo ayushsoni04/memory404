@@ -2,6 +2,9 @@
 export const EXTENSION_UNREACHABLE =
   "Couldn't reach memory404. Check your connection and try again.";
 
+/** Same sentence the library uses when the session cookie is rejected. */
+export const EXTENSION_SESSION_EXPIRED = "Your session expired. Sign in again.";
+
 /**
  * A timeout or a dropped connection, in a sentence.
  * A message that already explains the problem stays as written.
@@ -19,5 +22,6 @@ export function explainSaveFailure(message) {
   ) {
     return EXTENSION_UNREACHABLE;
   }
+  if (/session expired/i.test(value)) return EXTENSION_SESSION_EXPIRED;
   return value;
 }

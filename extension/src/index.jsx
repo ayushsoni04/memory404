@@ -67,7 +67,7 @@ async function clearStoredAuth() {
 async function handleUnauthorized(res) {
   if (res.status === 401) {
     await clearStoredAuth();
-    throw new Error("Session expired — sign in again");
+    throw new Error("Your session expired. Sign in again.");
   }
 }
 

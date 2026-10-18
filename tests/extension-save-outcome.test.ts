@@ -4,6 +4,7 @@ import {
   classifyLinkSave,
   saveHeadline,
   saveJobSettled,
+  saveRowsToReview,
 } from "../extension/src/save-outcome.js";
 
 describe("extension save outcome", () => {
@@ -87,6 +88,20 @@ describe("extension save outcome", () => {
       status: "saved",
       badge: "✓",
     });
+  });
+
+  it("keeps failed and skipped pages after the batch finishes", () => {
+    const items = [
+      { url: "https://ok.example", status: "saved" },
+      { url: "https://no.example", status: "failed", error: "Couldn't save this page." },
+      { url: "https://skip.example", status: "skipped" },
+    ];
+    expect(saveRowsToReview(items).map((item) => item.status)).toEqual([
+      "failed",
+      "skipped",
+    ]);
+    expect(saveRowsToReview([{ status: "saved" }])).toEqual([]);
+    expect(saveRowsToReview(null)).toEqual([]);
   });
 
   it("keeps the service worker on the same duplicate outcome", () => {

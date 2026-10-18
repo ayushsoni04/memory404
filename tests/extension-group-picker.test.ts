@@ -1,10 +1,22 @@
 import { describe, expect, it } from "vitest";
 import {
   chooseSaveGroup,
+  groupListEmptyCopy,
+  groupListIsShown,
   groupPickerKeyAction,
   libraryGroupForTitle,
   nextGroupHighlight,
 } from "../extension/src/group-picker.js";
+
+describe("group list empty state", () => {
+  it("says when nothing matches, and only while the menu is open", () => {
+    expect(groupListEmptyCopy("zzz")).toBe("No groups match “zzz”");
+    expect(groupListEmptyCopy("  ")).toBe("No groups yet");
+    expect(groupListIsShown("pick", true)).toBe(true);
+    expect(groupListIsShown("pick", false)).toBe(false);
+    expect(groupListIsShown("saved", true)).toBe(false);
+  });
+});
 
 describe("nextGroupHighlight", () => {
   it("starts at the first group on ArrowDown and the last on ArrowUp", () => {
