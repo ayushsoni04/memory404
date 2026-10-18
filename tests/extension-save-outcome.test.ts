@@ -21,7 +21,14 @@ describe("extension save outcome", () => {
     });
     expect(classifyLinkSave(409, { existingId: "link-2" }).kind).toBe("duplicate");
     expect(classifyLinkSave(201, { link: { id: "new" } }).kind).toBe("saved");
-    expect(classifyLinkSave(500, { error: "Failed to save" }).kind).toBe("error");
+    expect(classifyLinkSave(500, { error: "Failed to save" })).toMatchObject({
+      kind: "error",
+      message: "Couldn't save this page. Try again.",
+    });
+    expect(classifyLinkSave(500, {}).message).toBe("Couldn't save this page. Try again.");
+    expect(classifyLinkSave(409, { existingId: "link-3" }).message).toBe(
+      "This page is already saved.",
+    );
   });
 
   it("does not describe a duplicate as a new save or offer a note", () => {
@@ -37,6 +44,9 @@ describe("extension save outcome", () => {
       detail: "A link with this URL already exists.",
       offerNote: false,
     });
+    expect(
+      saveHeadline({ total: 1, saved: 0, already: 1 }),
+    ).toMatchObject({ detail: "This page is already saved.", offerNote: false });
     expect(
       saveHeadline({ total: 1, saved: 1, already: 0 }),
     ).toMatchObject({ title: "Saved to memory404", offerNote: true });

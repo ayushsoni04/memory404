@@ -34,7 +34,7 @@ describe("explainSaveFailure", () => {
     expect(worker).toContain("explainSaveFailure");
     expect(build).toContain("save-failure.js");
     expect(readFileSync("extension/public/static/manifest.json", "utf8")).toContain(
-      '"version": "0.2.14"',
+      '"version": "0.2.15"',
     );
   });
 });

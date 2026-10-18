@@ -8,6 +8,7 @@ import { chooseSaveGroup, groupPickerKeyAction, libraryGroupForTitle } from "./g
 import { containPanelTab, panelEscapeAction } from "./panel-keys";
 import { phaseForSaveStatus } from "./save-cancel";
 import { saveHeadline } from "./save-outcome";
+import { signInSaveHint } from "./sign-in-hint";
 import { libraryHomeUrl } from "./library-url";
 import { loginEmailIssue } from "./login-email";
 import SaveTaskRows from "./SaveTaskRows";
@@ -795,7 +796,11 @@ function App({ onClose }) {
             </p>
             {needsSignIn ? (
               <p className="hint">
-                After you sign in, pick a group or type a new name. This saves the current tab.
+                {signInSaveHint({
+                  saveMode,
+                  selectedCount: highlightedTabs.length,
+                  groupTitle: activeTabGroup?.title || "",
+                })}
               </p>
             ) : null}
             {needsSignIn ? (
