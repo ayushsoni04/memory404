@@ -105,7 +105,7 @@ function renderNotes(notes: string, finish = vi.fn()) {
 describe("sidebar note limit", () => {
   it("explains a note that is too long and does not save it", () => {
     const finish = renderNotes("x".repeat(NOTE_MAX + 1));
-    const note = screen.getByLabelText("Notes");
+    const note = screen.getByLabelText("Add a note");
     expect(note).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("alert")).toHaveTextContent(NOTE_TOO_LONG);
     expect(screen.getByText("2,001 of 2,000")).toBeInTheDocument();

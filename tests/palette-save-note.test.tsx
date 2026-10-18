@@ -93,7 +93,7 @@ describe("CommandPalette note after save", () => {
     fireEvent.click(screen.getByText("Save https://example.com/pricing"));
 
     expect(await screen.findByText("Link saved")).toBeInTheDocument();
-    expect(screen.getByLabelText("Notes")).toBeInTheDocument();
+    expect(screen.getByLabelText("Add a note")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Done" })).toBeInTheDocument();
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
 
@@ -115,7 +115,7 @@ describe("CommandPalette note after save", () => {
 
     await offerSave();
     fireEvent.click(screen.getByText("Save https://example.com/pricing"));
-    const notes = await screen.findByLabelText("Notes");
+    const notes = await screen.findByLabelText("Add a note");
     fireEvent.change(notes, { target: { value: "Remember the pricing section." } });
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 

@@ -166,11 +166,11 @@ export default function PastePrompt({
             </div>
           ) : phase === "notes" ? (
             <div className="relative z-[2] flex w-full flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <span className="text-[11px] text-muted">Add a note</span>
-              </div>
+              <label htmlFor="paste-save-note" className="text-[11px] text-muted">
+                Add a note
+              </label>
               <textarea
-                aria-label="Notes"
+                id="paste-save-note"
                 value={notes}
                 onChange={(e) => {
                   setNotes(e.target.value);

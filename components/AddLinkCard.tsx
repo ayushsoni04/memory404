@@ -260,10 +260,12 @@ export default function AddLinkCard({
             aria-hidden={phase !== "notes"}
           >
             <div className="relative z-[2] flex min-h-[140px] flex-col justify-center gap-2 p-3">
-              <span className="text-[11px] text-muted">Add a note</span>
+              <label htmlFor="add-link-note" className="text-[11px] text-muted">
+                Add a note
+              </label>
               <textarea
+                id="add-link-note"
                 ref={notesRef}
-                aria-label="Notes"
                 value={notes}
                 onChange={(e) => {
                   setNotes(e.target.value);

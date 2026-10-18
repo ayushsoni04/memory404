@@ -87,7 +87,7 @@ describe("PastePrompt empty states", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/Trash/);
     expect(screen.queryByText("Link added!")).not.toBeInTheDocument();
-    expect(screen.queryByLabelText("Notes")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Add a note")).not.toBeInTheDocument();
     expect(onSaved).not.toHaveBeenCalled();
     saveLink.mockReset();
   });
@@ -137,12 +137,12 @@ describe("PastePrompt empty states", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
 
-    const notes = await screen.findByLabelText("Notes");
+    const notes = await screen.findByLabelText("Add a note");
     fireEvent.change(notes, { target: { value: "Remember the pricing section." } });
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save the note");
-    expect(screen.getByLabelText("Notes")).toHaveValue("Remember the pricing section.");
+    expect(screen.getByLabelText("Add a note")).toHaveValue("Remember the pricing section.");
     expect(onSaved).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
     saveLink.mockReset();
