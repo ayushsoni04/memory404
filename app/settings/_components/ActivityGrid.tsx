@@ -6,6 +6,7 @@ import {
   nextActivityCell,
   type ActivityCount,
 } from "@/lib/activity-grid";
+import { STATS_ACTIVITY_LABEL } from "@/lib/stats-scope";
 
 function cellColor(count: number): string {
   if (count >= 4) return "bg-neutral-100 border border-white shadow-[0_0_8px_rgba(255,255,255,0.6)]";
@@ -31,7 +32,7 @@ export function ActivityGrid({ cells }: { cells: ActivityCount[] }) {
     <div className="flex flex-col gap-4">
       <div
         role="group"
-        aria-label="Link addition activity"
+        aria-label={STATS_ACTIVITY_LABEL}
         className="grid grid-flow-col grid-rows-7 gap-1 overflow-x-auto pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onKeyDown={(event) => {
           if (!move(event.key)) return;

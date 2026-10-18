@@ -78,7 +78,7 @@ describe("activity calendar", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     render(<StatsTab bannerStyle="midnight" />);
-    expect(await screen.findByText("Link addition activity")).toBeInTheDocument();
+    expect(await screen.findByText("Days you added links")).toBeInTheDocument();
 
     const url = String(fetchMock.mock.calls[0]?.[0]);
     expect(new URL(url, "http://localhost").searchParams.get("tz")).toBe(

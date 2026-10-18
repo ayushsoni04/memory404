@@ -8,7 +8,12 @@ import {
   libraryStatsEmptyState,
 } from "@/lib/stats-empty";
 import { libraryGroupLabel } from "@/lib/search-group";
-import { STATS_GROUP_CAPTION, STATS_LINK_CAPTION } from "@/lib/stats-scope";
+import {
+  STATS_ACTIVITY_LABEL,
+  STATS_GROUP_CAPTION,
+  STATS_GROUPS_LABEL,
+  STATS_LINK_CAPTION,
+} from "@/lib/stats-scope";
 import { explainLoadError } from "@/lib/load-error";
 import { ActivityGrid } from "./ActivityGrid";
 
@@ -139,11 +144,11 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
 
       {/* Contribution Activity Map (OpenAI inspired Grid) */}
       <section className="space-y-3">
-        <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">Link addition activity</h3>
+        <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">{STATS_ACTIVITY_LABEL}</h3>
         <div className="rounded-xl border border-border bg-surface p-5 hover:border-neutral-800 transition duration-300">
           {loadingStats ? (
             <div className="flex h-36 items-center justify-center">
-              <AppLoader compact label="Loading activity..." />
+              <AppLoader compact label="Loading activity…" />
             </div>
           ) : (
             <ActivityGrid cells={buildActivityCells(linkFrequency)} />
@@ -153,7 +158,7 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
 
       {/* Density by groups */}
       <section className="space-y-3">
-        <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">Link density by group</h3>
+        <h3 className="text-xs font-mono tracking-wider text-subtle uppercase">{STATS_GROUPS_LABEL}</h3>
         <div className="rounded-xl border border-border bg-surface p-5 divide-y divide-border/60 hover:border-neutral-800 transition duration-300">
           {loadingStats ? (
             <div className="space-y-4 py-2">
