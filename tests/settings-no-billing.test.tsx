@@ -112,5 +112,12 @@ describe("settings without billing", () => {
     expect(stats).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tabpanel", { name: "Stats & activity" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Usage statistics" })).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "See how many links you have saved, which groups hold them, and the days you added them.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/group density/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/relative additions/i)).not.toBeInTheDocument();
   });
 });

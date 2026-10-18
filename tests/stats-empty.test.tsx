@@ -37,7 +37,7 @@ describe("empty statistics", () => {
     );
     expect(screen.queryByText("0")).not.toBeInTheDocument();
     expect(screen.queryByText("No groups yet.")).not.toBeInTheDocument();
-    expect(screen.queryByText("Link addition activity")).not.toBeInTheDocument();
+    expect(screen.queryByText("Days you added links")).not.toBeInTheDocument();
   });
 
   it("points at Trash when every saved link is there", async () => {
@@ -90,7 +90,9 @@ describe("empty statistics", () => {
     expect(screen.getByText("Groups you can open. Trash is not counted.")).toBeInTheDocument();
     expect(screen.queryByText(/workspace categories/)).not.toBeInTheDocument();
     expect(screen.getByText("Reading")).toBeInTheDocument();
-    expect(screen.getByText("Link addition activity")).toBeInTheDocument();
+    expect(screen.getByText("Days you added links")).toBeInTheDocument();
+    expect(screen.getByText("Links in each group")).toBeInTheDocument();
+    expect(screen.queryByText("Link density by group")).not.toBeInTheDocument();
     expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
   });
 

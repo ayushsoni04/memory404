@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
+import { STATS_INTRO } from "@/lib/stats-scope";
 import { explainLoadError } from "@/lib/load-error";
 import type { Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
@@ -25,7 +26,7 @@ const TAB_COPY: Record<Tab, { title: string; body: string }> = {
   },
   statistics: {
     title: "Usage statistics",
-    body: "Track total saved links, group density distributions, and relative additions timelines.",
+    body: STATS_INTRO,
   },
 };
 
