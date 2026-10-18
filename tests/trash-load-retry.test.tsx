@@ -90,7 +90,7 @@ describe("Trash load errors", () => {
     render(<TrashPage />);
 
     expect(await screen.findByText("Pricing")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not restore that link",
@@ -139,13 +139,13 @@ describe("Trash load errors", () => {
     render(<TrashPage />);
     expect(await screen.findByText("Pricing")).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your session expired. Sign in again.",
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Couldn't reach memory404. Check your connection and try again.",
     );
@@ -187,8 +187,8 @@ describe("Trash load errors", () => {
 
     render(<TrashPage />);
     expect(await screen.findByText("Pricing")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
-    fireEvent.click(screen.getByRole("button", { name: "Restore" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
     expect(fetchMock).toHaveBeenCalledTimes(2);
 
     resolveRestore({ ok: true, json: async () => ({}) });
