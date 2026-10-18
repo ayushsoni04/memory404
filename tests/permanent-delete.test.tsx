@@ -31,6 +31,21 @@ describe("permanentDeleteCopy", () => {
 });
 
 describe("PermanentDeleteConfirm", () => {
+  it("keeps a long item name inside the dialog", () => {
+    const title = "A".repeat(80);
+    render(
+      <PermanentDeleteConfirm
+        pending={{ kind: "link", id: "1", title }}
+        busy={false}
+        error={null}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+    const heading = screen.getByRole("heading", { name: `Delete “${title}” forever?` });
+    expect(heading.className).toContain("break-words");
+  });
+
   it("cancels from Escape and from Cancel", async () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();

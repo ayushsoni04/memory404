@@ -50,7 +50,7 @@ export default function PermanentDeleteConfirm({
         aria-labelledby="permanent-delete-title"
         className="relative w-full max-w-sm rounded-xl border border-border bg-surface-elevated p-5 shadow-[0_24px_80px_rgba(0,0,0,0.55)]"
       >
-        <h2 id="permanent-delete-title" className="text-sm font-medium text-foreground">
+        <h2 id="permanent-delete-title" className="break-words text-sm font-medium text-foreground">
           {copy.title}
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-muted">{copy.detail}</p>
