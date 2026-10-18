@@ -29,3 +29,18 @@ export function showRefreshFailure(
 ): boolean {
   return Boolean(fetchError) && linkCount > 0 && !loadMoreError;
 }
+
+export type FeedMoreView = "hidden" | "button" | "loading";
+
+/**
+ * More links are a button until a page is actually loading.
+ * An error has its own message, so this stays out of the way.
+ */
+export function feedMoreView(
+  hasMoreLinks: boolean,
+  loadingMore: boolean,
+  loadMoreError: string | null,
+): FeedMoreView {
+  if (!hasMoreLinks || loadMoreError) return "hidden";
+  return loadingMore ? "loading" : "button";
+}

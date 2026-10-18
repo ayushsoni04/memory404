@@ -10,7 +10,7 @@ import { isSessionExpiredMessage } from "@/lib/session-recovery";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
 import { scrollFeedToTop } from "./feed-scroll";
-import { replaceFeedWithLoadError, showRefreshFailure } from "./feed-load";
+import { feedMoreView, replaceFeedWithLoadError, showRefreshFailure } from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import type { GridSize, GroupRow } from "./types";
 
@@ -44,6 +44,8 @@ type VaultFeedProps = {
   openLinkDetail: (link: LinkApiRow, originEl: HTMLElement) => void;
   feedImageSizes: string;
   hasMoreLinks: boolean;
+  loadingMore?: boolean;
+  onLoadMore?: () => void;
   sentinelRef: React.RefObject<HTMLDivElement | null>;
   scrollRootRef: React.RefObject<HTMLDivElement | null>;
 };
@@ -70,6 +72,8 @@ export default function VaultFeed({
   openLinkDetail,
   feedImageSizes,
   hasMoreLinks,
+  loadingMore = false,
+  onLoadMore,
   sentinelRef,
   scrollRootRef,
 }: VaultFeedProps) {
@@ -179,17 +183,30 @@ export default function VaultFeed({
             onRetry={() => void retryLoadMore()}
           />
         </div>
-      ) : hasMoreLinks ? (
+      ) : null}
+      {feedMoreView(hasMoreLinks, loadingMore, loadMoreError) === "hidden" ? null : (
         <div
           ref={sentinelRef}
           className="mt-8 flex w-full flex-col items-center gap-2 pb-12"
-          aria-busy="true"
-          aria-label="Loading more links"
+          aria-busy={loadingMore || undefined}
+          aria-label={loadingMore ? "Loading more links" : undefined}
         >
-          <div className="vault-skeleton size-8 rounded-full bg-neutral-800/50" />
-          <span className="text-[12px] text-subtle">Loading more…</span>
+          {loadingMore ? (
+            <>
+              <div className="vault-skeleton size-8 rounded-full bg-neutral-800/50" />
+              <span className="text-[12px] text-subtle">Loading more…</span>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={() => onLoadMore?.()}
+              className="inline-flex h-11 items-center justify-center rounded-full bg-pill px-4 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-8 sm:px-3"
+            >
+              Load more
+            </button>
+          )}
         </div>
-      ) : null}
+      )}
       {!hasMoreLinks && !loadMoreError ? (
         <PastePrompt
           variant="end"
