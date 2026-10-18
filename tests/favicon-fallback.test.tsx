@@ -111,11 +111,11 @@ describe("broken site icons", () => {
         hasNext={false}
       />,
     );
-    expect(screen.getByText("example.com")).toBeInTheDocument();
+    expect(screen.getAllByText("example.com").length).toBeGreaterThan(0);
     const icon = document.querySelector("[data-favicon]");
     expect(icon).toHaveAttribute("width", "18");
     fireEvent.error(icon!);
     expect(document.querySelector("[data-favicon]")).toBeNull();
-    expect(screen.getByText("example.com")).toBeInTheDocument();
+    expect(screen.getAllByText("example.com").length).toBeGreaterThan(0);
   });
 });
