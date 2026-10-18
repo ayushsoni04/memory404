@@ -45,6 +45,18 @@ export function resolveSettingsTab(value: string | null | undefined): Tab {
   return "profile";
 }
 
+/**
+ * Address for the section the user just opened. Profile drops `tab`.
+ * Other query params and the hash stay, so a refresh opens the same screen.
+ */
+export function settingsTabHref(currentHref: string, tab: Tab): string {
+  const url = new URL(currentHref, "http://localhost");
+  if (tab === "profile") url.searchParams.delete("tab");
+  else url.searchParams.set("tab", tab);
+  const qs = url.searchParams.toString();
+  return `${url.pathname}${qs ? `?${qs}` : ""}${url.hash}`;
+}
+
 type SearchParam = string | string[] | undefined;
 
 export function firstSearchParam(value: SearchParam): string | null {

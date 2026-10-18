@@ -4,6 +4,7 @@ import {
   nextSettingsTab,
   resolveSettingsTab,
   settingsHrefWithoutRetiredTab,
+  settingsTabHref,
 } from "@/app/settings/_components/constants";
 
 describe("settings tabs", () => {
@@ -25,6 +26,22 @@ describe("settings tabs", () => {
     expect(settingsHrefWithoutRetiredTab("statistics", { tab: "statistics" })).toBe(
       null,
     );
+  });
+
+  it("keeps the open section in the address and drops it on Profile", () => {
+    expect(settingsTabHref("http://localhost/settings", "statistics")).toBe(
+      "/settings?tab=statistics",
+    );
+    expect(
+      settingsTabHref("http://localhost/settings?from=email#extension", "statistics"),
+    ).toBe("/settings?from=email&tab=statistics#extension");
+    expect(
+      settingsTabHref(
+        "http://localhost/settings?from=email&tab=statistics#extension",
+        "profile",
+      ),
+    ).toBe("/settings?from=email#extension");
+    expect(settingsTabHref("/settings?tab=statistics", "profile")).toBe("/settings");
   });
 
   it("moves between Profile and Stats with the arrow keys and stops at the ends", () => {

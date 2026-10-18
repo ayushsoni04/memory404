@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 import { STATS_INTRO } from "@/lib/stats-scope";
 import { explainLoadError } from "@/lib/load-error";
-import type { Tab } from "./_components/constants";
+import { settingsTabHref, type Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
 import { ProfileTab } from "./_components/ProfileTab";
 import { SettingsNav } from "./_components/SettingsNav";
@@ -38,6 +38,14 @@ export default function SettingsClient({
   initialTab?: Tab;
 }) {
   const [activeTab, setActiveTab] = useState<Tab>(initialTab);
+
+  const selectTab = (tab: Tab) => {
+    setActiveTab(tab);
+    if (typeof window === "undefined") return;
+    const next = settingsTabHref(window.location.href, tab);
+    const here = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (next !== here) window.history.replaceState(window.history.state, "", next);
+  };
   const [profileLoading, setProfileLoading] = useState(true);
   const [profileReady, setProfileReady] = useState(false);
   const [profileError, setProfileError] = useState<string | null>(null);
@@ -196,7 +204,7 @@ export default function SettingsClient({
 
       <SettingsNav
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={selectTab}
         isOwner={isOwner}
       />
 
