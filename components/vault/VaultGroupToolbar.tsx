@@ -349,7 +349,7 @@ export default function VaultGroupToolbar({
                 {filteredFolders.map((g) => (
                   <div
                     key={`bg-${g.id}`}
-                    className="group-pill-drop-slot inline-flex h-7 shrink-0 items-center rounded-full px-4 text-[13px] leading-none text-transparent select-none"
+                    className="group-pill-drop-slot inline-flex h-7 max-w-48 shrink-0 items-center truncate rounded-full px-4 text-[13px] leading-none text-transparent select-none"
                   >
                     {g.name}
                   </div>
@@ -450,7 +450,8 @@ export default function VaultGroupToolbar({
                       playUiSound("tick");
                     }}
                     onKeyDown={(event) => onPillKeyDown(event, g.id)}
-                    className="bg-transparent outline-none"
+                    title={g.name}
+                    className="max-w-48 truncate bg-transparent text-left outline-none"
                   >
                     {g.name}
                   </button>

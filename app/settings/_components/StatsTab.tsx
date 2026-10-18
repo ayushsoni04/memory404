@@ -185,11 +185,14 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
 
               return (
                 <div key={group.id} className="py-3.5 first:pt-0 last:pb-0 space-y-2">
-                  <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-foreground">
+                  <div className="flex min-w-0 items-center justify-between gap-3 text-xs">
+                    <span
+                      className="min-w-0 truncate font-medium text-foreground"
+                      title={libraryGroupLabel(group.name) ?? group.name}
+                    >
                       {libraryGroupLabel(group.name) ?? group.name}
                     </span>
-                    <span className="font-mono text-muted tabular-nums">
+                    <span className="shrink-0 font-mono text-muted tabular-nums">
                       {group.count} link{group.count === 1 ? "" : "s"}
                     </span>
                   </div>
