@@ -108,7 +108,7 @@ describe("saved notes stay visible", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Paste a URL to save"), {
+    fireEvent.change(screen.getByPlaceholderText("Paste a link to save"), {
       target: { value: "https://example.com/article" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));

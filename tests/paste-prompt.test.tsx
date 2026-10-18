@@ -43,7 +43,7 @@ describe("PastePrompt empty states", () => {
       />,
     );
     expect(screen.getByText(/Save webpages/)).toBeInTheDocument();
-    expect(screen.getByText(/Paste a URL/)).toBeInTheDocument();
+    expect(screen.getByText(/Paste a link/)).toBeInTheDocument();
     expect(screen.getByText("Download extension")).toBeInTheDocument();
   });
 
@@ -80,7 +80,7 @@ describe("PastePrompt empty states", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Paste a URL to save"), {
+    fireEvent.change(screen.getByPlaceholderText("Paste a link to save"), {
       target: { value: "https://example.com/pricing" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
@@ -132,7 +132,7 @@ describe("PastePrompt empty states", () => {
       />,
     );
 
-    fireEvent.change(screen.getByPlaceholderText("Paste a URL to save"), {
+    fireEvent.change(screen.getByPlaceholderText("Paste a link to save"), {
       target: { value: "https://example.com/pricing" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));

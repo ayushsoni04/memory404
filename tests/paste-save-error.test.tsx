@@ -87,7 +87,7 @@ describe("useAddLinkFlow save failures", () => {
       } as never);
     });
 
-    expect(result.current.saveError).toBe("Network error — try again");
+    expect(result.current.saveError).toMatch(/Couldn't reach memory404/);
     expect(result.current.urlInput).toBe("https://example.com/notes");
     expect(result.current.saving).toBe(false);
     expect(result.current.links).toEqual([]);

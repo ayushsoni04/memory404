@@ -45,7 +45,7 @@ describe("save fields accept a host without https", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
-    const field = screen.getByRole("textbox", { name: "Link URL" });
+    const field = screen.getByRole("textbox", { name: "Link" });
     expectBareHostField(field);
     expect(field).toHaveAttribute("placeholder", "example.com/page");
 
@@ -67,7 +67,7 @@ describe("save fields accept a host without https", () => {
       />,
     );
 
-    const field = screen.getByRole("textbox", { name: "Link URL" });
+    const field = screen.getByRole("textbox", { name: "Link" });
     expectBareHostField(field);
     fireEvent.change(field, { target: { value: "linear.app/docs" } });
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
@@ -87,7 +87,7 @@ describe("save fields accept a host without https", () => {
       />,
     );
 
-    fireEvent.change(screen.getByRole("textbox", { name: "Link URL" }), {
+    fireEvent.change(screen.getByRole("textbox", { name: "Link" }), {
       target: { value: "mailto:ada@example.com" },
     });
 

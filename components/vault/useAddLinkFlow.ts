@@ -2,7 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { groupNameIssue } from "@/lib/group-name";
-import { coerceHttpUrl, linkUrlDraftIssue, linkUrlIssue, type LinkApiRow } from "@/lib/links";
+import {
+  coerceHttpUrl,
+  LINK_URL_HINT,
+  linkUrlDraftIssue,
+  linkUrlIssue,
+  type LinkApiRow,
+} from "@/lib/links";
+import { saveFailureMessage } from "@/lib/save-failure";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { writeLinksCacheToStorage } from "./storage";
 import type { GroupRow } from "./types";
@@ -112,7 +119,7 @@ export function useAddLinkFlow({
     setSavedFlash(false);
     const url = urlRef.current.trim();
     if (!url) {
-      setSaveError("Enter a URL");
+      setSaveError(LINK_URL_HINT);
       return;
     }
 
@@ -192,7 +199,7 @@ export function useAddLinkFlow({
 
         setSidebarShowNotesForm(true);
       } catch {
-        setSaveError("Network error — try again");
+        setSaveError(saveFailureMessage(null, true));
         setLinks(originalLinks);
         setSaving(false);
         setSavePhase("place");
@@ -209,7 +216,7 @@ export function useAddLinkFlow({
   const handlePlaceSave = async () => {
     const url = urlRef.current.trim();
     if (!url) {
-      setSaveError("Enter a URL");
+      setSaveError(LINK_URL_HINT);
       setSavePhase("paste");
       return;
     }
@@ -325,7 +332,7 @@ export function useAddLinkFlow({
 
       setSidebarShowNotesForm(true);
     } catch {
-      setSaveError("Network error — try again");
+      setSaveError(saveFailureMessage(null, true));
       if (insertedDraft) setLinks(originalLinks);
       setSaving(false);
     }

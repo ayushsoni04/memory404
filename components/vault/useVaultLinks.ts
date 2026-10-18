@@ -13,6 +13,7 @@ import {
   linkUrlIssue,
   type LinkApiRow,
 } from "@/lib/links";
+import { saveFailureMessage } from "@/lib/save-failure";
 import { savedPageKey } from "@/lib/save-query";
 import { isLaterLinksPage } from "./feed-load";
 import { sortLinks } from "./link-utils";
@@ -503,23 +504,21 @@ export function useVaultLinks(
               return { ok: false as const, error: duplicate };
             }
             playUiSound("error");
-            const msg =
-              typeof data.error === "string" ? data.error : "Failed to save";
             const hint =
               typeof data.hint === "string" && data.hint.trim()
                 ? ` — ${data.hint.trim()}`
                 : "";
-            return { ok: false as const, error: `${msg}${hint}` };
+            return { ok: false as const, error: `${saveFailureMessage(data)}${hint}` };
           }
           if (data.link && typeof data.link === "object") {
             playUiSound("success");
             return { ok: true as const, link: data.link as LinkApiRow };
           }
           playUiSound("error");
-          return { ok: false as const, error: "Failed to save" };
+          return { ok: false as const, error: saveFailureMessage(null) };
         } catch {
           playUiSound("error");
-          return { ok: false as const, error: "Network error — try again" };
+          return { ok: false as const, error: saveFailureMessage(null, true) };
         }
       });
     },
