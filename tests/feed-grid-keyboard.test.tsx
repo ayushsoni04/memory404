@@ -115,7 +115,7 @@ describe("sort menu keyboard", () => {
     const setSort = vi.fn();
     render(<SortPill sortBy="newest" setSortByAndPersist={setSort} />);
 
-    const trigger = screen.getByRole("button", { name: "Sort links" });
+    const trigger = screen.getByRole("button", { name: "Sort links, Newest" });
     trigger.focus();
     fireEvent.keyDown(trigger, { key: "ArrowDown" });
 
@@ -142,5 +142,11 @@ describe("sort menu keyboard", () => {
     fireEvent.click(oldest);
     expect(setSort).toHaveBeenCalledWith("oldest");
     expect(trigger).toHaveFocus();
+  });
+
+  it("names the sort that is already in use", () => {
+    render(<SortPill sortBy="domain" setSortByAndPersist={() => {}} />);
+    expect(screen.getByRole("button", { name: "Sort links, Site" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Sort links" })).not.toBeInTheDocument();
   });
 });

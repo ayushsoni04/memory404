@@ -160,7 +160,7 @@ export function SortPill({
       <button
         ref={buttonRef}
         type="button"
-        aria-label="Sort links"
+        aria-label={`Sort links, ${label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls="sort-links-list"
