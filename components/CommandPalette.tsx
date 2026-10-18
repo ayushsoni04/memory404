@@ -14,6 +14,7 @@ import { Folder, LayoutGrid, Plus, Settings, Trash2 } from "lucide-react";
 import { apiUrl } from "@/lib/api-base";
 import { asSentence, explainLoadError } from "@/lib/load-error";
 import type { LinkApiRow } from "@/lib/links";
+import LoadRecovery from "@/components/LoadRecovery";
 import MorphText from "@/components/MorphText";
 import SearchResultText from "@/components/vault/SearchResultText";
 import { openShortcutHelp } from "@/components/vault/ShortcutHelp";
@@ -318,17 +319,16 @@ export default function CommandPalette({
               {asSentence(explainLoadError(searchError) ?? searchError)} Your library is
               unchanged.
             </p>
-            <button
-              type="button"
-              onClick={() => {
+            <LoadRecovery
+              message={explainLoadError(searchError) ?? searchError}
+              returnPath="/"
+              onRetry={() => {
                 setLoadingLinks(true);
                 setSearchError(null);
                 setSearchAttempt((attempt) => attempt + 1);
               }}
               className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97]"
-            >
-              Retry
-            </button>
+            />
           </div>
         ) : null}
 

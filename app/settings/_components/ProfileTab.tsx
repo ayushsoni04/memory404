@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import Image from "next/image";
+import LoadRecovery, { SessionSignInLink } from "@/components/LoadRecovery";
 import MorphText from "@/components/MorphText";
 import { AppLoader } from "@/components/AppLoader";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
@@ -176,13 +177,11 @@ export function ProfileTab({
         <p className="text-[13px] text-subtle">
           Your name and username were not changed.
         </p>
-        <button
-          type="button"
-          onClick={onRetryLoad}
-          className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-        >
-          Retry
-        </button>
+        <LoadRecovery
+          message={error}
+          returnPath="/settings"
+          onRetry={() => onRetryLoad?.()}
+        />
       </div>
     );
   }
@@ -200,12 +199,13 @@ export function ProfileTab({
       className="space-y-8"
     >
       {error && (
-        <p
-          className="rounded-lg border border-danger/30 bg-danger/5 px-3 py-2 text-xs text-danger"
+        <div
+          className="flex flex-col items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2"
           role="alert"
         >
-          {error}
-        </p>
+          <p className="text-xs text-danger">{error}</p>
+          <SessionSignInLink message={error} returnPath="/settings" />
+        </div>
       )}
 
       {/* Premium Mobbin/Figma Style Visual Banner Card */}

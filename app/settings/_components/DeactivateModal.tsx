@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AlertTriangle } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
+import { SessionSignInLink } from "@/components/LoadRecovery";
 import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 import { useDialogContainment } from "@/lib/dialog-focus";
 import { controlPress } from "@/components/vault/types";
@@ -94,9 +95,12 @@ export function DeactivateModal({
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
             {error ? (
-              <p id="deactivate-error" className="text-xs text-danger" role="alert">
-                {error}
-              </p>
+              <div className="flex flex-col items-start gap-2">
+                <p id="deactivate-error" className="text-xs text-danger" role="alert">
+                  {error}
+                </p>
+                <SessionSignInLink message={error} returnPath="/settings" />
+              </div>
             ) : null}
             <label className="block space-y-1.5">
               <span className="font-mono text-[10px] font-medium uppercase text-subtle">

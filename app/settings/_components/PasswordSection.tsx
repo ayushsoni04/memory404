@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
+import { SessionSignInLink } from "@/components/LoadRecovery";
 import {
   authPasswordFieldClass,
   authQuietControlClass,
@@ -163,9 +164,10 @@ export function PasswordSection() {
           }}
         />
         {serverError ? (
-          <p className="text-[12px] text-danger" role="alert">
-            {serverError}
-          </p>
+          <div className="flex flex-col items-start gap-2" role="alert">
+            <p className="text-[12px] text-danger">{serverError}</p>
+            <SessionSignInLink message={serverError} returnPath="/settings" />
+          </div>
         ) : null}
         {saved ? (
           <p className="text-[12px] text-success" role="status">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { FolderKanban, TrendingUp } from "lucide-react";
 import { AppLoader } from "@/components/AppLoader";
+import LoadRecovery from "@/components/LoadRecovery";
 import { activityTimeZone, buildActivityCells } from "@/lib/activity-grid";
 import {
   EMPTY_GROUP_DENSITY,
@@ -83,13 +84,11 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
       >
         <p className="text-sm text-danger">{message}</p>
         <p className="text-[13px] text-subtle">{statsLoadHint(message)}</p>
-        <button
-          type="button"
-          onClick={() => void loadStats()}
-          className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
-        >
-          Retry
-        </button>
+        <LoadRecovery
+          message={message}
+          returnPath="/settings?tab=statistics"
+          onRetry={() => void loadStats()}
+        />
       </div>
     );
   }
