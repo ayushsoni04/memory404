@@ -130,6 +130,7 @@ export default function CommandPalette({
       setLoadingLinks(false);
       setSearchError(null);
     } else {
+      setLinkResults([]);
       setLoadingLinks(true);
       setSearchError(null);
       setSaveError(null);
@@ -399,7 +400,7 @@ export default function CommandPalette({
           </CommandGroup>
         ) : null}
 
-        {linkResults.length ? (
+        {!loadingLinks && linkResults.length ? (
           <CommandGroup
             heading="Links"
             className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
