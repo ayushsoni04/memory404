@@ -788,6 +788,44 @@
   box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.08);
 }
 
+#m404-save-root .password-field {
+  position: relative;
+  margin: 0 12px 12px;
+}
+
+#m404-save-root .password-field input.settings-input {
+  width: 100%;
+  margin: 0;
+  padding-right: 58px;
+}
+
+#m404-save-root .password-reveal {
+  position: absolute;
+  top: 50%;
+  right: 6px;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  color: var(--subtle);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px;
+  min-height: 28px;
+  min-width: 44px;
+}
+
+#m404-save-root .password-reveal:hover {
+  color: var(--foreground);
+}
+
+#m404-save-root .password-reveal:focus-visible {
+  outline: none;
+  border-radius: 6px;
+  box-shadow: 0 0 0 3px rgba(245, 245, 245, 0.08);
+}
+
 #m404-save-root .hint {
   padding: 0 12px 12px;
   color: var(--subtle);

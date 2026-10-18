@@ -20,6 +20,7 @@ import { signInSaveHint } from "./sign-in-hint";
 import { libraryHomeUrl } from "./library-url";
 import { APP_URL_HINT, normalizeApiBase } from "./api-base";
 import { EMAIL_INVALID, keepSignInForm, loginEmailIssue } from "./login-email";
+import PasswordField from "./PasswordField";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
@@ -895,14 +896,10 @@ function App({ onClose }) {
                 <label className="field-label" htmlFor="m404-password">
                   Password
                 </label>
-                <input
+                <PasswordField
                   id="m404-password"
-                  className="settings-input"
-                  type="password"
-                  autoComplete="current-password"
                   value={loginPassword}
                   onChange={(event) => setLoginPassword(event.target.value)}
-                  required
                 />
                 <button type="submit" className="save-btn" disabled={loginPending}>
                   {loginPending ? "Signing in…" : "Sign in"}
