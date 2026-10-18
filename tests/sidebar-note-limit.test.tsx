@@ -109,7 +109,7 @@ describe("sidebar note limit", () => {
     expect(note).toHaveAttribute("aria-invalid", "true");
     expect(screen.getByRole("alert")).toHaveTextContent(NOTE_TOO_LONG);
     expect(screen.getByText("2,001 of 2,000")).toBeInTheDocument();
-    const save = screen.getByRole("button", { name: "Save Notes" });
+    const save = screen.getByRole("button", { name: "Save note" });
     expect(save).toBeDisabled();
     fireEvent.click(save);
     expect(finish).not.toHaveBeenCalled();
@@ -119,7 +119,7 @@ describe("sidebar note limit", () => {
     const finish = renderNotes("x".repeat(1_600));
     expect(screen.getByText("1,600 of 2,000")).toBeInTheDocument();
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Save Notes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
     expect(finish).toHaveBeenCalledOnce();
   });
 });

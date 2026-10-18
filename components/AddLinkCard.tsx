@@ -6,7 +6,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import { LINK_URL_HINT, linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
 import { saveFailureMessage } from "@/lib/save-failure";
-import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "@/components/vault/NoteCount";
 import { controlPress } from "@/components/vault/types";
@@ -278,7 +278,7 @@ export default function AddLinkCard({
                   className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-50 ${controlPress}`}
                 >
                   <MorphText duration={220}>
-                    {notes.trim() ? "Save Notes" : "Done"}
+                    {notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
                   </MorphText>
                 </button>
               </div>

@@ -22,7 +22,7 @@ import {
   paletteMissCopy,
   palettePagesForUser,
 } from "@/lib/palette-pages";
-import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "@/components/vault/NoteCount";
 import { groupsMatchingQuery } from "@/lib/group-query";
@@ -284,7 +284,7 @@ export default function CommandPalette({
               className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
             >
               <MorphText duration={220}>
-                {note.trim() ? "Save Notes" : "Done"}
+                {note.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
               </MorphText>
             </button>
           </div>
