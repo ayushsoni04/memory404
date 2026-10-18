@@ -28,6 +28,7 @@ export function LoginForm() {
   const emailRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
@@ -37,10 +38,11 @@ export function LoginForm() {
     e.preventDefault();
     setError(null);
     if (emailIssue(email)) {
-      setError(EMAIL_INVALID);
+      setEmailError(EMAIL_INVALID);
       emailRef.current?.focus();
       return;
     }
+    setEmailError(null);
     setIsSubmitting(true);
 
     try {
@@ -63,6 +65,7 @@ export function LoginForm() {
   };
 
   const handleSkip = async () => {
+    setEmailError(null);
     setError(null);
     setIsSkipping(true);
     try {
@@ -93,19 +96,32 @@ export function LoginForm() {
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
-        <label className="block space-y-1.5">
-          <span className="text-[11px] font-medium text-muted">Email address</span>
-          <input
-            ref={emailRef}
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            autoComplete="email"
-            className={authFieldClass}
-            required
-          />
-        </label>
+        <div className="space-y-1.5">
+          <label className="block space-y-1.5">
+            <span className="text-[11px] font-medium text-muted">Email address</span>
+            <input
+              ref={emailRef}
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setEmailError(null);
+                setError(null);
+              }}
+              placeholder="you@example.com"
+              autoComplete="email"
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={emailError ? "login-email-error" : undefined}
+              className={authFieldClass}
+              required
+            />
+          </label>
+          {emailError ? (
+            <p id="login-email-error" className="text-xs text-danger" role="alert">
+              {emailError}
+            </p>
+          ) : null}
+        </div>
 
         <div className="space-y-1.5">
           <label htmlFor="login-password" className="block text-[11px] font-medium text-muted">
@@ -116,7 +132,10 @@ export function LoginForm() {
               id="login-password"
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(null);
+              }}
               placeholder="••••••••"
               autoComplete="current-password"
               onFocus={() => setPasswordFocused(true)}

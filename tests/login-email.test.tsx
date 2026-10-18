@@ -46,9 +46,16 @@ describe("LoginForm email", () => {
     await user.type(screen.getByLabelText("Password"), "Memory404");
     await user.click(screen.getByRole("button", { name: "Sign in" }));
 
+    const emailField = screen.getByLabelText("Email address");
     expect(screen.getByRole("alert")).toHaveTextContent(EMAIL_INVALID);
-    expect(screen.getByLabelText("Email address")).toHaveFocus();
+    expect(emailField).toHaveFocus();
+    expect(emailField).toHaveAttribute("aria-invalid", "true");
+    expect(emailField).toHaveAttribute("aria-describedby", "login-email-error");
     expect(fetchMock).not.toHaveBeenCalled();
+
+    await user.type(emailField, "m");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(emailField).not.toHaveAttribute("aria-invalid");
   });
 
   it("sends the address without surrounding spaces", async () => {
