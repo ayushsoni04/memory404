@@ -208,8 +208,8 @@ export default function VaultFeed({
       className="relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background outline-none scroll-mt-4 lg:h-full"
     >
       <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-[var(--layout-gap-item)] pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-[var(--layout-gap-control)]">
-        <h1 className="font-departure shrink-0 text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
-          <MorphText>
+        <h1 className="font-departure min-w-0 max-w-full break-words text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
+          <MorphText className="max-w-full break-words">
             {openedGroupId === "all"
               ? "All Links"
               : (openedGroup?.name ?? "memory404")}
