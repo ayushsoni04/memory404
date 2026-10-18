@@ -12,3 +12,10 @@ export function loginEmailIssue(raw) {
   if (!EMAIL_RE.test(value)) return EMAIL_INVALID;
   return null;
 }
+
+/** Keep the sign-in fields up for a session error and for an address that is not an email. */
+export function keepSignInForm(error) {
+  if (typeof error !== "string") return false;
+  if (error === EMAIL_INVALID) return true;
+  return /sign in/i.test(error);
+}
