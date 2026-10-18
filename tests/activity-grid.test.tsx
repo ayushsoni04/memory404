@@ -110,6 +110,7 @@ describe("activity calendar", () => {
     expect(today).toHaveAttribute("tabindex", "0");
     expect(screen.getByRole("status")).toHaveTextContent(/4 links added on/);
     expect(today.className).toContain("focus-visible:ring-2");
+    expect(today.className).toContain("size-6");
 
     today.focus();
     fireEvent.keyDown(today, { key: "ArrowUp" });

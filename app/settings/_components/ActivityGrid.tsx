@@ -54,10 +54,15 @@ export function ActivityGrid({ cells }: { cells: ActivityCount[] }) {
               setActive(index);
               buttons.current[index]?.focus();
             }}
-            className={`size-2.5 cursor-pointer rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-surface ${cellColor(cell.count)} ${
-              index === active ? "ring-1 ring-foreground/70" : ""
-            }`}
-          />
+            className="relative flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
+          >
+            <span
+              aria-hidden
+              className={`size-2.5 rounded-sm ${cellColor(cell.count)} ${
+                index === active ? "ring-1 ring-foreground/70" : ""
+              }`}
+            />
+          </button>
         ))}
       </div>
       {current ? (
