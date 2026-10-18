@@ -12,6 +12,7 @@ import FeedGrid from "./FeedGrid";
 import { scrollFeedToTop } from "./feed-scroll";
 import { replaceFeedWithLoadError, showRefreshFailure } from "./feed-load";
 import PastePrompt from "./PastePrompt";
+import { ShortcutButton } from "./ShortcutButton";
 import type { GridSize, GroupRow } from "./types";
 
 type SaveLinkResult =
@@ -215,15 +216,18 @@ export default function VaultFeed({
               : (openedGroup?.name ?? "memory404")}
           </MorphText>
         </h1>
-        <span className="shrink-0 text-[13px] text-muted tabular-nums">
-          <MorphText>
-            {openedGroupId === "all"
-              ? `${allLinksCount} link${allLinksCount === 1 ? "" : "s"}`
-              : openedGroup
-                ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
-                : ""}
-          </MorphText>
-        </span>
+        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 lg:self-center">
+          <span className="shrink-0 text-[13px] text-muted tabular-nums">
+            <MorphText>
+              {openedGroupId === "all"
+                ? `${allLinksCount} link${allLinksCount === 1 ? "" : "s"}`
+                : openedGroup
+                  ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
+                  : ""}
+            </MorphText>
+          </span>
+          <ShortcutButton />
+        </div>
       </header>
 
       <div
