@@ -437,11 +437,7 @@ export default function LinkDetailOverlay({
       }
     };
     window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
     const root = rootRef.current;
-    const closeButton = root?.querySelector<HTMLElement>("[data-overlay-close]");
-    closeButton?.focus();
     const trapTab = (event: KeyboardEvent) => {
       if (event.key !== "Tab" || !root) return;
       const focusable = Array.from(
@@ -464,9 +460,17 @@ export default function LinkDetailOverlay({
     return () => {
       window.removeEventListener("keydown", onKey);
       root?.removeEventListener("keydown", trapTab);
-      document.body.style.overflow = prevOverflow;
     };
   }, [animateClose, hasPrev, hasNext, leave, onPrev, onNext, link.id]);
+
+  useEffect(() => {
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    rootRef.current?.querySelector<HTMLElement>("[data-overlay-close]")?.focus();
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, []);
 
   useLayoutEffect(() => {
     const backdrop = backdropRef.current;
