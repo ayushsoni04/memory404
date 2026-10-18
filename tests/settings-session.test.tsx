@@ -116,12 +116,12 @@ describe("settings actions after the session expires", () => {
     fireEvent.change(screen.getByPlaceholderText("deactivate"), {
       target: { value: "deactivate" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Wipe everything" }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your session expired. Sign in again.",
     );
-    expect(screen.getByRole("dialog", { name: "Confirm Deactivation" })).toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Delete account" })).toBeInTheDocument();
     expect(screen.getByPlaceholderText("deactivate")).toHaveValue("deactivate");
   });
 

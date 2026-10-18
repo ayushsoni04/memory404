@@ -75,7 +75,7 @@ export function DeactivateModal({
             id="deactivate-title"
             className="font-mono text-sm font-bold uppercase tracking-wider"
           >
-            Confirm Deactivation
+            Delete account
           </h3>
         </div>
 
@@ -100,7 +100,7 @@ export function DeactivateModal({
             ) : null}
             <label className="block space-y-1.5">
               <span className="font-mono text-[10px] font-medium uppercase text-subtle">
-                Type <code className="select-none text-danger">deactivate</code> to confirm
+                Type <code className="select-none text-danger">deactivate</code> to delete this account
               </span>
               <input
                 ref={inputRef}
@@ -133,9 +133,9 @@ export function DeactivateModal({
                 className={`flex h-8 flex-1 cursor-pointer items-center justify-center rounded-lg bg-danger text-xs font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 ${controlPress}`}
               >
                 {isDeactivating ? (
-                  <AppLoader compact progressive label="deactivating" />
+                  <AppLoader compact progressive label="deleting account" />
                 ) : (
-                  "Wipe everything"
+                  "Delete account"
                 )}
               </button>
             </div>

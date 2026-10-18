@@ -39,7 +39,7 @@ describe("DeactivateModal", () => {
       </>,
     );
 
-    const dialog = screen.getByRole("dialog", { name: "Confirm Deactivation" });
+    const dialog = screen.getByRole("dialog", { name: "Delete account" });
     expect(dialog).toHaveAttribute("aria-modal", "true");
     const input = screen.getByRole("textbox");
     expect(input).toHaveFocus();
@@ -100,7 +100,7 @@ describe("DeactivateModal", () => {
     expect(onClose).toHaveBeenCalledOnce();
   });
 
-  it("enables the wipe button when the word is capitalized", () => {
+  it("enables delete when the word is capitalized", () => {
     render(
       <DeactivateModal
         open
@@ -113,6 +113,7 @@ describe("DeactivateModal", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Wipe everything" })).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Delete account" })).toBeEnabled();
+    expect(screen.getByText(/to delete this account/i)).toBeInTheDocument();
   });
 });
