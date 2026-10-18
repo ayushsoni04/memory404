@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import TrashPage from "@/app/trash/page";
+import { SESSION_EXPIRED_MESSAGE, UNREACHABLE_MESSAGE } from "@/lib/load-error";
 
 vi.mock("next/image", () => ({
   default: () => null,
@@ -30,6 +31,36 @@ afterEach(() => {
 });
 
 describe("Trash load errors", () => {
+  it("says when the session died, and when the connection died", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      })
+      .mockRejectedValueOnce(new TypeError("Failed to fetch"))
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({}),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const first = render(<TrashPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(SESSION_EXPIRED_MESSAGE);
+    expect(screen.getByText("Sign in, then open Trash again.")).toBeInTheDocument();
+    first.unmount();
+
+    const second = render(<TrashPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(UNREACHABLE_MESSAGE);
+    expect(screen.getByText("Check your connection, then try again.")).toBeInTheDocument();
+    second.unmount();
+
+    render(<TrashPage />);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't load Trash. Try again.",
+    );
+  });
+
   it("offers Retry and loads the list after a failed fetch", async () => {
     const fetchMock = vi
       .fn()
@@ -45,8 +76,11 @@ describe("Trash load errors", () => {
 
     render(<TrashPage />);
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to load trash");
-    expect(screen.getByText("Check your connection, then try again.")).toBeInTheDocument();
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't load Trash. Try again.",
+    );
+    expect(screen.getByText("Try again in a moment.")).toBeInTheDocument();
+    expect(screen.queryByText("Check your connection, then try again.")).not.toBeInTheDocument();
     expect(screen.queryByText("Trash is empty")).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
