@@ -1,11 +1,13 @@
 "use client";
 
+import { useEffect } from "react";
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
 import MorphText from "@/components/MorphText";
 import { explainLoadError } from "@/lib/load-error";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
+import { scrollFeedToTop } from "./feed-scroll";
 import { replaceFeedWithLoadError, showRefreshFailure } from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import type { GridSize, GroupRow } from "./types";
@@ -71,6 +73,10 @@ export default function VaultFeed({
 }: VaultFeedProps) {
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
+
+  useEffect(() => {
+    scrollFeedToTop(scrollRootRef.current);
+  }, [openedGroupId, scrollRootRef]);
 
   const groupsLoadMessage = explainLoadError(groupsError);
   const groupsFailedToLoad = Boolean(
