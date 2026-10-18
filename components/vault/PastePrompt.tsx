@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
-import { LINK_URL_HINT, linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
+import { linkUrlDraftIssue, linkUrlIssue, type LinkApiRow } from "@/lib/links";
 import { saveFailureMessage } from "@/lib/save-failure";
 import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
@@ -70,8 +70,10 @@ export default function PastePrompt({
 
   const submit = async () => {
     const trimmed = url.trim();
-    if (!trimmed) {
-      setError(LINK_URL_HINT);
+    const issue = linkUrlIssue(trimmed);
+    if (issue) {
+      setError(issue);
+      inputRef.current?.focus();
       return;
     }
     if (!groupId) {
@@ -248,7 +250,7 @@ export default function PastePrompt({
                 />
                 <button
                   type="submit"
-                  disabled={!url.trim() || !groupId}
+                  disabled={!url.trim() || !groupId || Boolean(linkUrlDraftIssue(url))}
                   className="flex size-[38px] min-w-[38px] items-center justify-center rounded-full bg-pill-active text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
                   aria-label="Add link"
                 >
