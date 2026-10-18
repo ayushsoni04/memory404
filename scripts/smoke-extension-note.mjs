@@ -107,7 +107,7 @@ try {
   const root = page.locator("#m404-save-root");
   await root.waitFor({ state: "visible", timeout: 15_000 });
   await page.getByLabel("Email").fill("person@example.com");
-  await page.getByLabel("Password").fill("not-a-real-password");
+  await page.getByLabel("Password", { exact: true }).fill("not-a-real-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   const saveButton = page.getByRole("button", { name: "Save tab to group" });
   await saveButton.waitFor({ timeout: 15_000 });
