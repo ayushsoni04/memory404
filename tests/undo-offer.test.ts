@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { LinkApiRow } from "@/lib/links";
 import {
   cacheWithLink,
+  DELETE_FAILED,
+  deleteFailureNotice,
   deleteUndoMessage,
   moveFailureNotice,
   moveUndoMessage,
@@ -45,6 +47,14 @@ describe("undo copy and cache", () => {
     );
     expect(moveFailureNotice({})).toBe("Couldn't move that link. Try again.");
     expect(moveFailureNotice(null, true)).toMatch(/Couldn't reach memory404/);
+  });
+
+  it("explains a delete that did not stick", () => {
+    expect(deleteFailureNotice({ error: "Unauthorized" })).toMatch(/session expired/i);
+    expect(deleteFailureNotice({ error: "Failed to delete" })).toBe(DELETE_FAILED);
+    expect(deleteFailureNotice({})).toBe(DELETE_FAILED);
+    expect(deleteFailureNotice(null, true)).toMatch(/Couldn't reach memory404/);
+    expect(deleteFailureNotice({ error: "Link not found" })).toBe("Link not found");
   });
 
   it("names a delete and a move", () => {

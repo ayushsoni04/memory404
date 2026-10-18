@@ -33,6 +33,8 @@ export function moveUndoMessage(groupName: string): string {
 
 export const MOVE_FAILED = "Couldn't move that link. Try again.";
 
+export const DELETE_FAILED = "Couldn't move that link to Trash. Try again.";
+
 /** Sentence for a move that did not stick. A dropped request uses the offline message. */
 export function moveFailureNotice(data: unknown, offline = false): string {
   if (offline) return UNREACHABLE_MESSAGE;
@@ -40,6 +42,16 @@ export function moveFailureNotice(data: unknown, offline = false): string {
     data && typeof data === "object" ? (data as { error?: unknown }).error : null;
   const raw = typeof error === "string" && error.trim() ? error.trim() : MOVE_FAILED;
   return explainLoadError(raw) ?? MOVE_FAILED;
+}
+
+/** Sentence for a delete that did not stick. A dropped request uses the offline message. */
+export function deleteFailureNotice(data: unknown, offline = false): string {
+  if (offline) return UNREACHABLE_MESSAGE;
+  const error =
+    data && typeof data === "object" ? (data as { error?: unknown }).error : null;
+  const raw = typeof error === "string" && error.trim() ? error.trim() : "";
+  if (!raw || /^failed to delete\b/i.test(raw)) return DELETE_FAILED;
+  return explainLoadError(raw) ?? DELETE_FAILED;
 }
 
 /** Arrow and undo shortcuts belong to the field while someone is typing. */
