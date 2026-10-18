@@ -231,3 +231,25 @@ describe("undo after delete and move", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 });
+
+describe("undo message", () => {
+  it("wraps a long group name inside the notice", () => {
+    const message = `Moved to ${"A".repeat(60)}`;
+    render(
+      <UndoNotice
+        notice={{
+          token: 1,
+          message,
+          error: null,
+          busy: false,
+          perform: async () => true,
+        }}
+        onUndo={() => {}}
+        onDismiss={() => {}}
+      />,
+    );
+    const line = screen.getByText(message);
+    expect(line.className).toContain("break-words");
+    expect(line.className).toContain("min-w-0");
+  });
+});
