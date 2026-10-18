@@ -463,9 +463,9 @@ export default function VaultGroupToolbar({
                         e.stopPropagation();
                         void handleDeleteGroup(g.id);
                       }}
-                      className="group-pill-delete ms-1.5 inline-flex size-4 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer outline-none"
+                      className="group-pill-delete ms-1 inline-flex size-6 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer outline-none"
                     >
-                      <X className="size-2.5" />
+                      <X className="size-3" aria-hidden />
                     </button>
                   )}
                 </CollectionDrop>
