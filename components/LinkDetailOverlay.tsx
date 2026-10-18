@@ -760,7 +760,7 @@ export default function LinkDetailOverlay({
                 ) : null}
 
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-                  <div className="flex items-center gap-2">
+                  <div className="flex min-w-0 max-w-full items-center gap-2">
                     {faviconSrc ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -768,14 +768,19 @@ export default function LinkDetailOverlay({
                         alt=""
                         width={18}
                         height={18}
-                        className="size-[18px] rounded-[3px] object-contain"
+                        className="size-[18px] shrink-0 rounded-[3px] object-contain"
                         referrerPolicy="no-referrer"
                       />
                     ) : null}
-                    <span className="text-sm font-medium text-muted">{host}</span>
+                    <span className="min-w-0 break-all text-sm font-medium text-muted" title={host}>
+                      {host}
+                    </span>
                   </div>
                   {groupName ? (
-                    <span className="text-[12px] text-subtle">
+                    <span
+                      className="inline-block max-w-full truncate text-[12px] text-subtle"
+                      title={groupName}
+                    >
                       in {groupName}
                     </span>
                   ) : null}
@@ -801,7 +806,7 @@ export default function LinkDetailOverlay({
                 </a>
 
                 {link.description ? (
-                  <p className="mt-4 text-[15px] leading-relaxed text-muted">
+                  <p className="mt-4 break-words text-[15px] leading-relaxed text-muted">
                     {link.description}
                   </p>
                 ) : null}
@@ -818,11 +823,12 @@ export default function LinkDetailOverlay({
                   <dl className="mt-5 space-y-0 border-t border-white/10">
                     <div className="flex items-start justify-between gap-3 border-b border-white/10 py-3">
                       <dt className="shrink-0 text-[12px] text-subtle">Tags</dt>
-                      <dd className="flex flex-wrap justify-end gap-1">
+                      <dd className="flex min-w-0 flex-wrap justify-end gap-1">
                         {link.tags.map((t) => (
                           <span
                             key={t}
-                            className="rounded-[4px] bg-white/10 px-2 py-0.5 text-[11px] text-muted"
+                            title={t}
+                            className="max-w-full break-all rounded-[4px] bg-white/10 px-2 py-0.5 text-[11px] text-muted"
                           >
                             {t}
                           </span>

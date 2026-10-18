@@ -49,7 +49,7 @@ function sample(overrides: Partial<LinkApiRow> = {}): LinkApiRow {
   };
 }
 
-function renderOverlay(link: LinkApiRow) {
+function renderOverlay(link: LinkApiRow, groupName = "References") {
   vi.stubGlobal("matchMedia", () => ({
     matches: true,
     media: "",
@@ -62,8 +62,8 @@ function renderOverlay(link: LinkApiRow) {
   return render(
     <LinkDetailOverlay
       link={link}
-      groupName="References"
-      groups={[{ id: "references", name: "References" }]}
+      groupName={groupName}
+      groups={[{ id: "references", name: groupName }]}
       originRect={null}
       onClose={() => {}}
       onPrev={() => {}}
@@ -90,6 +90,36 @@ describe("saved link details", () => {
     expect(saved.tagName).toBe("TIME");
     expect(saved).toHaveAttribute("dateTime", link.createdAt);
     expect(saved).toHaveAttribute("title", formatSavedDate(link.createdAt));
+  });
+
+  it("keeps a long description, site, group, and tag inside the panel", () => {
+    const host = `${"subdomain-".repeat(8)}example.com`;
+    const group = "Reading list for the long weekend project";
+    const tag = "a".repeat(80);
+    const description = `Notes ${"word ".repeat(12)}${"x".repeat(90)}`;
+    renderOverlay(
+      sample({
+        url: `https://${host}/article`,
+        description,
+        tags: [tag],
+      }),
+      group,
+    );
+
+    const site = screen.getByTitle(host);
+    expect(site).toHaveTextContent(host);
+    expect(site.className).toContain("break-all");
+
+    const groupLine = screen.getByTitle(group);
+    expect(groupLine).toHaveTextContent(`in ${group}`);
+    expect(groupLine.className).toContain("truncate");
+
+    const descriptionLine = screen.getByText(description);
+    expect(descriptionLine.className).toContain("break-words");
+
+    const tagChip = screen.getByTitle(tag);
+    expect(tagChip).toHaveTextContent(tag);
+    expect(tagChip.className).toContain("break-all");
   });
 
   it("leaves the saved line off when the timestamp cannot be read", () => {
