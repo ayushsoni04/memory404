@@ -47,6 +47,34 @@ export function containPanelTab(event, root) {
 }
 
 /**
+ * Move focus into the save panel.
+ * A text field the person is already using is left alone.
+ * Otherwise the group field, the sign-in field, the note, Cancel, or the library link.
+ * @param {ParentNode | null} root
+ */
+export function focusOverlayPanel(root) {
+  if (!root || typeof document === "undefined") return false;
+  const preferred = root.querySelector(
+    "input.group-input:not([disabled]), input.settings-input:not([disabled]), textarea:not([disabled]), button.cancel-save-btn, a.library-link",
+  );
+  const active = document.activeElement;
+  const inside = active instanceof Node && root.contains(active);
+  if (
+    inside &&
+    active instanceof HTMLElement &&
+    /^(INPUT|TEXTAREA)$/.test(active.tagName) &&
+    !active.disabled
+  ) {
+    return false;
+  }
+  const target = preferred || listPanelFocusable(root)[0];
+  if (!target || typeof target.focus !== "function") return false;
+  if (active === target) return false;
+  target.focus();
+  return document.activeElement === target;
+}
+
+/**
  * Escape closes the group list, then settings, then the panel.
  * Arrow keys and Enter stay with the group picker.
  */

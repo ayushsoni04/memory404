@@ -4,10 +4,17 @@ import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { noteCountLabel, noteIssue } from "./note-limit";
-import { chooseSaveGroup, groupPickerKeyAction, libraryGroupForTitle } from "./group-picker";
-import { containPanelTab, panelEscapeAction } from "./panel-keys";
+import {
+  chooseSaveGroup,
+  groupListEmptyCopy,
+  groupListIsShown,
+  groupPickerKeyAction,
+  libraryGroupForTitle,
+} from "./group-picker";
+import { containPanelTab, focusOverlayPanel, panelEscapeAction } from "./panel-keys";
 import { phaseForSaveStatus } from "./save-cancel";
-import { saveHeadline } from "./save-outcome";
+import { savingStageLabel } from "./save-progress";
+import { saveHeadline, saveRowsToReview } from "./save-outcome";
 import { signInSaveHint } from "./sign-in-hint";
 import { libraryHomeUrl } from "./library-url";
 import { loginEmailIssue } from "./login-email";
@@ -34,6 +41,18 @@ function sendMessage(message) {
       });
     }
   });
+}
+
+function SingleSaveLabel() {
+  const [elapsed, setElapsed] = useState(0);
+  useEffect(() => {
+    const started = Date.now();
+    const id = window.setInterval(() => {
+      setElapsed(Date.now() - started);
+    }, 400);
+    return () => window.clearInterval(id);
+  }, []);
+  return <LoadingState active variant="Drive" label={savingStageLabel(elapsed)} />;
 }
 
 function hostnameOf(url) {
@@ -358,6 +377,13 @@ function App({ onClose }) {
       chrome.storage.onChanged.removeListener(onStorage);
     };
   }, [jobSetters]);
+
+  useEffect(() => {
+    const id = window.setTimeout(() => {
+      focusOverlayPanel(panelRef.current);
+    }, 50);
+    return () => window.clearTimeout(id);
+  }, [groupsLoading, phase, showSettings]);
 
   useEffect(() => {
     const onKey = (event) => {
@@ -695,7 +721,7 @@ function App({ onClose }) {
   if (showSettings) {
     return (
       <div className="wrap" ref={panelRef}>
-        <div className="panel">
+        <div className="panel" role="dialog" aria-modal="true" aria-label="Extension settings">
           <button
             type="button"
             className="close-btn"
@@ -733,7 +759,7 @@ function App({ onClose }) {
 
   return (
     <div className="wrap" ref={panelRef}>
-      <div className="panel">
+      <div className="panel" role="dialog" aria-modal="true" aria-label="Save to memory404">
         <button
           type="button"
           className="settings-btn"
@@ -766,7 +792,7 @@ function App({ onClose }) {
               </>
             ) : (
               <div className="saving-header saving-header--single">
-                <LoadingState active variant="Drive" label="Saving" />
+                <SingleSaveLabel />
               </div>
             )}
             <button
@@ -967,8 +993,10 @@ function App({ onClose }) {
                       role="combobox"
                       aria-label="Group"
                       aria-autocomplete="list"
-                      aria-expanded={dropdownOpen}
-                      aria-controls="m404-group-list"
+                      aria-expanded={groupListIsShown(phase, dropdownOpen)}
+                      aria-controls={
+                        groupListIsShown(phase, dropdownOpen) ? "m404-group-list" : undefined
+                      }
                       aria-activedescendant={
                         dropdownOpen && highlight >= 0 && filteredGroups[highlight]
                           ? `m404-group-${filteredGroups[highlight].id}`
@@ -990,13 +1018,18 @@ function App({ onClose }) {
                     </button>
                   </div>
 
-                  {phase === "pick" && dropdownOpen && filteredGroups.length ? (
+                  {groupListIsShown(phase, dropdownOpen) ? (
                     <ul
                       id="m404-group-list"
                       className="group-list"
                       role="listbox"
                       aria-label="Groups"
                     >
+                      {filteredGroups.length ? null : (
+                        <li role="presentation">
+                          <p className="group-empty">{groupListEmptyCopy(groupQuery)}</p>
+                        </li>
+                      )}
                       {filteredGroups.map((g, index) => (
                         <li key={g.id} role="presentation">
                           <button
@@ -1063,6 +1096,10 @@ function App({ onClose }) {
 
                   {phase === "saved" && currentGroupName && outcome.offerNote ? (
                     <p className="current-group">In {currentGroupName}</p>
+                  ) : null}
+
+                  {phase === "saved" && saveRowsToReview(saveItems).length ? (
+                    <SaveTaskRows items={saveItems} />
                   ) : null}
 
                   {phase === "saved" && outcome.detail ? (

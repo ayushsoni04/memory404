@@ -186,7 +186,7 @@ async function saveUrlToApp(url, options = {}) {
 
   if (res.status === 401) {
     await handleAuthFailure(401);
-    throw new Error("Session expired — sign in again");
+    throw new Error("Your session expired. Sign in again.");
   }
 
   // classifyLinkSave is prepended from extension/src/save-outcome.js at build time.
@@ -220,7 +220,7 @@ async function fetchGroupsFromApi() {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     await handleAuthFailure(401);
-    throw new Error("Session expired — sign in again");
+    throw new Error("Your session expired. Sign in again.");
   }
   if (!res.ok) throw new Error(data?.error || "Failed to load groups");
   const groups = Array.isArray(data.groups) ? data.groups : [];
@@ -242,7 +242,7 @@ async function createGroupFromApi(name) {
   const data = await res.json().catch(() => ({}));
   if (res.status === 401) {
     await handleAuthFailure(401);
-    throw new Error("Session expired — sign in again");
+    throw new Error("Your session expired. Sign in again.");
   }
   if (!res.ok) throw new Error(data?.error || "Failed to create group");
   const group = data.group;
@@ -1291,7 +1291,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         );
         if (res.status === 401) {
           await handleAuthFailure(401);
-          sendResponse({ ok: false, error: "Session expired — sign in again" });
+          sendResponse({ ok: false, error: "Your session expired. Sign in again." });
           return;
         }
         if (!res.ok) {

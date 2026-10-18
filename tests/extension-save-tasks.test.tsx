@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { taskRowStartsOpen, taskStatusCopy } from "../extension/src/SaveTaskRows.jsx";
+import {
+  taskRowButtonName,
+  taskRowStartsOpen,
+  taskStatusCopy,
+} from "../extension/src/SaveTaskRows.jsx";
 import { BLOCKED_PAGE_MESSAGE } from "../extension/src/page-url.js";
 
 describe("task status copy", () => {
@@ -24,6 +28,25 @@ describe("task status copy", () => {
       pill: "Completed",
       detail: "Saved",
     });
+  });
+
+  it("names a row by the page and whether its details are open", () => {
+    expect(
+      taskRowButtonName({
+        label: "Pricing",
+        status: "failed",
+        error: "Couldn't save this page.",
+        open: true,
+      }),
+    ).toBe("Pricing. Failed. Hide details");
+    expect(
+      taskRowButtonName({
+        label: "Notes",
+        status: "saved",
+        error: null,
+        open: false,
+      }),
+    ).toBe("Notes. Completed. Show details");
   });
 
   it("opens a skipped row so the reason is on screen", () => {

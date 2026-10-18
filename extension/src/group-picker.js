@@ -18,6 +18,17 @@ export function libraryGroupForTitle(groups, title) {
   return list.find((group) => INBOX_NAMES.has(normalizeGroupQuery(group.name))) ?? null;
 }
 
+/** The line in the group list when nothing can be picked. */
+export function groupListEmptyCopy(query) {
+  const name = String(query ?? "").trim();
+  return name ? `No groups match “${name}”` : "No groups yet";
+}
+
+/** The list is on screen while someone is picking a group and the menu is open. */
+export function groupListIsShown(phase, dropdownOpen) {
+  return phase === "pick" && Boolean(dropdownOpen);
+}
+
 /** Arrow keys through the save panel's group list. Stops at the ends. */
 export function nextGroupHighlight(current, key, count) {
   if (count <= 0) return null;
