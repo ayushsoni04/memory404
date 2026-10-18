@@ -649,6 +649,16 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+#m404-save-root .group-option-name {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #m404-save-root .group-option:hover,
@@ -663,12 +673,15 @@
 }
 
 #m404-save-root .check {
+  flex-shrink: 0;
   color: var(--success);
   font-size: 12px;
 }
 
 #m404-save-root .create-option {
+  display: flex;
   width: 100%;
+  min-width: 0;
   margin-top: 6px;
   border: 1px dashed var(--border-strong);
   border-radius: 8px;
@@ -695,6 +708,9 @@
 
 #m404-save-root .current-group {
   color: var(--subtle);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 #m404-save-root .assign-note {
