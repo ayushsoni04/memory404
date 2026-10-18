@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ForgotPasswordPage from "@/app/forgot-password/page";
 import { EMAIL_INVALID } from "@/lib/auth-email";
+import { AUTH_OFFLINE_MESSAGE } from "@/lib/auth-form-error";
 
 vi.mock("@/components/MorphText", () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -75,8 +76,28 @@ describe("forgot password", () => {
 
     expect(screen.getByRole("alert")).toHaveTextContent(EMAIL_INVALID);
     expect(screen.getByLabelText("Email address")).toHaveAttribute("aria-invalid", "true");
+    expect(screen.getByLabelText("Email address")).toHaveFocus();
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not call a dropped connection an invalid email", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("Failed to fetch");
+      }),
+    );
+
+    render(<ForgotPasswordPage />);
+    const email = screen.getByLabelText("Email address");
+    await user.type(email, "ada@example.com");
+    await user.click(screen.getByRole("button", { name: "Send reset link" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(AUTH_OFFLINE_MESSAGE);
+    expect(email).not.toHaveAttribute("aria-invalid");
+    expect(email).not.toHaveAttribute("aria-describedby", "forgot-email-error");
   });
 
   it("confirms the address without extra spaces", async () => {

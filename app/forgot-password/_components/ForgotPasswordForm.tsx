@@ -17,6 +17,7 @@ import { authFailureMessage } from "@/lib/auth-form-error";
 export function ForgotPasswordForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -27,10 +28,11 @@ export function ForgotPasswordForm() {
     e.preventDefault();
     setError(null);
     if (emailIssue(email)) {
-      setError(EMAIL_INVALID);
+      setEmailError(EMAIL_INVALID);
       emailRef.current?.focus();
       return;
     }
+    setEmailError(null);
     setIsSubmitting(true);
 
     try {
@@ -72,6 +74,7 @@ export function ForgotPasswordForm() {
             type="button"
             onClick={() => {
               setSent(false);
+              setEmailError(null);
               setError(null);
             }}
             className={authQuietControlClass}
@@ -89,19 +92,27 @@ export function ForgotPasswordForm() {
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
+                setEmailError(null);
                 setError(null);
               }}
               placeholder="you@example.com"
               autoComplete="email"
-              aria-invalid={error ? true : undefined}
-              aria-describedby={error ? "forgot-email-error" : undefined}
+              aria-invalid={emailError ? true : undefined}
+              aria-describedby={
+                emailError ? "forgot-email-error" : error ? "forgot-form-error" : undefined
+              }
               className={authFieldClass}
               required
             />
           </label>
 
-          {error ? (
+          {emailError ? (
             <p id="forgot-email-error" className="text-xs text-danger" role="alert">
+              {emailError}
+            </p>
+          ) : null}
+          {error ? (
+            <p id="forgot-form-error" className="text-xs text-danger" role="alert">
               {error}
             </p>
           ) : null}
