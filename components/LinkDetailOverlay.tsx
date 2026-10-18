@@ -16,6 +16,7 @@ import { noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { NoteCount } from "@/components/vault/NoteCount";
 import {
   formatRelativeTime,
+  formatSavedDate,
   googleFaviconUrl,
   linkHostname,
   requiresLoginPlaceholder,
@@ -257,6 +258,8 @@ export default function LinkDetailOverlay({
     broken: boolean;
   } | null>(null);
   const host = linkHostname(link.url);
+  const savedLabel = formatRelativeTime(link.createdAt);
+  const savedDate = formatSavedDate(link.createdAt);
   const previewForLink =
     previewAttempt?.id === link.id && previewAttempt.imageUrl === link.imageUrl
       ? previewAttempt
@@ -776,10 +779,26 @@ export default function LinkDetailOverlay({
                       in {groupName}
                     </span>
                   ) : null}
-                  <span className="text-[12px] text-subtle">
-                    Saved {formatRelativeTime(link.createdAt)}
-                  </span>
+                  {savedLabel ? (
+                    <time
+                      dateTime={link.createdAt}
+                      title={savedDate ?? undefined}
+                      className="text-[12px] text-subtle"
+                    >
+                      Saved {savedLabel}
+                    </time>
+                  ) : null}
                 </div>
+
+                <a
+                  href={link.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  title={link.url}
+                  className={`mt-3 block break-all text-[12px] leading-snug text-subtle line-clamp-2 underline-offset-2 hover:text-foreground hover:underline ${overlayFocus}`}
+                >
+                  {link.url}
+                </a>
 
                 {link.description ? (
                   <p className="mt-4 text-[15px] leading-relaxed text-muted">
