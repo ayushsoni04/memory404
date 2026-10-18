@@ -9,7 +9,14 @@ export function GroupOptionName({ name }) {
   );
 }
 
-export function CreateGroupOption({ name, onMouseDown, onClick }) {
+/**
+ * @param {{
+ *   name: string,
+ *   onMouseDown?: (event: { preventDefault: () => void }) => void,
+ *   onClick: () => void,
+ * }} props
+ */
+export function CreateGroupOption({ name, onMouseDown = () => {}, onClick }) {
   return (
     <button
       type="button"

@@ -27,7 +27,11 @@ describe("extension group names", () => {
     const onClick = vi.fn();
     render(
       <>
-        <CreateGroupOption name={longName} onClick={onClick} />
+        <CreateGroupOption
+          name={longName}
+          onMouseDown={(event: { preventDefault: () => void }) => event.preventDefault()}
+          onClick={onClick}
+        />
         <CurrentGroupLine name={longName} />
       </>,
     );
