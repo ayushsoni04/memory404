@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Command, CommandGroup, CommandItem, CommandList } from "cmdk";
 import { X } from "lucide-react";
+import { groupSearchEscapeAction } from "@/lib/search-group";
 
 type Props = {
   value: string;
@@ -52,10 +53,16 @@ export default function GroupSearchCommand({
           onValueChange={onChange}
           onFocus={() => setOpen(true)}
           onKeyDown={(e) => {
-            if (e.key === "Escape") setOpen(false);
+            if (e.key !== "Escape") return;
+            const action = groupSearchEscapeAction(value, open);
+            if (action === "ignore") return;
+            e.preventDefault();
+            e.stopPropagation();
+            if (action === "clear") onChange("");
+            setOpen(false);
           }}
           placeholder={placeholder}
-          className="h-7 w-full rounded-full border border-border bg-surface ps-3 pe-6 text-[13px] text-foreground outline-none transition-[border-color,box-shadow] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]"
+          className="h-7 w-full rounded-full border border-border bg-surface ps-3 pe-8 text-[13px] text-foreground outline-none transition-[border-color,box-shadow] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]"
         />
         {value ? (
           <button
@@ -65,7 +72,7 @@ export default function GroupSearchCommand({
               setOpen(false);
             }}
             aria-label="Clear search"
-            className="absolute right-1.5 flex size-4 items-center justify-center rounded-full bg-pill text-muted transition-[transform,background-color,color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)]"
+            className="absolute right-0.5 flex size-6 items-center justify-center rounded-full bg-pill text-muted transition-[transform,background-color,color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)]"
           >
             <X className="size-2.5" strokeWidth={3} />
           </button>

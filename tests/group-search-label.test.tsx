@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import GroupSearchCommand from "@/components/vault/GroupSearchCommand";
 
 afterEach(() => {
@@ -21,5 +21,25 @@ describe("group search field", () => {
     );
 
     expect(screen.getByRole("combobox", { name: "Search groups" })).toBeInTheDocument();
+  });
+
+  it("clears a typed name from Escape and keeps the clear control easy to tap", () => {
+    const onChange = vi.fn();
+    render(
+      <GroupSearchCommand
+        value="read"
+        onChange={onChange}
+        groups={[{ id: "reading", name: "Reading" }]}
+        onSelectGroup={() => {}}
+        placeholder="Search groups"
+      />,
+    );
+
+    const clear = screen.getByRole("button", { name: "Clear search" });
+    expect(clear.className).toContain("size-6");
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Search groups" }), {
+      key: "Escape",
+    });
+    expect(onChange).toHaveBeenCalledWith("");
   });
 });
