@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { matchingPalettePages, palettePagesForUser } from "@/lib/palette-pages";
+import {
+  matchingPalettePages,
+  paletteMissCopy,
+  palettePagesForUser,
+} from "@/lib/palette-pages";
 
 describe("matchingPalettePages", () => {
   const member = palettePagesForUser(false);
@@ -25,6 +29,12 @@ describe("matchingPalettePages", () => {
     expect(matchingPalettePages("set", owner).map((page) => page.href)).toEqual([
       "/settings",
     ]);
+  });
+
+  it("tells a miss to try part of the link", () => {
+    expect(paletteMissCopy("  side-project  ")).toBe(
+      "No matches for “side-project”. Try a title, a note, or part of the link.",
+    );
   });
 
   it("hides every page when the query is a link or a title", () => {

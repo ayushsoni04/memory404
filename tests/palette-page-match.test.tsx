@@ -69,10 +69,13 @@ describe("command palette pages", () => {
     fireEvent.change(screen.getByPlaceholderText(/Search links/), {
       target: { value: "zzzz-not-a-page" },
     });
-    expect(await screen.findByText(/No matches for/)).toBeInTheDocument();
+    expect(await screen.findByText(/part of the link/)).toBeInTheDocument();
     expect(screen.queryByText("Settings")).not.toBeInTheDocument();
     expect(screen.queryByText("Trash")).not.toBeInTheDocument();
     expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    expect(await screen.findByText("Settings")).toBeInTheDocument();
+    expect(screen.queryByText(/part of the link/)).not.toBeInTheDocument();
   });
 
   it("keeps Trash when the query is the page name", async () => {

@@ -22,6 +22,14 @@ export function palettePagesForUser(isOwner: boolean): PalettePage[] {
  * A query keeps only pages whose name contains it, so a link search
  * does not list Settings and Trash underneath "no matches".
  */
+/**
+ * What to say when a search matches nothing.
+ * A partial link is enough; the field does not need a full address.
+ */
+export function paletteMissCopy(query: string): string {
+  return `No matches for “${query.trim()}”. Try a title, a note, or part of the link.`;
+}
+
 export function matchingPalettePages(
   query: string,
   pages: readonly PalettePage[],
