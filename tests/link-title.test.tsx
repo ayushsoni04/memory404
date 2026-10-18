@@ -144,6 +144,49 @@ describe("LinkTitleEditor", () => {
     );
   });
 
+  it("keeps a long name inside the panel", () => {
+    const title = "A".repeat(80);
+    render(
+      <LinkTitleEditor
+        link={{ ...sample(), title, displayTitle: title }}
+      />,
+    );
+    const heading = screen.getByRole("heading", { name: title });
+    expect(heading.className).toContain("break-words");
+    expect(heading).toHaveAttribute("title", title);
+  });
+
+  it("returns focus to Rename when the editor closes", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: true,
+        json: async () => ({
+          link: { ...sample(), customTitle: "Launch notes", displayTitle: "Launch notes" },
+        }),
+      })),
+    );
+
+    render(<LinkTitleEditor link={sample()} />);
+    const rename = screen.getByRole("button", { name: "Rename" });
+
+    await user.click(rename);
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.getByRole("button", { name: "Rename" })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    await user.keyboard("{Escape}");
+    expect(screen.getByRole("button", { name: "Rename" })).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "Rename" }));
+    const field = screen.getByLabelText("Name");
+    await user.clear(field);
+    await user.type(field, "Launch notes");
+    await user.click(screen.getByRole("button", { name: "Save name" }));
+    expect(await screen.findByRole("button", { name: "Rename" })).toHaveFocus();
+  });
+
   it("leaves the name alone when Escape cancels", async () => {
     const user = userEvent.setup();
     const fetchMock = vi.fn();

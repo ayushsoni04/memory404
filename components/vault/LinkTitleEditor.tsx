@@ -20,6 +20,8 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const renameRef = useRef<HTMLButtonElement | null>(null);
+  const returnFocusRef = useRef(false);
 
   useEffect(() => {
     if (!editing) return;
@@ -27,10 +29,21 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
     inputRef.current?.select();
   }, [editing]);
 
+  useEffect(() => {
+    if (editing || !returnFocusRef.current) return;
+    returnFocusRef.current = false;
+    renameRef.current?.focus();
+  }, [editing]);
+
+  const closeEditor = () => {
+    returnFocusRef.current = true;
+    setEditing(false);
+  };
+
   const cancel = () => {
     setDraft(link.displayTitle);
     setError(null);
-    setEditing(false);
+    closeEditor();
   };
 
   const save = async () => {
@@ -43,7 +56,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
     const unchanged = next ? next === link.displayTitle : link.customTitle == null;
     if (unchanged) {
       setError(null);
-      setEditing(false);
+      closeEditor();
       return;
     }
 
@@ -68,7 +81,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
         return;
       }
       onSaved?.(data.link as LinkApiRow);
-      setEditing(false);
+      closeEditor();
     } catch (error: unknown) {
       const raw = error instanceof Error ? error.message : "";
       setError(explainLoadError(raw) ?? "Could not rename the link. Try again.");
@@ -82,11 +95,13 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
       <div className="flex items-start justify-between gap-3">
         <h2
           id="link-detail-title"
-          className="min-w-0 font-departure text-[22px] leading-tight font-semibold tracking-wide text-foreground uppercase"
+          title={link.displayTitle}
+          className="min-w-0 break-words font-departure text-[22px] leading-tight font-semibold tracking-wide text-foreground uppercase"
         >
           {link.displayTitle}
         </h2>
         <button
+          ref={renameRef}
           type="button"
           onClick={() => {
             setDraft(link.displayTitle);
