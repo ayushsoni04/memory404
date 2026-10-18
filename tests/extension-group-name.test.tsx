@@ -56,7 +56,7 @@ describe("extension group names", () => {
     expect(css).toContain(".group-option-name");
     expect(css).toContain("text-overflow: ellipsis");
     expect(readFileSync("extension/public/static/manifest.json", "utf8")).toContain(
-      '"version": "0.2.20"',
+      '"version": "0.2.21"',
     );
   });
 });

@@ -42,7 +42,7 @@ export default function LoadingState({
   const { delays, dur, round } = PATTERNS[variant] ?? PATTERNS.Drive;
 
   return (
-    <div className="loading-state" role="status" aria-live="polite">
+    <div className="loading-state">
       <span aria-hidden className="loading-state-grid">
         {delays.map((d, i) => (
           <span
@@ -58,8 +58,12 @@ export default function LoadingState({
           />
         ))}
       </span>
-      <span className="loading-state-label">{label}</span>
-      <span className="loading-state-elapsed">{elapsed}</span>
+      <span className="loading-state-label" role="status">
+        {label}
+      </span>
+      <span className="loading-state-elapsed" aria-hidden="true">
+        {elapsed}
+      </span>
     </div>
   );
 }
