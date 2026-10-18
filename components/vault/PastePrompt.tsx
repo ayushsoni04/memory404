@@ -8,7 +8,7 @@ import MorphText from "@/components/MorphText";
 import { ExtensionInstallCard } from "@/components/ExtensionInstallCard";
 import { LINK_URL_HINT, linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
 import { saveFailureMessage } from "@/lib/save-failure";
-import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
 import { NoteCount } from "./NoteCount";
 import { applyShellStroke, clearShellStroke } from "@/lib/card-vicinity-stroke";
@@ -192,7 +192,7 @@ export default function PastePrompt({
                 className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
               >
                 <MorphText duration={220}>
-                  {notes.trim() ? "Save Notes" : "Done"}
+                  {notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
                 </MorphText>
               </button>
               {error ? (

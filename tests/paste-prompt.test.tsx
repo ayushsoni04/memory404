@@ -139,7 +139,7 @@ describe("PastePrompt empty states", () => {
 
     const notes = await screen.findByLabelText("Notes");
     fireEvent.change(notes, { target: { value: "Remember the pricing section." } });
-    fireEvent.click(screen.getByRole("button", { name: "Save Notes" }));
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save the note");
     expect(screen.getByLabelText("Notes")).toHaveValue("Remember the pricing section.");

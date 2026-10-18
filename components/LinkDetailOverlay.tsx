@@ -12,7 +12,7 @@ import {
 import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
-import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { NoteCount } from "@/components/vault/NoteCount";
 import {
   formatRelativeTime,
@@ -175,7 +175,7 @@ const NoteEditor = forwardRef<
           disabled={saving || Boolean(noteIssue(draft))}
           className={`mt-2 inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 ${overlayFocus}`}
         >
-          {saving ? "Saving…" : "Save note"}
+          {saving ? "Saving…" : SAVE_NOTE_LABEL}
         </button>
       ) : null}
       {error ? (

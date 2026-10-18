@@ -15,7 +15,7 @@ import {
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { groupNameDraftIssue } from "@/lib/group-name";
 import { explainLoadError } from "@/lib/load-error";
-import { noteCountLabel, noteIssue } from "@/lib/note-limit";
+import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { withInboxInGroupSearch } from "@/lib/search-group";
 import { GridSizeControl } from "./GridSizeControl";
 import { NoteCount } from "./NoteCount";
@@ -166,7 +166,7 @@ export default function VaultSidebar({
                       className={`inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer disabled:opacity-50 ${controlPress}`}
                     >
                       <MorphText duration={220}>
-                        {sidebarNotesText.trim() ? "Save Notes" : "Done"}
+                        {sidebarNotesText.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
                       </MorphText>
                     </button>
                   </div>
