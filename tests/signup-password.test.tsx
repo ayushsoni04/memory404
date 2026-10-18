@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { act, cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SignupForm } from "@/app/signup/_components/SignupForm";
@@ -131,5 +131,30 @@ describe("SignupForm", () => {
         body: expect.stringContaining('"password":"Memory404"'),
       }),
     );
+  });
+
+  it("warns about Caps Lock on the password field that is focused", async () => {
+    const user = userEvent.setup();
+    render(<SignupForm />);
+
+    const setCapsLock = (on: boolean) => {
+      act(() => {
+        const event = new KeyboardEvent("keyup", { key: "a", bubbles: true });
+        Object.defineProperty(event, "getModifierState", {
+          value: (key: string) => key === "CapsLock" && on,
+        });
+        window.dispatchEvent(event);
+      });
+    };
+
+    await user.click(screen.getByLabelText("Password"));
+    setCapsLock(true);
+    expect(screen.getByRole("status")).toHaveTextContent("Caps Lock is on.");
+
+    await user.click(screen.getByLabelText("Confirm password"));
+    expect(screen.getByRole("status")).toHaveTextContent("Caps Lock is on.");
+
+    await user.click(screen.getByLabelText("Email address"));
+    expect(screen.queryByText("Caps Lock is on.")).not.toBeInTheDocument();
   });
 });

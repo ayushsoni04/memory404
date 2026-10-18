@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
+import { CapsLockHint } from "@/components/auth/CapsLockHint";
 import {
   authFieldClass,
   authLinkClass,
@@ -31,6 +32,8 @@ export function SignupForm() {
   const [confirm, setConfirm] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [passwordFocused, setPasswordFocused] = useState(false);
+  const [confirmFocused, setConfirmFocused] = useState(false);
   const [attempted, setAttempted] = useState(false);
   const [leadSource, setLeadSource] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -148,6 +151,8 @@ export function SignupForm() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
               autoComplete="new-password"
+              onFocus={() => setPasswordFocused(true)}
+              onBlur={() => setPasswordFocused(false)}
               aria-invalid={passwordError ? true : undefined}
               aria-describedby={
                 passwordError
@@ -169,6 +174,7 @@ export function SignupForm() {
           <p id="signup-password-hint" className="text-[10px] text-subtle">
             {PASSWORD_HINT}
           </p>
+          <CapsLockHint active={passwordFocused} />
           {passwordError ? (
             <p id="signup-password-error" className="text-xs text-danger" role="alert">
               {passwordError}
@@ -188,6 +194,8 @@ export function SignupForm() {
               onChange={(e) => setConfirm(e.target.value)}
               placeholder="••••••••"
               autoComplete="new-password"
+              onFocus={() => setConfirmFocused(true)}
+              onBlur={() => setConfirmFocused(false)}
               aria-invalid={confirmError ? true : undefined}
               aria-describedby={confirmError ? "signup-password-confirm-error" : undefined}
               className={authPasswordFieldClass}
@@ -206,6 +214,7 @@ export function SignupForm() {
               {confirmError}
             </p>
           ) : null}
+          <CapsLockHint active={confirmFocused} />
         </div>
 
         <label className="block space-y-1.5">
