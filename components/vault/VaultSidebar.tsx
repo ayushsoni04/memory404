@@ -142,9 +142,11 @@ export default function VaultSidebar({
               <form onSubmit={handleSubmit} className="flex flex-col gap-2">
                 {sidebarShowNotesForm ? (
                   <div className="flex flex-col gap-2 p-1">
-                    <span className="text-[11px] text-muted">Add a note</span>
+                    <label htmlFor="sidebar-save-note" className="text-[11px] text-muted">
+                      Add a note
+                    </label>
                     <textarea
-                      aria-label="Notes"
+                      id="sidebar-save-note"
                       value={sidebarNotesText}
                       onChange={(e) => setSidebarNotesText(e.target.value)}
                       placeholder="What should you remember?"

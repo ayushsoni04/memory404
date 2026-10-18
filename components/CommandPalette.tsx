@@ -262,7 +262,6 @@ export default function CommandPalette({
           <textarea
             ref={noteRef}
             id="palette-save-note"
-            aria-label="Notes"
             value={note}
             rows={2}
             placeholder="What should you remember?"

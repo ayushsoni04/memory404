@@ -44,7 +44,7 @@ async function saveExample() {
     target: { value: "https://example.com" },
   });
   fireEvent.click(screen.getByRole("button", { name: "Save" }));
-  return screen.findByRole("textbox", { name: "Notes" }, { timeout: 1500 });
+  return screen.findByRole("textbox", { name: "Add a note" }, { timeout: 1500 });
 }
 
 describe("AddLinkCard focus", () => {
@@ -139,7 +139,7 @@ describe("AddLinkCard focus", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't save the note. Try again.");
-    expect(screen.getByRole("textbox", { name: "Notes" })).toHaveValue("remember");
+    expect(screen.getByRole("textbox", { name: "Add a note" })).toHaveValue("remember");
     expect(screen.getByRole("button", { name: "Add link", hidden: true })).not.toHaveFocus();
   });
 });
