@@ -7,7 +7,7 @@ import PermanentDeleteConfirm from "@/app/trash/PermanentDeleteConfirm";
 import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
 import type { PermanentDelete } from "@/app/trash/permanent-delete";
 import { apiUrl } from "@/lib/api-base";
-import { explainLoadError } from "@/lib/load-error";
+import { trashActionMessage, trashLoadHint, trashLoadMessage } from "@/lib/trash-messages";
 
 export default function TrashPage() {
   const [items, setItems] = useState<TrashApiItem[]>([]);
@@ -26,11 +26,15 @@ export default function TrashPage() {
     setLoadError(null);
     try {
       const res = await fetch(apiUrl("/api/trash"));
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Failed");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const raw = typeof data.error === "string" ? data.error : "Failed";
+        throw new Error(raw);
+      }
       setItems(data.items ?? []);
     } catch (error: unknown) {
-      setLoadError(error instanceof Error ? error.message : "Failed to load trash");
+      const raw = error instanceof Error ? error.message : "";
+      setLoadError(trashLoadMessage(raw));
     } finally {
       setLoading(false);
     }
@@ -58,15 +62,13 @@ export default function TrashPage() {
       const res = await fetch(apiUrl(path), { method });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const raw = typeof data.error === "string" ? data.error : "Request failed";
-        setActionError(explainLoadError(raw) ?? raw);
+        setActionError(trashActionMessage(data));
         return false;
       }
       setActionError(null);
       return true;
-    } catch (error: unknown) {
-      const raw = error instanceof Error ? error.message : "";
-      setActionError(explainLoadError(raw) ?? explainLoadError("Failed to fetch"));
+    } catch {
+      setActionError(trashActionMessage(null, true));
       return false;
     }
   };
@@ -192,10 +194,8 @@ export default function TrashPage() {
             className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
             role="alert"
           >
-            <p className="text-sm text-danger">{explainLoadError(loadError)}</p>
-            <p className="text-[13px] text-subtle">
-              Check your connection, then try again.
-            </p>
+            <p className="text-sm text-danger">{loadError}</p>
+            <p className="text-[13px] text-subtle">{trashLoadHint(loadError)}</p>
             <button
               type="button"
               onClick={() => void loadTrash()}
