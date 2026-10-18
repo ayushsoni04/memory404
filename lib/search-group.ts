@@ -1,3 +1,4 @@
+import { clipLabel } from "@/lib/clip-label";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { groupsMatchingQuery } from "@/lib/group-query";
 
@@ -60,6 +61,11 @@ export function searchResultGroupLabel(
   if (!name) return null;
   if (INBOX_NAMES.has(name.toLowerCase())) return "All";
   return name;
+}
+
+/** The empty group-search line, shortened when the query is a pasted address. */
+export function groupSearchMiss(query: string): string {
+  return `No groups match “${clipLabel(query)}”`;
 }
 
 /**

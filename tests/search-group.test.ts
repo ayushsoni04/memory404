@@ -4,6 +4,7 @@ import {
   libraryGroupLabel,
   searchResultGroupLabel,
   groupSearchEscapeAction,
+  groupSearchMiss,
   withInboxInGroupSearch,
 } from "@/lib/search-group";
 
@@ -81,6 +82,17 @@ describe("searchResultGroupLabel", () => {
   it("stays quiet when the group is missing or unnamed", () => {
     expect(searchResultGroupLabel("missing", groups)).toBeNull();
     expect(searchResultGroupLabel("blank", groups)).toBeNull();
+  });
+});
+
+describe("groupSearchMiss", () => {
+  it("keeps a short name and shortens a pasted address", () => {
+    expect(groupSearchMiss("  read  ")).toBe("No groups match “read”");
+    const address = `https://example.com/${"a".repeat(80)}`;
+    const copy = groupSearchMiss(address);
+    expect(copy.startsWith("No groups match “https://example.com/")).toBe(true);
+    expect(copy.endsWith("…”")).toBe(true);
+    expect(copy.length).toBeLessThan(address.length);
   });
 });
 

@@ -391,10 +391,10 @@ export default function CommandPalette({
                   onSelectGroup(g.id);
                   closePalette();
                 }}
-                className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+                className="flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
               >
-                <Folder className="size-3.5 text-muted" strokeWidth={2} />
-                {g.name}
+                <Folder className="size-3.5 shrink-0 text-muted" strokeWidth={2} />
+                <span className="min-w-0 truncate">{g.name}</span>
               </CommandItem>
             ))}
           </CommandGroup>
