@@ -130,6 +130,51 @@ describe("link detail keyboard", () => {
     fireEvent.keyDown(close, { key: "ArrowRight" });
     expect(onNext).toHaveBeenCalledOnce();
   });
+
+  it("leaves focus where it is when the next link opens", () => {
+    vi.stubGlobal("matchMedia", () => ({
+      matches: true,
+      media: "",
+      addEventListener: () => {},
+      removeEventListener: () => {},
+      addListener: () => {},
+      removeListener: () => {},
+      dispatchEvent: () => false,
+    }));
+
+    function Pager() {
+      const [index, setIndex] = useState(0);
+      const titles = ["Pricing page", "Docs"];
+      const link = sampleLink(index === 0 ? "link-1" : "link-2", titles[index]);
+      return (
+        <LinkDetailOverlay
+          link={link}
+          groupName="References"
+          groups={[{ id: "references", name: "References" }]}
+          originRect={null}
+          onClose={() => {}}
+          onPrev={() => setIndex(0)}
+          onNext={() => setIndex(1)}
+          onDelete={() => {}}
+          onMove={() => {}}
+          hasPrev={index === 1}
+          hasNext={index === 0}
+        />
+      );
+    }
+
+    render(<Pager />);
+    expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+
+    const next = screen.getByRole("button", { name: "Next" });
+    next.focus();
+    fireEvent.keyDown(next, { key: "ArrowRight" });
+
+    expect(screen.getByRole("heading", { name: "Docs" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).not.toHaveFocus();
+    expect(document.body.style.overflow).toBe("hidden");
+  });
 });
 
 function FocusHarness() {
