@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
 import MorphText from "@/components/MorphText";
-import { LINK_URL_HINT, linkUrlDraftIssue, type LinkApiRow } from "@/lib/links";
+import { linkUrlDraftIssue, linkUrlIssue, type LinkApiRow } from "@/lib/links";
 import { saveFailureMessage } from "@/lib/save-failure";
 import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
 import { saveLinkNote } from "@/lib/save-link-note";
@@ -85,8 +85,10 @@ export default function AddLinkCard({
 
   const submit = async () => {
     const trimmed = url.trim();
-    if (!trimmed) {
-      setError(LINK_URL_HINT);
+    const issue = linkUrlIssue(trimmed);
+    if (issue) {
+      setError(issue);
+      inputRef.current?.focus();
       return;
     }
     if (!groupId) {
@@ -198,7 +200,7 @@ export default function AddLinkCard({
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
-                  disabled={!url.trim() || !groupId}
+                  disabled={!url.trim() || !groupId || Boolean(linkUrlDraftIssue(url))}
                   tabIndex={phase === "form" ? 0 : -1}
                   className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-45 ${controlPress}`}
                 >
