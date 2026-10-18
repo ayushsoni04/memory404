@@ -3,7 +3,7 @@ import "@testing-library/jest-dom/vitest";
 import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { TrashGroupItem, TrashLinkItem } from "@/app/api/trash/route";
-import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
+import { TrashGroupRow, TrashLinkRow, trashRowActionName } from "@/app/trash/TrashRows";
 
 vi.mock("next/image", () => ({
   default: (props: { alt: string }) => <span role="img" aria-label={props.alt} />,
@@ -36,9 +36,17 @@ const group: TrashGroupItem = {
   daysLeft: 0,
 };
 
-function actionsFor(label: string) {
-  return screen.getByRole("button", { name: label }).parentElement;
+function actionsFor(name: RegExp) {
+  return screen.getByRole("button", { name }).parentElement;
 }
+
+describe("trash row action names", () => {
+  it("names the item, and falls back when the title is blank", () => {
+    expect(trashRowActionName("restore", "Pricing")).toBe("Restore Pricing");
+    expect(trashRowActionName("delete", "Pricing")).toBe("Delete Pricing forever");
+    expect(trashRowActionName("restore", "  ")).toBe("Restore this item");
+  });
+});
 
 describe("trash rows on a narrow screen", () => {
   it("keeps link actions on their own row and wraps a long title", () => {
@@ -51,14 +59,21 @@ describe("trash rows on a narrow screen", () => {
     expect(title.className).toContain("line-clamp-2");
     expect(screen.getByText(/in Reading/)).toBeInTheDocument();
 
-    const actions = actionsFor("Restore");
+    const actions = actionsFor(/^Restore /);
     expect(actions).toHaveClass("opacity-100", "sm:opacity-0");
     expect(actions?.parentElement?.parentElement?.className).toContain("flex-col");
     expect(actions?.parentElement?.parentElement?.className).toContain("sm:flex-row");
-    expect(screen.getByRole("button", { name: "Restore" }).className).toContain(
-      "focus-visible:ring-2",
-    );
-    expect(screen.getByRole("button", { name: "Delete Now" })).toBeInTheDocument();
+    const restore = screen.getByRole("button", {
+      name: trashRowActionName("restore", link.displayTitle),
+    });
+    expect(restore.className).toContain("focus-visible:ring-2");
+    expect(restore.className).toContain("min-h-6");
+    expect(
+      screen.getByRole("button", {
+        name: trashRowActionName("delete", link.displayTitle),
+      }).className,
+    ).toContain("min-h-6");
+    expect(screen.queryByRole("button", { name: "Delete Now" })).not.toBeInTheDocument();
   });
 
   it("stacks group actions the same way and says when trash expires today", () => {
@@ -67,7 +82,8 @@ describe("trash rows on a narrow screen", () => {
     );
     expect(screen.getByText("1 link inside")).toBeInTheDocument();
     expect(screen.getByText("Expires today")).toBeInTheDocument();
-    expect(actionsFor("Delete Now")).toHaveClass("sm:opacity-0");
+    expect(actionsFor(/^Delete Reading forever$/)).toHaveClass("sm:opacity-0");
+    expect(screen.getByRole("button", { name: "Restore Reading" })).toBeInTheDocument();
   });
 
   it("calls a trashed inbox group All", () => {
@@ -81,6 +97,8 @@ describe("trash rows on a narrow screen", () => {
     );
     expect(screen.getByText("All")).toBeInTheDocument();
     expect(screen.queryByText("General")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Restore All" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Delete All forever" })).toBeInTheDocument();
   });
 
   it("calls the inbox All, the same label the library uses", () => {
