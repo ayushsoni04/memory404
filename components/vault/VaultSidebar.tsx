@@ -215,11 +215,18 @@ export default function VaultSidebar({
                       >
                         {urlInput}
                       </p>
-                      <p className="text-center text-[13px] font-medium text-foreground">
+                      <p
+                        id="save-place-prompt"
+                        className="text-center text-[13px] font-medium text-foreground"
+                      >
                         Where do you want to save it?
                       </p>
                     </div>
-                    <div className="flex max-h-36 flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                    <div
+                      role="group"
+                      aria-labelledby="save-place-prompt"
+                      className="flex max-h-36 flex-col gap-2 overflow-y-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+                    >
                       {groups.map((g) => {
                         const isGeneral =
                           g.name.trim().toLowerCase() ===
@@ -231,12 +238,13 @@ export default function VaultSidebar({
                           <button
                             key={g.id}
                             type="button"
+                            aria-pressed={active}
                             onClick={() => {
                               setCreatingNewGroup(false);
                               setNewGroupNameDraft("");
                               setPlaceGroupId(g.id);
                             }}
-                            className={`rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
+                            className={`min-h-6 rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
                               active
                                 ? "bg-pill-active text-pill-active-fg"
                                 : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
@@ -248,11 +256,12 @@ export default function VaultSidebar({
                       })}
                       <button
                         type="button"
+                        aria-pressed={creatingNewGroup}
                         onClick={() => {
                           setCreatingNewGroup(true);
                           setPlaceGroupId(null);
                         }}
-                        className={`rounded-lg border border-dashed px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
+                        className={`min-h-6 rounded-lg border border-dashed px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
                           creatingNewGroup
                             ? "border-foreground/40 bg-surface text-foreground"
                             : "border-muted/50 bg-transparent text-muted hover:border-foreground/35 hover:text-foreground"
