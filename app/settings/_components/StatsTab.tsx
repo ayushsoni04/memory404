@@ -13,6 +13,7 @@ import {
   STATS_GROUP_CAPTION,
   STATS_GROUPS_LABEL,
   STATS_LINK_CAPTION,
+  statsLoadHint,
 } from "@/lib/stats-scope";
 import { explainLoadError } from "@/lib/load-error";
 import { ActivityGrid } from "./ActivityGrid";
@@ -74,15 +75,14 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
   }, [loadStats]);
 
   if (!loadingStats && statsError) {
+    const message = explainLoadError(statsError) ?? "Could not load statistics";
     return (
       <div
         className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
         role="alert"
       >
-        <p className="text-sm text-danger">{explainLoadError(statsError)}</p>
-        <p className="text-[13px] text-subtle">
-          Your saved links are still in the library.
-        </p>
+        <p className="text-sm text-danger">{message}</p>
+        <p className="text-[13px] text-subtle">{statsLoadHint(message)}</p>
         <button
           type="button"
           onClick={() => void loadStats()}

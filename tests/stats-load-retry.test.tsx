@@ -51,4 +51,21 @@ describe("statistics load", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("tells you to sign in again when the session is dead", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      }),
+    );
+
+    render(<StatsTab bannerStyle="midnight" />);
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Your session expired. Sign in again.");
+    expect(alert).toHaveTextContent("Sign in, then open Stats again.");
+    expect(screen.queryByText("Your saved links are still in the library.")).not.toBeInTheDocument();
+  });
 });
