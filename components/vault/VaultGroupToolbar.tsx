@@ -267,6 +267,19 @@ export default function VaultGroupToolbar({
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
+  const refreshLock = useRef(false);
+  const refreshLibrary = () => {
+    if (refreshLock.current) return;
+    refreshLock.current = true;
+    setRefreshing(true);
+    playUiSound("loading");
+    void Promise.all([loadGroups(), loadLinks?.()]).finally(() => {
+      window.setTimeout(() => {
+        refreshLock.current = false;
+        setRefreshing(false);
+      }, 400);
+    });
+  };
   const pillIds = groupPillIds(filteredFolders.map((group) => group.id));
   const currentPill = activeGroupPill(openedGroupId, pillIds);
   const onPillKeyDown = (
@@ -583,19 +596,15 @@ export default function VaultGroupToolbar({
         <SortPill sortBy={sortBy} setSortByAndPersist={setSortByAndPersist} />
         <button
           type="button"
-          onClick={() => {
-            setRefreshing(true);
-            playUiSound("loading");
-            void Promise.all([loadGroups(), loadLinks?.()]).finally(() => {
-              window.setTimeout(() => setRefreshing(false), 400);
-            });
-          }}
+          onClick={refreshLibrary}
+          disabled={refreshing}
+          aria-busy={refreshing || undefined}
           aria-label="Refresh"
           title="Refresh"
-          className={`${pillIdle} justify-center px-2.5`}
+          className={`${pillIdle} justify-center px-2.5 disabled:opacity-60`}
         >
           <RotateCw
-            className={`size-3.5 -scale-x-100 transition-transform duration-500 ease-out ${
+            className={`size-3.5 -scale-x-100 transition-transform duration-500 ease-out motion-reduce:animate-none ${
               refreshing ? "animate-spin" : ""
             }`}
             strokeWidth={2}
