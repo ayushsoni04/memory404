@@ -21,6 +21,7 @@ test("link search applies escaped case-insensitive filters to every field", () =
       { description: { $regex: "docs\\.\\*", $options: "i" } },
       { url: { $regex: "docs\\.\\*", $options: "i" } },
       { notes: { $regex: "docs\\.\\*", $options: "i" } },
+      { tags: { $regex: "docs\\.\\*", $options: "i" } },
     ],
   });
 });

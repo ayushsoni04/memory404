@@ -35,6 +35,7 @@ export function linkTextSearchWhere(query: string): Filter<LinkDocument> {
       { description: contains },
       { url: contains },
       { notes: contains },
+      { tags: contains },
     ],
   };
 }
