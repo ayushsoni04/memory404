@@ -156,7 +156,7 @@ export default function TrashPage() {
       <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4">
           <div className="flex items-center gap-3">
-            <Link href="/" aria-label="Back to vault" className="flex items-center justify-center size-8 rounded-lg hover:bg-surface transition-colors text-muted hover:text-foreground">
+            <Link href="/" aria-label="Back to vault" className="flex size-11 items-center justify-center rounded-lg text-muted transition-colors hover:bg-surface hover:text-foreground sm:size-8">
               <svg viewBox="0 0 20 20" fill="currentColor" className="size-4">
                 <path fillRule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clipRule="evenodd" />
               </svg>
@@ -176,7 +176,7 @@ export default function TrashPage() {
               type="button"
               onClick={() => askPermanentDelete({ kind: "empty", count: items.length })}
               disabled={emptying || actionBusy}
-              className="rounded-xl bg-red-500/10 border border-red-500/20 px-3.5 py-2 text-[13px] font-medium text-red-400 hover:bg-red-500/20 transition-colors disabled:opacity-50"
+              className="inline-flex min-h-11 items-center rounded-xl border border-red-500/20 bg-red-500/10 px-3.5 py-2 text-[13px] font-medium text-red-400 transition-colors hover:bg-red-500/20 disabled:opacity-50 sm:min-h-8"
             >
               {emptying ? "Emptying…" : "Empty Trash"}
             </button>
