@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiUrl } from "@/lib/api-base";
 import type { LinkApiRow } from "@/lib/links";
 import { playUiSound } from "@/lib/ui-sound";
+import { detailReturnFocusId } from "./detail-focus";
 import { copyTextToClipboard } from "./link-utils";
 import { cacheAfterMove, linkStaysInOpenGroup } from "./move-link";
 import { writeLinksCacheToStorage } from "./storage";
@@ -134,8 +135,7 @@ export function useLinkActions({
 
   const openLinkDetail = useCallback(
     (link: LinkApiRow, originEl: HTMLElement) => {
-      const card = originEl.closest<HTMLElement>("[data-feed-card]");
-      returnFocusId.current = card?.id ?? null;
+      returnFocusId.current = detailReturnFocusId(originEl, link.id);
       setOverlayOrigin(originEl.getBoundingClientRect());
       setOpenedLink(link);
     },

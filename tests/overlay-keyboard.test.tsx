@@ -165,6 +165,45 @@ function FocusHarness() {
   );
 }
 
+function SearchFocusHarness({ showCard }: { showCard: boolean }) {
+  const first = sampleLink("link-1", "Pricing page");
+  const [links, setLinks] = useState([first]);
+  const actions = useLinkActions({
+    links,
+    setLinks,
+    openedGroupId: "references",
+    setLinksCache: () => {},
+    removeLinkFromPages: () => {},
+    replaceLinkInPages: () => {},
+    prependLinkToPages: () => {},
+    sortedLinks: links,
+  });
+
+  return (
+    <div>
+      <main id="vault-feed" tabIndex={-1}>
+        Library
+      </main>
+      {showCard ? (
+        <button type="button" id="feed-card-link-1" data-feed-card="">
+          Pricing page
+        </button>
+      ) : null}
+      <button
+        type="button"
+        onClick={(event) => actions.openLinkDetail(first, event.currentTarget)}
+      >
+        Open from search
+      </button>
+      {actions.openedLink ? (
+        <button type="button" onClick={actions.closeLinkDetail}>
+          Close detail
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 describe("closing a link returns focus", () => {
   it("focuses the card that opened the detail", () => {
     render(<FocusHarness />);
@@ -172,5 +211,20 @@ describe("closing a link returns focus", () => {
     fireEvent.click(card);
     fireEvent.click(screen.getByRole("button", { name: "Close detail" }));
     expect(card).toHaveFocus();
+  });
+
+  it("focuses that card when search opened the link", () => {
+    render(<SearchFocusHarness showCard />);
+    const card = screen.getByRole("button", { name: "Pricing page" });
+    fireEvent.click(screen.getByRole("button", { name: "Open from search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close detail" }));
+    expect(card).toHaveFocus();
+  });
+
+  it("focuses the library when the opened link is not on screen", () => {
+    render(<SearchFocusHarness showCard={false} />);
+    fireEvent.click(screen.getByRole("button", { name: "Open from search" }));
+    fireEvent.click(screen.getByRole("button", { name: "Close detail" }));
+    expect(screen.getByRole("main")).toHaveFocus();
   });
 });
