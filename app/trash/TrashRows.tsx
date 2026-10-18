@@ -23,9 +23,15 @@ const rowClass =
 const actionsClass =
   "trash-card-actions flex items-center gap-1.5 opacity-100 sm:opacity-0";
 
-const restoreClass = `rounded-lg border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background disabled:opacity-50 ${controlPress}`;
+const restoreClass = `inline-flex min-h-6 items-center rounded-lg border border-border bg-surface px-2.5 py-1 text-[12px] font-medium text-foreground hover:bg-background disabled:opacity-50 ${controlPress}`;
 
-const deleteClass = `rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 ${controlPress}`;
+const deleteClass = `inline-flex min-h-6 items-center rounded-lg border border-red-500/20 bg-red-500/10 px-2.5 py-1 text-[12px] font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 ${controlPress}`;
+
+/** Screen-reader name for a row action, so two Restore buttons are not the same. */
+export function trashRowActionName(action: "restore" | "delete", title: string): string {
+  const name = title.trim() || "this item";
+  return action === "restore" ? `Restore ${name}` : `Delete ${name} forever`;
+}
 
 function RowBody({
   title,
@@ -57,11 +63,23 @@ function RowBody({
         <div className="flex shrink-0 items-center justify-end gap-2">
           <DaysLeft days={days} />
           <div className={actionsClass}>
-            <button type="button" onClick={onRestore} disabled={busy} className={restoreClass}>
+            <button
+              type="button"
+              onClick={onRestore}
+              disabled={busy}
+              aria-label={trashRowActionName("restore", title)}
+              className={restoreClass}
+            >
               Restore
             </button>
-            <button type="button" onClick={onDelete} disabled={busy} className={deleteClass}>
-              Delete Now
+            <button
+              type="button"
+              onClick={onDelete}
+              disabled={busy}
+              aria-label={trashRowActionName("delete", title)}
+              className={deleteClass}
+            >
+              Delete forever
             </button>
           </div>
         </div>
