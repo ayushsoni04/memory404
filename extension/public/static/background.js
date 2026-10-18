@@ -834,35 +834,9 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.removeAll(() => {
-    chrome.contextMenus.create({
-      id: "lk-parent",
-      title: "Add to LK",
-      contexts: ["page", "link", "selection", "tab"],
-    });
-    chrome.contextMenus.create({
-      id: "lk-save",
-      parentId: "lk-parent",
-      title: "Just Save",
-      contexts: ["page", "link", "selection", "tab"],
-    });
-    chrome.contextMenus.create({
-      id: "lk-save-open",
-      parentId: "lk-parent",
-      title: "Save & Open",
-      contexts: ["page", "link", "selection", "tab"],
-    });
-    chrome.contextMenus.create({
-      id: "lk-save-selected",
-      parentId: "lk-parent",
-      title: "Save Selected Tabs",
-      contexts: ["page", "tab"],
-    });
-    chrome.contextMenus.create({
-      id: "lk-save-group",
-      parentId: "lk-parent",
-      title: "Save Current Tab Group",
-      contexts: ["page", "tab"],
-    });
+    for (const item of CONTEXT_MENUS) {
+      chrome.contextMenus.create(item);
+    }
   });
 });
 

@@ -17,7 +17,7 @@ import { savingStageLabel } from "./save-progress";
 import { saveHeadline, saveRowsToReview } from "./save-outcome";
 import { signInSaveHint } from "./sign-in-hint";
 import { libraryHomeUrl } from "./library-url";
-import { loginEmailIssue } from "./login-email";
+import { EMAIL_INVALID, keepSignInForm, loginEmailIssue } from "./login-email";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
@@ -686,7 +686,7 @@ function App({ onClose }) {
     }
   };
 
-  const needsSignIn = /sign in/i.test(error);
+  const needsSignIn = keepSignInForm(error);
 
   const submitSignIn = async () => {
     const emailProblem = loginEmailIssue(loginEmail);
@@ -739,8 +739,11 @@ function App({ onClose }) {
               ← Back
             </button>
           </div>
-          <label className="field-label">App URL</label>
+          <label className="field-label" htmlFor="m404-app-url">
+            App URL
+          </label>
           <input
+            id="m404-app-url"
             className="settings-input"
             value={apiBase}
             onChange={(e) => setApiBase(e.target.value)}
@@ -817,7 +820,7 @@ function App({ onClose }) {
             <p className="error-panel-title">
               {needsSignIn ? "Sign in" : "Something went wrong"}
             </p>
-            <p className="error-panel-message">
+            <p id="m404-overlay-error" className="error-panel-message">
               {error || "Could not complete that action"}
             </p>
             {needsSignIn ? (
@@ -846,9 +849,16 @@ function App({ onClose }) {
                   type="email"
                   autoComplete="email"
                   value={loginEmail}
-                  onChange={(event) => setLoginEmail(event.target.value)}
-                  aria-invalid={
-                    error && loginEmailIssue(loginEmail) === error ? true : undefined
+                  onChange={(event) => {
+                    const next = event.target.value;
+                    setLoginEmail(next);
+                    if (error === EMAIL_INVALID && !loginEmailIssue(next)) {
+                      setError("Sign in to save this page.");
+                    }
+                  }}
+                  aria-invalid={error === EMAIL_INVALID ? true : undefined}
+                  aria-describedby={
+                    error === EMAIL_INVALID ? "m404-overlay-error" : undefined
                   }
                   required
                 />

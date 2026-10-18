@@ -9,7 +9,7 @@ React + webpack Chrome extension (Manifest V3) that opens an in-page save overla
 - Sign in with your memory404 email/password (Bearer token stored locally)
 - Saves to `POST /api/links` into **your** vault with page metadata when available
 - Choose an existing group or create one inline
-- Right-click a link → **Add to LK** to save that URL
+- Right-click a link → **Save to memory404** to save that URL
 - Configurable app URL (⚙ in overlay; defaults to `http://localhost:3000`)
 
 ## Setup
