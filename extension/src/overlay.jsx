@@ -21,6 +21,7 @@ import { libraryHomeUrl } from "./library-url";
 import { APP_URL_HINT, normalizeApiBase } from "./api-base";
 import { EMAIL_INVALID, keepSignInForm, loginEmailIssue } from "./login-email";
 import PasswordField from "./PasswordField";
+import { CreateGroupOption, CurrentGroupLine, GroupOptionName } from "./GroupName";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
 
@@ -1086,7 +1087,7 @@ function App({ onClose }) {
                               setHighlight(-1);
                             }}
                           >
-                            {g.name}
+                            <GroupOptionName name={g.name} />
                             {g.id === selectedGroupId ? (
                               <span className="check">✓</span>
                             ) : null}
@@ -1100,19 +1101,15 @@ function App({ onClose }) {
                   dropdownOpen &&
                   groupQuery.trim() &&
                   !exactMatch ? (
-                    <button
-                      type="button"
-                      className="create-option"
-                      tabIndex={-1}
+                    <CreateGroupOption
+                      name={groupQuery.trim()}
                       onMouseDown={(e) => e.preventDefault()}
                       onClick={() => {
                         setCreateName(groupQuery.trim());
                         setSelectedGroupId(null);
                         setDropdownOpen(false);
                       }}
-                    >
-                      Create “{groupQuery.trim()}”
-                    </button>
+                    />
                   ) : null}
 
                   {phase === "pick" ? (
@@ -1133,7 +1130,7 @@ function App({ onClose }) {
                   ) : null}
 
                   {phase === "saved" && currentGroupName && outcome.offerNote ? (
-                    <p className="current-group">In {currentGroupName}</p>
+                    <CurrentGroupLine name={currentGroupName} />
                   ) : null}
 
                   {phase === "saved" && saveRowsToReview(saveItems).length ? (
