@@ -56,7 +56,7 @@ try {
   await root.waitFor({ state: "visible", timeout: 15_000 });
   await page.getByText("Sign in to memory404 to load groups").waitFor({ timeout: 15_000 });
   await page.getByLabel("Email").fill("person@example.com");
-  await page.getByLabel("Password").fill("not-a-real-password");
+  await page.getByLabel("Password", { exact: true }).fill("not-a-real-password");
   await page.getByRole("button", { name: "Sign in", exact: true }).click();
   await page.getByRole("button", { name: "Check App URL" }).waitFor({ timeout: 20_000 });
   await page.getByRole("button", { name: "Check App URL" }).click();
