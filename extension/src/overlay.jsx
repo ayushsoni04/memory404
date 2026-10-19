@@ -954,7 +954,9 @@ function App({ onClose }) {
               </div>
             ) : phase === "saved" ? (
               <div className="saved-row">
-                <span className="saved-text">{outcome.title}</span>
+                <span className="saved-text" role="status">
+                  {outcome.title}
+                </span>
               </div>
             ) : null}
 
@@ -1142,7 +1144,7 @@ function App({ onClose }) {
                       {outcome.detail}
                     </p>
                   ) : phase === "saved" && linkId && outcome.offerNote ? (
-                    <p className="assign-note">
+                    <p className="assign-note" role="status">
                       {saveMode === "remember"
                         ? "Link remembered"
                         : saveMode === "active"
@@ -1155,7 +1157,9 @@ function App({ onClose }) {
 
                   {canAddNote ? (
                     noteSaved ? (
-                      <p className="assign-note">Note saved</p>
+                      <p className="assign-note" role="status">
+                        Note saved
+                      </p>
                     ) : (
                       <div className="note-field">
                         <label className="field-label" htmlFor="m404-save-note">
