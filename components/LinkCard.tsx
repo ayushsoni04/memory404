@@ -3,6 +3,7 @@
 import { memo, useRef, useState } from "react";
 import { AppLoader } from "@/components/AppLoader";
 import DitheredPreview from "@/components/vault/DitheredPreview";
+import { FaviconImage } from "@/components/vault/FaviconImage";
 import MindCardActions from "@/components/vault/MindCardActions";
 import { nextCardPreview } from "@/components/vault/preview-fallback";
 import {
@@ -165,16 +166,12 @@ function LinkCard({
             )}
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
             {faviconSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element -- small badge; native lazy
-              <img
+              <FaviconImage
+                key={faviconSrc}
                 src={faviconSrc}
-                alt=""
-                width={28}
-                height={28}
+                size={28}
                 loading={priority ? "eager" : "lazy"}
-                decoding="async"
                 className="pointer-events-none absolute bottom-3 left-3 z-[1] size-7 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.08)]"
-                referrerPolicy="no-referrer"
               />
             ) : null}
             {showLoader ? (

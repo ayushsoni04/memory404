@@ -13,6 +13,7 @@ import { createPortal } from "react-dom";
 import gsap from "gsap";
 import type { LinkApiRow } from "@/lib/links";
 import { noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
+import { FaviconImage } from "@/components/vault/FaviconImage";
 import { NoteCount } from "@/components/vault/NoteCount";
 import {
   formatRelativeTime,
@@ -762,14 +763,11 @@ export default function LinkDetailOverlay({
                 <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1">
                   <div className="flex min-w-0 max-w-full items-center gap-2">
                     {faviconSrc ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
+                      <FaviconImage
+                        key={faviconSrc}
                         src={faviconSrc}
-                        alt=""
-                        width={18}
-                        height={18}
+                        size={18}
                         className="size-[18px] shrink-0 rounded-[3px] object-contain"
-                        referrerPolicy="no-referrer"
                       />
                     ) : null}
                     <span className="min-w-0 break-all text-sm font-medium text-muted" title={host}>
