@@ -7,6 +7,7 @@ import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { groupNameDraftIssue } from "@/lib/group-name";
+import { anotherDialogIsOpen } from "@/lib/palette-shortcut";
 import { playUiSound } from "@/lib/ui-sound";
 import { nextOptionIndex } from "./feed-keyboard";
 import { activeGroupPill, groupPillIds, nextGroupPill } from "./group-pills";
@@ -580,6 +581,7 @@ export default function VaultGroupToolbar({
           <button
             type="button"
             onClick={() => {
+              if (anotherDialogIsOpen()) return;
               onOpenSearch();
               playUiSound("tick");
             }}
