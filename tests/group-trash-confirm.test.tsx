@@ -163,6 +163,45 @@ describe("GroupTrashConfirm", () => {
     expect(onConfirm).toHaveBeenCalledOnce();
   });
 
+  it("ignores a second Move to Trash until the first one finishes", () => {
+    const onConfirm = vi.fn();
+    const { rerender } = render(
+      <GroupTrashConfirm
+        name="Reading"
+        linksCount={2}
+        pending={false}
+        onConfirm={onConfirm}
+        onCancel={() => {}}
+      />,
+    );
+
+    const move = screen.getByRole("button", { name: "Move to Trash" });
+    fireEvent.click(move);
+    fireEvent.click(move);
+    expect(onConfirm).toHaveBeenCalledOnce();
+
+    rerender(
+      <GroupTrashConfirm
+        name="Reading"
+        linksCount={2}
+        pending
+        onConfirm={onConfirm}
+        onCancel={() => {}}
+      />,
+    );
+    rerender(
+      <GroupTrashConfirm
+        name="Reading"
+        linksCount={2}
+        pending={false}
+        onConfirm={onConfirm}
+        onCancel={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Move to Trash" }));
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
   it("holds the dialog while the move is in progress", () => {
     const onConfirm = vi.fn();
     const onCancel = vi.fn();

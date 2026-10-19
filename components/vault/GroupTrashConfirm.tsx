@@ -65,7 +65,18 @@ export default function GroupTrashConfirm({
   const portalRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmLock = useRef(false);
   useDialogContainment(true, portalRef, dialogRef, cancelRef);
+
+  useEffect(() => {
+    if (!pending) confirmLock.current = false;
+  }, [pending]);
+
+  const confirm = () => {
+    if (confirmLock.current || pending) return;
+    confirmLock.current = true;
+    onConfirm();
+  };
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -120,7 +131,7 @@ export default function GroupTrashConfirm({
           </button>
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={confirm}
             disabled={pending}
             className={`inline-flex h-8 items-center rounded-full border border-danger/30 bg-danger/10 px-3 text-[13px] font-medium text-danger hover:bg-danger/20 disabled:opacity-50 ${controlPress}`}
           >
