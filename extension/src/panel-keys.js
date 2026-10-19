@@ -84,3 +84,41 @@ export function panelEscapeAction({ key, groupListOpen, settingsOpen }) {
   if (settingsOpen) return "close-settings";
   return "close-panel";
 }
+
+const pageFocus = new WeakMap();
+
+/**
+ * Remember the page control that had focus before the save panel opened.
+ * A control already inside the panel is left out, so a later open does not
+ * replace the page target.
+ */
+export function rememberPageFocus(host, active = typeof document === "undefined" ? null : document.activeElement) {
+  if (!host) return false;
+  if (!(active instanceof HTMLElement) || host.contains(active)) return false;
+  pageFocus.set(host, active);
+  return true;
+}
+
+/**
+ * Give keyboard focus back to the page when the save panel closes.
+ * A missing page control is blurred so focus is not left inside the panel.
+ */
+export function releasePanelFocus(host) {
+  if (!host || typeof document === "undefined") return false;
+  const remembered = pageFocus.get(host) ?? null;
+  pageFocus.delete(host);
+  const active = document.activeElement;
+  const inside = active instanceof HTMLElement && host.contains(active) ? active : null;
+
+  if (
+    remembered instanceof HTMLElement &&
+    remembered.isConnected &&
+    !host.contains(remembered)
+  ) {
+    remembered.focus();
+    if (document.activeElement === remembered) return true;
+  }
+
+  if (inside && document.activeElement === inside) inside.blur();
+  return !(document.activeElement instanceof Node && host.contains(document.activeElement));
+}
