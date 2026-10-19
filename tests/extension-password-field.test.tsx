@@ -65,6 +65,6 @@ describe("extension password field", () => {
     const overlay = readFileSync("extension/dist/overlay.js", "utf8");
     expect(overlay).toContain("Show password");
     expect(overlay).toContain("Hide password");
-    expect(readFileSync("extension/dist/manifest.json", "utf8")).toContain('"version": "0.2.23"');
+    expect(readFileSync("extension/dist/manifest.json", "utf8")).toContain('"version": "0.2.24"');
   });
 });
