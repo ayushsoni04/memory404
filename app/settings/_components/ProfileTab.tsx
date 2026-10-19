@@ -36,7 +36,7 @@ import {
 import { PasswordSection } from "./PasswordSection";
 
 const profileField =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
+  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)] disabled:cursor-not-allowed disabled:opacity-50";
 
 type ProfileTabProps = {
   name: string;
@@ -217,11 +217,13 @@ export function ProfileTab({
         {/* User info overlapping banner */}
         <div className="relative px-6 pb-6 pt-12 flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
           {/* Interactive Avatar Upload Container */}
-          <label className="group/avatar absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-neutral-900 shadow-xl select-none transition-colors duration-150 hover:border-muted focus-within:ring-2 focus-within:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] focus-within:ring-offset-2 focus-within:ring-offset-surface">
+          <label className={`group/avatar absolute -top-10 left-6 flex size-20 cursor-pointer items-center justify-center overflow-hidden rounded-full border-2 border-surface bg-neutral-900 shadow-xl select-none transition-colors duration-150 hover:border-muted focus-within:ring-2 focus-within:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] focus-within:ring-offset-2 focus-within:ring-offset-surface ${isSaving ? "pointer-events-none opacity-50" : ""}`}>
             <input
               type="file"
               accept="image/png,image/jpeg,image/webp,image/gif"
+              disabled={isSaving}
               onChange={(event) => {
+                if (isSaving) return;
                 const file = event.target.files?.[0];
                 if (!file) return;
                 const issues = getAvatarFileIssues(file);
@@ -298,15 +300,20 @@ export function ProfileTab({
                 role="radio"
                 aria-checked={selected}
                 tabIndex={selected ? 0 : -1}
-                onClick={() => setBannerStyle(b.id)}
+                disabled={isSaving}
+                onClick={() => {
+                  if (isSaving) return;
+                  setBannerStyle(b.id);
+                }}
                 onKeyDown={(event) => {
+                  if (isSaving) return;
                   const next = nextBannerStyle(bannerStyle, event.key);
                   if (!next) return;
                   event.preventDefault();
                   setBannerStyle(next);
                   document.getElementById(`banner-${next}`)?.focus();
                 }}
-                className={`relative flex flex-col gap-2 rounded-lg border p-2.5 text-left ${controlPress} ${
+                className={`relative flex flex-col gap-2 rounded-lg border p-2.5 text-left disabled:cursor-not-allowed disabled:opacity-50 ${controlPress} ${
                   selected
                     ? "border-foreground bg-surface-elevated shadow-md scale-[1.02]"
                     : "border-border bg-surface hover:border-neutral-700 hover:bg-surface-elevated/40"
@@ -333,7 +340,11 @@ export function ProfileTab({
           <input
             type="text"
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => {
+              if (isSaving) return;
+              setName(e.target.value);
+            }}
+            disabled={isSaving}
             className={profileField}
             placeholder="Your name"
             autoComplete="name"
@@ -351,7 +362,11 @@ export function ProfileTab({
           <input
             type="text"
             value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            onChange={(e) => {
+              if (isSaving) return;
+              setUsername(e.target.value);
+            }}
+            disabled={isSaving}
             className={`${profileField} font-mono`}
             placeholder="your_handle"
             autoComplete="username"

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
@@ -30,6 +30,9 @@ export function SignupForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -60,7 +63,12 @@ export function SignupForm() {
     setError(null);
     setAttempted(true);
 
-    if (emailIssue(email) || fieldErrors.password || fieldErrors.confirm) return;
+    if (emailIssue(email) || fieldErrors.password || fieldErrors.confirm) {
+      if (emailIssue(email)) emailRef.current?.focus();
+      else if (fieldErrors.password) passwordRef.current?.focus();
+      else confirmRef.current?.focus();
+      return;
+    }
 
     setIsSubmitting(true);
     const utm = readUtmFromSearchParams(searchParams);
@@ -123,8 +131,12 @@ export function SignupForm() {
           <span className="text-[11px] font-medium text-muted">Email address</span>
           <input
             type="email"
+            ref={emailRef}
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              setError(null);
+            }}
             placeholder="you@example.com"
             autoComplete="email"
             aria-invalid={emailError ? true : undefined}
@@ -146,9 +158,13 @@ export function SignupForm() {
           <div className="relative">
             <input
               id="signup-password"
+              ref={passwordRef}
               type={showPassword ? "text" : "password"}
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setError(null);
+              }}
               placeholder="••••••••"
               autoComplete="new-password"
               onFocus={() => setPasswordFocused(true)}
@@ -189,9 +205,13 @@ export function SignupForm() {
           <div className="relative">
             <input
               id="signup-password-confirm"
+              ref={confirmRef}
               type={showConfirm ? "text" : "password"}
               value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
+              onChange={(e) => {
+                setConfirm(e.target.value);
+                setError(null);
+              }}
               placeholder="••••••••"
               autoComplete="new-password"
               onFocus={() => setConfirmFocused(true)}
