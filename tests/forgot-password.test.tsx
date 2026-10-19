@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import ForgotPasswordPage from "@/app/forgot-password/page";
@@ -96,8 +96,54 @@ describe("forgot password", () => {
     await user.click(screen.getByRole("button", { name: "Send reset link" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(AUTH_OFFLINE_MESSAGE);
+    expect(email).toHaveFocus();
     expect(email).not.toHaveAttribute("aria-invalid");
+    expect(email).toHaveAttribute("aria-describedby", "forgot-form-error");
     expect(email).not.toHaveAttribute("aria-describedby", "forgot-email-error");
+  });
+
+  it("returns to the email when the server cannot send a link", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ error: "Failed to send reset link" }),
+      })),
+    );
+
+    render(<ForgotPasswordPage />);
+    const email = screen.getByLabelText("Email address");
+    await user.type(email, "ada@example.com");
+    await user.click(screen.getByRole("button", { name: "Send reset link" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("Failed to send reset link");
+    expect(email).toHaveFocus();
+    expect(email).toHaveAttribute("aria-describedby", "forgot-form-error");
+  });
+
+  it("sends one reset request when the button is clicked twice", async () => {
+    let release: (value: unknown) => void = () => {};
+    const fetchMock = vi.fn(
+      () =>
+        new Promise((resolve) => {
+          release = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ForgotPasswordPage />);
+    const email = screen.getByLabelText("Email address");
+    fireEvent.change(email, { target: { value: "ada@example.com" } });
+    const form = email.closest("form");
+    if (!form) throw new Error("Email field is not in a form");
+    fireEvent.submit(form);
+    fireEvent.submit(form);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    release({ ok: true, json: async () => ({ ok: true }) });
+    expect(await screen.findByRole("status")).toHaveTextContent("ada@example.com");
+    expect(fetchMock).toHaveBeenCalledOnce();
   });
 
   it("confirms the address without extra spaces", async () => {
