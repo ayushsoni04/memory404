@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Image from "next/image";
 import LoadRecovery, { SessionSignInLink } from "@/components/LoadRecovery";
 import MorphText from "@/components/MorphText";
@@ -34,6 +34,11 @@ import {
   profileInitials,
 } from "@/lib/profile";
 import { PasswordSection } from "./PasswordSection";
+
+function usernameTakenError(message: string | null): boolean {
+  if (!message) return false;
+  return /username/i.test(message) && /taken/i.test(message);
+}
 
 const profileField =
   "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)] disabled:cursor-not-allowed disabled:opacity-50";
@@ -84,6 +89,8 @@ export function ProfileTab({
   const [exportNoticeTone, setExportNoticeTone] = useState<"ok" | "empty">("ok");
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
+  const usernameRef = useRef<HTMLInputElement>(null);
+  const usernameTaken = usernameTakenError(error);
   const nameIssues = getNameIssues(name);
   const usernameIssues =
     username.trim().length > 0 ? getUsernameIssues(username.trim()) : [];
@@ -94,6 +101,11 @@ export function ProfileTab({
   useEffect(() => {
     setSoundsOn(getSoundsEnabled());
   }, []);
+
+  useEffect(() => {
+    if (!usernameTaken) return;
+    usernameRef.current?.focus();
+  }, [usernameTaken]);
 
   // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
@@ -201,6 +213,7 @@ export function ProfileTab({
     >
       {error && (
         <div
+          id="profile-save-error"
           className="flex flex-col items-start gap-2 rounded-lg border border-danger/30 bg-danger/5 px-3 py-2"
           role="alert"
         >
@@ -360,6 +373,7 @@ export function ProfileTab({
         <label className="block space-y-1.5 group">
           <span className="text-xs font-medium text-muted transition group-focus-within:text-foreground">Username</span>
           <input
+            ref={usernameRef}
             type="text"
             value={username}
             onChange={(e) => {
@@ -370,9 +384,13 @@ export function ProfileTab({
             className={`${profileField} font-mono`}
             placeholder="your_handle"
             autoComplete="username"
-            aria-invalid={usernameIssues.length > 0 ? true : undefined}
+            aria-invalid={usernameIssues.length > 0 || usernameTaken ? true : undefined}
             aria-describedby={
-              usernameIssues.length > 0 ? "profile-username-error" : undefined
+              usernameIssues.length > 0
+                ? "profile-username-error"
+                : usernameTaken
+                  ? "profile-save-error"
+                  : undefined
             }
           />
           {usernameIssues.length > 0 ? (
