@@ -40,6 +40,8 @@ export default function AddLinkCard({
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
   const saveGen = useRef(0);
+  const savingNoteRef = useRef(false);
+  const [savingNote, setSavingNote] = useState(false);
 
   const [showNotesForm, setShowNotesForm] = useState(false);
   const [notes, setNotes] = useState("");
@@ -59,27 +61,34 @@ export default function AddLinkCard({
   }, [showNotesForm]);
 
   const finishFlow = useCallback(async () => {
-    if (!savedLink) return;
-    let finalLink = savedLink;
-    const trimmed = notes.trim();
-    if (trimmed) {
-      const result = await saveLinkNote(savedLink.id, trimmed);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+    if (savingNoteRef.current || !savedLink) return;
+    savingNoteRef.current = true;
+    setSavingNote(true);
+    try {
+      let finalLink = savedLink;
+      const trimmed = notes.trim();
+      if (trimmed) {
+        const result = await saveLinkNote(savedLink.id, trimmed);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        finalLink = result.link;
       }
-      finalLink = result.link;
+      setError(null);
+      onSaved(finalLink);
+      setOpen(false);
+      setUrl("");
+      setSaving(false);
+      setShowSuccess(false);
+      setShowNotesForm(false);
+      setNotes("");
+      setSavedLink(null);
+      openerRef.current?.focus();
+    } finally {
+      savingNoteRef.current = false;
+      setSavingNote(false);
     }
-    setError(null);
-    onSaved(finalLink);
-    setOpen(false);
-    setUrl("");
-    setSaving(false);
-    setShowSuccess(false);
-    setShowNotesForm(false);
-    setNotes("");
-    setSavedLink(null);
-    openerRef.current?.focus();
   }, [notes, onSaved, savedLink]);
 
   const cancel = (keyboardInitiated = false) => {
@@ -294,13 +303,14 @@ export default function AddLinkCard({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  onClick={finishFlow}
-                  disabled={Boolean(noteIssue(notes))}
+                  onClick={() => void finishFlow()}
+                  disabled={savingNote || Boolean(noteIssue(notes))}
+                  aria-busy={savingNote || undefined}
                   tabIndex={phase === "notes" ? 0 : -1}
                   className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-50 ${controlPress}`}
                 >
                   <MorphText duration={220}>
-                    {notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
+                    {savingNote ? "Saving…" : notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
                   </MorphText>
                 </button>
               </div>
