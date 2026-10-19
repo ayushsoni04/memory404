@@ -7,11 +7,15 @@ export default function PasswordField({
   onChange,
   autoComplete = "current-password",
   required = true,
+  invalid = false,
+  describedBy,
+  inputRef,
 }) {
   const [shown, setShown] = useState(false);
   return (
     <div className="password-field">
       <input
+        ref={inputRef}
         id={id}
         className="settings-input"
         type={shown ? "text" : "password"}
@@ -19,6 +23,8 @@ export default function PasswordField({
         value={value}
         onChange={onChange}
         required={required}
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={describedBy || undefined}
       />
       <button
         type="button"
