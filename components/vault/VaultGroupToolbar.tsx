@@ -269,6 +269,14 @@ export default function VaultGroupToolbar({
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
   const refreshLock = useRef(false);
+  const createLock = useRef(false);
+  const submitCreateGroup = () => {
+    if (createLock.current || creatingGroup) return;
+    createLock.current = true;
+    void Promise.resolve(createGroup()).finally(() => {
+      createLock.current = false;
+    });
+  };
   const refreshLibrary = () => {
     if (refreshLock.current) return;
     refreshLock.current = true;
@@ -522,7 +530,7 @@ export default function VaultGroupToolbar({
             className="relative flex shrink-0 items-center"
             onSubmit={(e) => {
               e.preventDefault();
-              void createGroup();
+              submitCreateGroup();
             }}
           >
             <span
