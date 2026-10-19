@@ -46,26 +46,34 @@ export default function PastePrompt({
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
+  const savingNoteRef = useRef(false);
+  const [savingNote, setSavingNote] = useState(false);
 
   const finishFlow = useCallback(async () => {
-    if (!savedLink) return;
-    let finalLink = savedLink;
-    const trimmed = notes.trim();
-    if (trimmed) {
-      const result = await saveLinkNote(savedLink.id, trimmed);
-      if (!result.ok) {
-        setError(result.error);
-        return;
+    if (savingNoteRef.current || !savedLink) return;
+    savingNoteRef.current = true;
+    setSavingNote(true);
+    try {
+      let finalLink = savedLink;
+      const trimmed = notes.trim();
+      if (trimmed) {
+        const result = await saveLinkNote(savedLink.id, trimmed);
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        finalLink = result.link;
       }
-      finalLink = result.link;
+      setError(null);
+      onSaved(finalLink);
+      setUrl("");
+      setNotes("");
+      setSavedLink(null);
+      setPhase("idle");
+    } finally {
+      savingNoteRef.current = false;
+      setSavingNote(false);
     }
-    setError(null);
-    onSaved(finalLink);
-    setUrl("");
-    setNotes("");
-    setSavedLink(null);
-    setPhase("idle");
-    setError(null);
   }, [notes, onSaved, savedLink]);
 
   const submit = async () => {
@@ -190,11 +198,12 @@ export default function PastePrompt({
               <button
                 type="button"
                 onClick={() => void finishFlow()}
-                disabled={Boolean(noteIssue(notes))}
+                disabled={savingNote || Boolean(noteIssue(notes))}
+                aria-busy={savingNote || undefined}
                 className="inline-flex h-8 items-center justify-center self-start rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
               >
                 <MorphText duration={220}>
-                  {notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
+                  {savingNote ? "Saving…" : notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
                 </MorphText>
               </button>
               {error ? (
