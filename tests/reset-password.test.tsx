@@ -122,4 +122,57 @@ describe("ResetPasswordForm", () => {
       }),
     );
   });
+
+  it("focuses the first invalid field", async () => {
+    navigation.token = "reset-token";
+    const user = userEvent.setup();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<ResetPasswordForm />);
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+
+    expect(screen.getByLabelText("New password")).toHaveFocus();
+    expect(screen.getByText("Enter a new password.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText("New password"), "Memory404");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+    expect(screen.getByLabelText("Confirm new password")).toHaveFocus();
+    expect(screen.getByText("Confirm your new password.")).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Confirm new password"), "Memory405");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+    expect(screen.getByLabelText("Confirm new password")).toHaveFocus();
+    expect(screen.getByText("Those new passwords do not match.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("clears a failed reset when either password changes", async () => {
+    navigation.token = "reset-token";
+    const user = userEvent.setup();
+    const serverError = "Reset link is invalid or expired";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => ({
+        ok: false,
+        json: async () => ({ error: serverError }),
+      })),
+    );
+
+    render(<ResetPasswordForm />);
+    await user.type(screen.getByLabelText("New password"), "Memory404");
+    await user.type(screen.getByLabelText("Confirm new password"), "Memory404");
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(serverError);
+
+    await user.type(screen.getByLabelText("New password"), "1");
+    expect(screen.queryByText(serverError)).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText("Confirm new password"), "1");
+
+    await user.click(screen.getByRole("button", { name: "Update password" }));
+    expect(await screen.findByText(serverError)).toBeInTheDocument();
+    await user.type(screen.getByLabelText("Confirm new password"), "2");
+    expect(screen.queryByText(serverError)).not.toBeInTheDocument();
+  });
 });
