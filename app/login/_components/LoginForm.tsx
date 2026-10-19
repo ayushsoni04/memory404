@@ -26,6 +26,7 @@ export function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const emailRef = useRef<HTMLInputElement>(null);
+  const passwordRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
@@ -55,12 +56,14 @@ export function LoginForm() {
       if (!res.ok) {
         setError(authFailureMessage(data, "Failed to sign in"));
         setIsSubmitting(false);
+        passwordRef.current?.focus();
         return;
       }
       window.location.assign(redirectPath);
     } catch {
       setError(authFailureMessage(null, "Failed to sign in", true));
       setIsSubmitting(false);
+      passwordRef.current?.focus();
     }
   };
 
@@ -130,6 +133,7 @@ export function LoginForm() {
           <div className="relative">
             <input
               id="login-password"
+              ref={passwordRef}
               type={showPassword ? "text" : "password"}
               value={password}
               onChange={(e) => {
@@ -140,6 +144,8 @@ export function LoginForm() {
               autoComplete="current-password"
               onFocus={() => setPasswordFocused(true)}
               onBlur={() => setPasswordFocused(false)}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={error ? "login-password-error" : undefined}
               className={authPasswordFieldClass}
               required
             />
@@ -153,6 +159,11 @@ export function LoginForm() {
             </button>
           </div>
           <CapsLockHint active={passwordFocused} />
+          {error ? (
+            <p id="login-password-error" className="text-xs text-danger" role="alert">
+              {error}
+            </p>
+          ) : null}
         </div>
 
         <div className="flex justify-end">
@@ -163,12 +174,6 @@ export function LoginForm() {
             Forgot password?
           </Link>
         </div>
-
-        {error ? (
-          <p className="text-xs text-danger" role="alert">
-            {error}
-          </p>
-        ) : null}
 
         <button
           type="submit"
