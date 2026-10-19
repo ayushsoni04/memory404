@@ -11,6 +11,7 @@ import {
   groupListIsShown,
   groupPickerKeyAction,
   libraryGroupForTitle,
+  shouldApplyDefaultGroup,
 } from "./group-picker";
 import {
   containPanelTab,
@@ -19,7 +20,7 @@ import {
   rememberPageFocus,
   releasePanelFocus,
 } from "./panel-keys";
-import { phaseForSaveStatus } from "./save-cancel";
+import { claimSaveStart, phaseForSaveStatus } from "./save-cancel";
 import { savingStageLabel } from "./save-progress";
 import { saveHeadline, saveRowsToReview } from "./save-outcome";
 import { signInSaveHint } from "./sign-in-hint";
@@ -215,12 +216,18 @@ function App({ onClose }) {
   const inputRef = useRef(null);
   const panelRef = useRef(null);
   const phaseRef = useRef(phase);
+  const groupTouchedRef = useRef(false);
+  const saveClaimedRef = useRef(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const [noteSaved, setNoteSaved] = useState(false);
   const [noteError, setNoteError] = useState("");
 
   phaseRef.current = phase;
+
+  useEffect(() => {
+    if (phase !== "saving") saveClaimedRef.current = false;
+  }, [phase]);
 
   const jobSetters = useMemo(
     () => ({
@@ -239,6 +246,7 @@ function App({ onClose }) {
 
   const loadContext = useCallback(
     async (rememberUrlProp = null) => {
+      groupTouchedRef.current = false;
       const ctx = await sendMessage({ type: "GET_OVERLAY_CONTEXT" });
       if (!ctx?.ok) {
         setPhase("error");
@@ -270,7 +278,14 @@ function App({ onClose }) {
           ctx.cachedGroups,
           ctx.lastSavedGroupId,
         );
-        if (defaultGroup && phaseRef.current === "pick") {
+        if (
+          defaultGroup &&
+          shouldApplyDefaultGroup({
+            touched: groupTouchedRef.current,
+            phase: phaseRef.current,
+            restoringSave: Boolean(ctx.activeSaveJob),
+          })
+        ) {
           setSelectedGroupId(defaultGroup.id);
           setGroupQuery(displayGroupName(defaultGroup.name));
         }
@@ -305,9 +320,11 @@ function App({ onClose }) {
         );
         if (
           defaultGroup &&
-          !ctx.activeSaveJob &&
-          phaseRef.current !== "saving" &&
-          phaseRef.current !== "saved"
+          shouldApplyDefaultGroup({
+            touched: groupTouchedRef.current,
+            phase: phaseRef.current,
+            restoringSave: Boolean(ctx.activeSaveJob),
+          })
         ) {
           setSelectedGroupId(defaultGroup.id);
           setGroupQuery(displayGroupName(defaultGroup.name));
@@ -492,6 +509,7 @@ function App({ onClose }) {
     setSaveMode(mode);
     setCreateName("");
     if (mode === "group" && activeTabGroup && activeTabGroup.title) {
+      groupTouchedRef.current = true;
       const existingGroup = libraryGroupForTitle(groups, activeTabGroup.title);
       if (existingGroup) {
         setSelectedGroupId(existingGroup.id);
@@ -504,6 +522,8 @@ function App({ onClose }) {
   };
 
   const saveToSelectedGroup = async () => {
+    if (!claimSaveStart(phaseRef.current, saveClaimedRef.current)) return;
+    saveClaimedRef.current = true;
     setError("");
     setPhase("saving");
     try {
@@ -605,6 +625,7 @@ function App({ onClose }) {
       setNoteSaved(false);
       setNoteError("");
     } catch (e) {
+      saveClaimedRef.current = false;
       setPhase("error");
       setSaveProgress({ done: 0, total: 0, failed: 0, skipped: 0 });
       setSaveItems([]);
@@ -643,6 +664,7 @@ function App({ onClose }) {
   };
 
   const pickGroup = (g) => {
+    groupTouchedRef.current = true;
     setSelectedGroupId(g.id);
     setGroupQuery(g.name);
     setCreateName("");
@@ -1020,6 +1042,7 @@ function App({ onClose }) {
                       className="group-input"
                       value={groupQuery}
                       onChange={(e) => {
+                        groupTouchedRef.current = true;
                         setGroupQuery(e.target.value);
                         setSelectedGroupId(null);
                         setCreateName("");

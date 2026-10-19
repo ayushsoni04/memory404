@@ -7,7 +7,31 @@ import {
   groupPickerKeyAction,
   libraryGroupForTitle,
   nextGroupHighlight,
+  shouldApplyDefaultGroup,
 } from "../extension/src/group-picker.js";
+
+describe("a default group arriving late", () => {
+  it("fills an untouched field and leaves a typed name alone", () => {
+    expect(
+      shouldApplyDefaultGroup({ touched: false, phase: "pick", restoringSave: false }),
+    ).toBe(true);
+    expect(
+      shouldApplyDefaultGroup({ touched: true, phase: "pick", restoringSave: false }),
+    ).toBe(false);
+    expect(
+      shouldApplyDefaultGroup({ touched: false, phase: "saving", restoringSave: false }),
+    ).toBe(false);
+    expect(
+      shouldApplyDefaultGroup({ touched: false, phase: "saved", restoringSave: false }),
+    ).toBe(false);
+    expect(
+      shouldApplyDefaultGroup({ touched: false, phase: "pick", restoringSave: true }),
+    ).toBe(false);
+    expect(
+      shouldApplyDefaultGroup({ touched: false, phase: "error", restoringSave: false }),
+    ).toBe(true);
+  });
+});
 
 describe("group list empty state", () => {
   it("says when nothing matches, and only while the menu is open", () => {
