@@ -204,7 +204,68 @@ describe("password settings", () => {
     });
     expect(screen.getByRole("link", { name: "Forgot your password?" })).toHaveAttribute(
       "href",
-      "/forgot-password",
+      "/forgot-password?redirect=%2Fsettings",
     );
+  });
+
+  it("ties a wrong current password to that field", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ error: "Current password is incorrect" }),
+      }),
+    );
+    render(<PasswordSection />);
+
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: "WrongPassword1" },
+    });
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+
+    const current = screen.getByLabelText("Current password");
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Current password is incorrect",
+    );
+    expect(current).toHaveFocus();
+    expect(current).toHaveAttribute("aria-invalid", "true");
+    expect(current).toHaveAttribute("aria-describedby", "current-password-error");
+    expect(screen.queryByRole("link", { name: "Sign in" })).not.toBeInTheDocument();
+
+    fireEvent.change(current, { target: { value: "RightPassword1" } });
+    expect(screen.queryByText("Current password is incorrect")).not.toBeInTheDocument();
+    expect(current).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("focuses the first invalid password field", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+    render(<PasswordSection />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+    expect(screen.getByLabelText("Current password")).toHaveFocus();
+    expect(screen.getByText("Enter your current password.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: "OldPassword1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+    expect(screen.getByLabelText("New password")).toHaveFocus();
+    expect(screen.getByText("Enter a new password.")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+    expect(screen.getByLabelText("Confirm new password")).toHaveFocus();
+    expect(screen.getByText("Confirm your new password.")).toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 });
