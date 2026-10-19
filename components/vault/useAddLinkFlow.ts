@@ -50,6 +50,7 @@ export function useAddLinkFlow({
   const [urlInput, setUrlInput] = useState("");
   const urlRef = useRef("");
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
@@ -102,6 +103,7 @@ export function useAddLinkFlow({
     setSidebarSavedLinkId(null);
     resetSaveForm();
     setSaveSuccess(false);
+    savingRef.current = false;
     setSaving(false);
   }, [
     sidebarSavedLinkId,
@@ -115,6 +117,7 @@ export function useAddLinkFlow({
 
   const handlePasteSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (savingRef.current) return;
     setSaveError(null);
     setSavedFlash(false);
     const url = urlRef.current.trim();
@@ -157,6 +160,7 @@ export function useAddLinkFlow({
       const originalLinks = links;
       setLinks((prev) => [draftLink, ...prev]);
 
+      savingRef.current = true;
       setSaving(true);
       setSaveSuccess(false);
 
@@ -165,6 +169,7 @@ export function useAddLinkFlow({
         if (!result.ok) {
           setSaveError(result.error);
           setLinks(originalLinks);
+          savingRef.current = false;
           setSaving(false);
           setSavePhase("place");
           return;
@@ -201,6 +206,7 @@ export function useAddLinkFlow({
       } catch {
         setSaveError(saveFailureMessage(null, true));
         setLinks(originalLinks);
+        savingRef.current = false;
         setSaving(false);
         setSavePhase("place");
       }
@@ -214,6 +220,7 @@ export function useAddLinkFlow({
   };
 
   const handlePlaceSave = async () => {
+    if (savingRef.current) return;
     const url = urlRef.current.trim();
     if (!url) {
       setSaveError(LINK_URL_HINT);
@@ -272,6 +279,7 @@ export function useAddLinkFlow({
       setLinks((prev) => [draftLink, ...prev]);
     }
 
+    savingRef.current = true;
     setSaving(true);
     setSaveError(null);
     setSaveSuccess(false);
@@ -283,6 +291,7 @@ export function useAddLinkFlow({
       if (!result.ok) {
         setSaveError(result.error);
         if (insertedDraft) setLinks(originalLinks);
+        savingRef.current = false;
         setSaving(false);
         return;
       }
@@ -334,6 +343,7 @@ export function useAddLinkFlow({
     } catch {
       setSaveError(saveFailureMessage(null, true));
       if (insertedDraft) setLinks(originalLinks);
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -346,6 +356,7 @@ export function useAddLinkFlow({
       const issue = linkUrlIssue(url);
       if (issue) {
         setSaveError(issue);
+        savingRef.current = false;
         setSaving(false);
         setPlaceGroupId(null);
         setCreatingNewGroup(false);
