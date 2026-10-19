@@ -67,12 +67,13 @@ describe("trash rows on a narrow screen", () => {
       name: trashRowActionName("restore", link.displayTitle),
     });
     expect(restore.className).toContain("focus-visible:ring-2");
-    expect(restore.className).toContain("min-h-6");
-    expect(
-      screen.getByRole("button", {
-        name: trashRowActionName("delete", link.displayTitle),
-      }).className,
-    ).toContain("min-h-6");
+    expect(restore.className).toContain("min-h-11");
+    expect(restore.className).toContain("sm:min-h-6");
+    const remove = screen.getByRole("button", {
+      name: trashRowActionName("delete", link.displayTitle),
+    });
+    expect(remove.className).toContain("min-h-11");
+    expect(remove.className).toContain("sm:min-h-6");
     expect(screen.queryByRole("button", { name: "Delete Now" })).not.toBeInTheDocument();
   });
 
