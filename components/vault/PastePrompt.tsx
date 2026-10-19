@@ -46,6 +46,7 @@ export default function PastePrompt({
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const saveGen = useRef(0);
+  const savingRef = useRef(false);
   const savingNoteRef = useRef(false);
   const [savingNote, setSavingNote] = useState(false);
 
@@ -69,6 +70,7 @@ export default function PastePrompt({
       setUrl("");
       setNotes("");
       setSavedLink(null);
+      savingRef.current = false;
       setPhase("idle");
     } finally {
       savingNoteRef.current = false;
@@ -77,6 +79,7 @@ export default function PastePrompt({
   }, [notes, onSaved, savedLink]);
 
   const submit = async () => {
+    if (savingRef.current) return;
     const trimmed = url.trim();
     const issue = linkUrlIssue(trimmed);
     if (issue) {
@@ -89,6 +92,7 @@ export default function PastePrompt({
       return;
     }
 
+    savingRef.current = true;
     const gen = ++saveGen.current;
     setPhase("saving");
     setError(null);
@@ -98,6 +102,7 @@ export default function PastePrompt({
       if (gen !== saveGen.current) return;
       if (!result.ok) {
         setError(result.error);
+        savingRef.current = false;
         setPhase("idle");
         return;
       }
@@ -113,6 +118,7 @@ export default function PastePrompt({
     } catch {
       if (gen !== saveGen.current) return;
       setError(saveFailureMessage(null, true));
+      savingRef.current = false;
       setPhase("idle");
     }
   };
