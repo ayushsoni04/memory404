@@ -261,7 +261,7 @@ export default function VaultInbox({
         sidebarShowNotesForm={sidebarShowNotesForm}
         sidebarNotesText={sidebarNotesText}
         setSidebarNotesText={setSidebarNotesText}
-        finishSidebarNotesFlow={() => void finishSidebarNotesFlow()}
+        finishSidebarNotesFlow={finishSidebarNotesFlow}
         saving={saving}
         saveSuccess={saveSuccess}
         savePhase={savePhase}

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Download } from "lucide-react";
@@ -35,7 +36,7 @@ type VaultSidebarProps = {
   sidebarShowNotesForm: boolean;
   sidebarNotesText: string;
   setSidebarNotesText: (value: string) => void;
-  finishSidebarNotesFlow: () => void;
+  finishSidebarNotesFlow: () => void | Promise<void>;
   saving: boolean;
   saveSuccess: boolean;
   savePhase: "paste" | "place";
@@ -97,6 +98,19 @@ export default function VaultSidebar({
   selectGroup,
 }: VaultSidebarProps) {
   const noteProblem = noteIssue(sidebarNotesText);
+  const savingNoteRef = useRef(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const saveSidebarNote = async () => {
+    if (savingNoteRef.current) return;
+    savingNoteRef.current = true;
+    setSavingNote(true);
+    try {
+      await finishSidebarNotesFlow();
+    } finally {
+      savingNoteRef.current = false;
+      setSavingNote(false);
+    }
+  };
   const noteDescribedBy = [
     noteCountLabel(sidebarNotesText) ? "sidebar-note-count" : null,
     noteProblem ? "sidebar-note-error" : null,
@@ -163,12 +177,17 @@ export default function VaultSidebar({
                     ) : null}
                     <button
                       type="button"
-                      onClick={finishSidebarNotesFlow}
-                      disabled={Boolean(noteProblem)}
+                      onClick={() => void saveSidebarNote()}
+                      disabled={savingNote || Boolean(noteProblem)}
+                      aria-busy={savingNote || undefined}
                       className={`inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer disabled:opacity-50 ${controlPress}`}
                     >
                       <MorphText duration={220}>
-                        {sidebarNotesText.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
+                        {savingNote
+                          ? "Saving…"
+                          : sidebarNotesText.trim()
+                            ? SAVE_NOTE_LABEL
+                            : NOTE_DONE_LABEL}
                       </MorphText>
                     </button>
                   </div>
