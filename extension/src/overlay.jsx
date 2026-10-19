@@ -12,7 +12,13 @@ import {
   groupPickerKeyAction,
   libraryGroupForTitle,
 } from "./group-picker";
-import { containPanelTab, focusOverlayPanel, panelEscapeAction } from "./panel-keys";
+import {
+  containPanelTab,
+  focusOverlayPanel,
+  panelEscapeAction,
+  rememberPageFocus,
+  releasePanelFocus,
+} from "./panel-keys";
 import { phaseForSaveStatus } from "./save-cancel";
 import { savingStageLabel } from "./save-progress";
 import { saveHeadline, saveRowsToReview } from "./save-outcome";
@@ -1255,12 +1261,17 @@ function ensureHost() {
 
 function hideOverlay() {
   const host = document.getElementById(ROOT_ID);
-  if (host) host.style.display = "none";
+  if (host && host.style.display !== "none") {
+    releasePanelFocus(host);
+    host.style.display = "none";
+  }
   void sendMessage({ type: "CLOSE_OVERLAY" });
 }
 
 function showOverlay(rememberUrl = null) {
   const host = ensureHost();
+  const wasClosed = host.style.display === "none" || !host.__m404Root;
+  if (wasClosed) rememberPageFocus(host);
   host.style.display = "block";
 
   if (!host.__m404Root) {

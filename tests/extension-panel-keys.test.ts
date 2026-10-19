@@ -1,9 +1,12 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import {
   containPanelTab,
   focusOverlayPanel,
   panelEscapeAction,
+  releasePanelFocus,
+  rememberPageFocus,
 } from "../extension/src/panel-keys.js";
 
 describe("panelEscapeAction", () => {
@@ -43,6 +46,57 @@ describe("focusOverlayPanel", () => {
 
     expect(focusOverlayPanel(panel)).toBe(false);
     expect(document.activeElement).toBe(group);
+  });
+});
+
+function mountPanel() {
+  document.body.innerHTML = `
+    <button type="button" id="page">Page</button>
+    <div id="host" style="display:block">
+      <button type="button" id="save">Save</button>
+    </div>
+  `;
+  return {
+    page: document.getElementById("page") as HTMLButtonElement,
+    host: document.getElementById("host")!,
+    save: document.getElementById("save") as HTMLButtonElement,
+  };
+}
+
+describe("releasePanelFocus", () => {
+  it("returns focus to the page control that was in use", () => {
+    const { page, host, save } = mountPanel();
+    page.focus();
+    expect(rememberPageFocus(host)).toBe(true);
+    save.focus();
+    expect(releasePanelFocus(host)).toBe(true);
+    expect(document.activeElement).toBe(page);
+  });
+
+  it("keeps the original page control when the panel is already focused", () => {
+    const { page, host, save } = mountPanel();
+    page.focus();
+    rememberPageFocus(host);
+    save.focus();
+    expect(rememberPageFocus(host)).toBe(false);
+    releasePanelFocus(host);
+    expect(document.activeElement).toBe(page);
+  });
+
+  it("releases focus when the page control is gone", () => {
+    const { page, host, save } = mountPanel();
+    page.focus();
+    rememberPageFocus(host);
+    save.focus();
+    page.remove();
+    expect(releasePanelFocus(host)).toBe(true);
+    expect(host.contains(document.activeElement)).toBe(false);
+  });
+
+  it("is what closing the save panel uses", () => {
+    const overlay = readFileSync("extension/src/overlay.jsx", "utf8");
+    expect(overlay).toContain("rememberPageFocus(host)");
+    expect(overlay).toContain("releasePanelFocus(host)");
   });
 });
 
