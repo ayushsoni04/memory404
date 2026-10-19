@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   cancelledSaveJob,
+  claimSaveStart,
   phaseForSaveStatus,
   saveLoopShouldStop,
 } from "../extension/src/save-cancel.js";
@@ -11,6 +12,14 @@ describe("extension save cancel", () => {
     expect(saveLoopShouldStop("job-1", "job-1")).toBe(false);
     expect(saveLoopShouldStop(null, "job-1")).toBe(true);
     expect(saveLoopShouldStop("job-2", "job-1")).toBe(true);
+  });
+
+  it("ignores a second save while the first one is still starting", () => {
+    expect(claimSaveStart("pick", false)).toBe(true);
+    expect(claimSaveStart("pick", true)).toBe(false);
+    expect(claimSaveStart("error", false)).toBe(true);
+    expect(claimSaveStart("saving", false)).toBe(false);
+    expect(claimSaveStart("saved", false)).toBe(false);
   });
 
   it("treats cancel as a return to the picker, not an error", () => {
@@ -31,6 +40,13 @@ describe("extension save cancel", () => {
       "utf8",
     );
     expect(source).toContain("saveLoopShouldStop(activeRunnerId, job.id)");
+    const overlay = readFileSync(
+      new URL("../extension/src/overlay.jsx", import.meta.url),
+      "utf8",
+    );
+    expect(overlay).toContain("claimSaveStart(phaseRef.current, saveClaimedRef.current)");
+    expect(overlay).toContain("shouldApplyDefaultGroup");
+    expect(overlay).toContain("groupTouchedRef.current = true");
     expect(source).toContain("cancelledSaveJob(job)");
     expect(source).not.toContain('error: "Save cancelled"');
   });

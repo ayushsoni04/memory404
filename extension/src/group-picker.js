@@ -24,6 +24,18 @@ export function groupListEmptyCopy(query) {
   return name ? `No groups match “${name}”` : "No groups yet";
 }
 
+/**
+ * A group list that arrives after the panel opens should fill the field
+ * only when the person has not already chosen or typed a name.
+ * @param {{ touched?: boolean, phase?: string, restoringSave?: boolean }} input
+ */
+export function shouldApplyDefaultGroup({ touched, phase, restoringSave } = {}) {
+  if (touched) return false;
+  if (restoringSave) return false;
+  if (phase === "saving" || phase === "saved") return false;
+  return true;
+}
+
 /** The list is on screen while someone is picking a group and the menu is open. */
 export function groupListIsShown(phase, dropdownOpen) {
   return phase === "pick" && Boolean(dropdownOpen);
