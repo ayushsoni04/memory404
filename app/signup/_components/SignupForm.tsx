@@ -23,6 +23,12 @@ import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { signupPasswordErrors } from "@/lib/signup-password";
 import { LEAD_SOURCE_OPTIONS, readUtmFromSearchParams } from "@/lib/utm";
 
+const EMAIL_TAKEN = "an account with this email already exists";
+
+function emailAlreadyRegistered(message: string | null): boolean {
+  return message?.trim().toLowerCase() === EMAIL_TAKEN;
+}
+
 export function SignupForm() {
   const searchParams = useSearchParams();
   const redirectPath = safeRedirectPath(searchParams.get("redirect"));
@@ -46,6 +52,7 @@ export function SignupForm() {
 
   const fieldErrors = signupPasswordErrors(password, confirm);
   const emailError = attempted ? emailIssue(email) : null;
+  const emailTaken = emailAlreadyRegistered(error);
   const passwordError = visiblePasswordRequirementError(
     password,
     fieldErrors.password,
@@ -86,8 +93,10 @@ export function SignupForm() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(authFailureMessage(data, "Failed to create account"));
+        const message = authFailureMessage(data, "Failed to create account");
+        setError(message);
         setIsSubmitting(false);
+        if (emailAlreadyRegistered(message)) emailRef.current?.focus();
         return;
       }
       window.location.assign(redirectPath);
@@ -139,8 +148,10 @@ export function SignupForm() {
             }}
             placeholder="you@example.com"
             autoComplete="email"
-            aria-invalid={emailError ? true : undefined}
-            aria-describedby={emailError ? "signup-email-error" : undefined}
+              aria-invalid={emailError || emailTaken ? true : undefined}
+              aria-describedby={
+                emailError ? "signup-email-error" : emailTaken ? "signup-form-error" : undefined
+              }
             className={authFieldClass}
             required
           />
@@ -254,7 +265,7 @@ export function SignupForm() {
         </label>
 
         {error ? (
-          <p className="text-xs text-danger" role="alert">
+          <p id="signup-form-error" className="text-xs text-danger" role="alert">
             {error}
           </p>
         ) : null}
