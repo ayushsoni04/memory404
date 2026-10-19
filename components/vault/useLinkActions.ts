@@ -55,6 +55,7 @@ export function useLinkActions({
   const [undoNotice, setUndoNotice] = useState<UndoNoticeModel | null>(null);
   const undoToken = useRef(0);
   const undoTimer = useRef<number | null>(null);
+  const movesInFlight = useRef(new Set<string>());
   const openedGroupIdRef = useRef(openedGroupId);
   const linksRef = useRef(links);
   const returnFocusId = useRef<string | null>(null);
@@ -299,69 +300,75 @@ export function useLinkActions({
 
   const moveLinkToGroup = async (link: LinkApiRow, nextGroupId: string) => {
     if (nextGroupId === link.groupId) return;
-    setPatchErrors((p) => {
-      const n = { ...p };
-      delete n[link.id];
-      return n;
-    });
-
-    const originalLinks = links;
-    const stays = linkStaysInOpenGroup(openedGroupId, nextGroupId);
-    const optimistic = { ...link, groupId: nextGroupId };
-
-    if (stays) {
-      setLinks((prev) =>
-        prev.map((item) => (item.id === link.id ? optimistic : item)),
-      );
-    } else {
-      setLinks((prev) => prev.filter((item) => item.id !== link.id));
-    }
-
+    if (movesInFlight.current.has(link.id)) return;
+    movesInFlight.current.add(link.id);
     try {
-      const res = await fetch(apiUrl(`/api/links/${link.id}`), {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ groupId: nextGroupId }),
+      setPatchErrors((p) => {
+        const n = { ...p };
+        delete n[link.id];
+        return n;
       });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
+
+      const originalLinks = links;
+      const stays = linkStaysInOpenGroup(openedGroupId, nextGroupId);
+      const optimistic = { ...link, groupId: nextGroupId };
+
+      if (stays) {
+        setLinks((prev) =>
+          prev.map((item) => (item.id === link.id ? optimistic : item)),
+        );
+      } else {
+        setLinks((prev) => prev.filter((item) => item.id !== link.id));
+      }
+
+      try {
+        const res = await fetch(apiUrl(`/api/links/${link.id}`), {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ groupId: nextGroupId }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          setLinks(originalLinks);
+          const msg = moveFailureNotice(data);
+          setPatchErrors((p) => ({ ...p, [link.id]: msg }));
+          playUiSound("error");
+          showUndo(msg, null, msg);
+          return;
+        }
+
+        const updatedLink = data.link
+          ? (data.link as LinkApiRow)
+          : optimistic;
+
+        setLinksCache((prev) => {
+          const next = cacheAfterMove(prev, link.id, updatedLink);
+          if (next !== prev) writeLinksCacheToStorage(next);
+          return next;
+        });
+        if (stays) {
+          setLinks((prev) =>
+            prev.map((item) => (item.id === link.id ? updatedLink : item)),
+          );
+          replaceLinkInPages(updatedLink);
+        } else {
+          if (openedLink?.id === link.id) {
+            setOpenedLink(null);
+            setOverlayOrigin(null);
+          }
+          removeLinkFromPages(link.id);
+        }
+        void loadGroups?.();
+        showUndo(moveUndoMessage(groupLabel(nextGroupId)), () => undoMove(link));
+      } catch {
         setLinks(originalLinks);
-        const msg = moveFailureNotice(data);
+        const msg = moveFailureNotice(null, true);
         setPatchErrors((p) => ({ ...p, [link.id]: msg }));
         playUiSound("error");
         showUndo(msg, null, msg);
-        return;
       }
-
-      const updatedLink = data.link
-        ? (data.link as LinkApiRow)
-        : optimistic;
-
-      setLinksCache((prev) => {
-        const next = cacheAfterMove(prev, link.id, updatedLink);
-        if (next !== prev) writeLinksCacheToStorage(next);
-        return next;
-      });
-      if (stays) {
-        setLinks((prev) =>
-          prev.map((item) => (item.id === link.id ? updatedLink : item)),
-        );
-        replaceLinkInPages(updatedLink);
-      } else {
-        if (openedLink?.id === link.id) {
-          setOpenedLink(null);
-          setOverlayOrigin(null);
-        }
-        removeLinkFromPages(link.id);
-      }
-      void loadGroups?.();
-      showUndo(moveUndoMessage(groupLabel(nextGroupId)), () => undoMove(link));
-    } catch {
-      setLinks(originalLinks);
-      const msg = moveFailureNotice(null, true);
-      setPatchErrors((p) => ({ ...p, [link.id]: msg }));
-      playUiSound("error");
-      showUndo(msg, null, msg);
+    } finally {
+      movesInFlight.current.delete(link.id);
     }
   };
 
