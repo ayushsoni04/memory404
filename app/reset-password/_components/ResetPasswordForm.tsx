@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import MorphText from "@/components/MorphText";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
@@ -25,6 +25,8 @@ export function ResetPasswordForm() {
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const passwordRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
@@ -57,7 +59,11 @@ export function ResetPasswordForm() {
     }
 
     setAttempted(true);
-    if (fieldErrors.password || fieldErrors.confirm) return;
+    if (fieldErrors.password || fieldErrors.confirm) {
+      if (fieldErrors.password) passwordRef.current?.focus();
+      else confirmRef.current?.focus();
+      return;
+    }
 
     setIsSubmitting(true);
     try {
@@ -115,7 +121,7 @@ export function ResetPasswordForm() {
       ) : done ? (
         <p className="text-sm text-success">Password updated — sign in with your new password…</p>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form noValidate onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <label htmlFor="reset-password" className="block text-[11px] font-medium text-muted">
               New password
@@ -123,9 +129,13 @@ export function ResetPasswordForm() {
             <div className="relative">
               <input
                 id="reset-password"
+                ref={passwordRef}
                 type={showPassword ? "text" : "password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  setError(null);
+                }}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 aria-invalid={passwordError ? true : undefined}
@@ -164,9 +174,13 @@ export function ResetPasswordForm() {
             <div className="relative">
               <input
                 id="reset-password-confirm"
+                ref={confirmRef}
                 type={showConfirm ? "text" : "password"}
                 value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
+                onChange={(e) => {
+                  setConfirm(e.target.value);
+                  setError(null);
+                }}
                 placeholder="••••••••"
                 autoComplete="new-password"
                 aria-invalid={confirmError ? true : undefined}
