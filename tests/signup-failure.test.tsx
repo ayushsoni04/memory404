@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { SignupForm } from "@/app/signup/_components/SignupForm";
 import { EMAIL_INVALID } from "@/lib/auth-email";
+import { AUTH_OFFLINE_MESSAGE } from "@/lib/auth-form-error";
 
 vi.mock("@/components/MorphText", () => ({
   default: ({ children }: { children: ReactNode }) => <>{children}</>,
@@ -95,6 +96,9 @@ describe("SignupForm after a failed attempt", () => {
 
     const serverError = "An account with this email already exists";
     const email = screen.getByLabelText("Email address");
+    expect(email).toHaveFocus();
+    expect(email).toHaveAttribute("aria-invalid", "true");
+    expect(email).toHaveAttribute("aria-describedby", "signup-form-error");
     await user.type(email, "x");
     expect(screen.queryByText(serverError)).not.toBeInTheDocument();
     await user.keyboard("{Backspace}");
@@ -111,5 +115,24 @@ describe("SignupForm after a failed attempt", () => {
     expect(screen.getByText(serverError)).toBeInTheDocument();
     await user.type(screen.getByLabelText("Confirm password"), "2");
     expect(screen.queryByText(serverError)).not.toBeInTheDocument();
+  });
+
+  it("does not mark the email wrong when the request never reaches memory404", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+
+    render(<SignupForm />);
+    await fillAccount(user, "ada@example.com", "Memory404");
+    await user.click(screen.getByRole("button", { name: "Create account" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(AUTH_OFFLINE_MESSAGE);
+    const email = screen.getByLabelText("Email address");
+    expect(email).not.toHaveAttribute("aria-invalid");
+    expect(email).not.toHaveAttribute("aria-describedby");
   });
 });
