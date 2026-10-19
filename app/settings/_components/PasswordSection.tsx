@@ -47,6 +47,7 @@ export function PasswordSection() {
   const currentRef = useRef<HTMLInputElement>(null);
   const newRef = useRef<HTMLInputElement>(null);
   const confirmRef = useRef<HTMLInputElement>(null);
+  const savingLock = useRef(false);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -76,6 +77,7 @@ export function PasswordSection() {
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
+    if (savingLock.current) return;
     setAttempted(true);
     setSaved(false);
     const issue = firstPasswordChangeError(errors);
@@ -86,6 +88,7 @@ export function PasswordSection() {
       else confirmRef.current?.focus();
       return;
     }
+    savingLock.current = true;
     setSaving(true);
     setServerError(null);
     try {
@@ -112,6 +115,7 @@ export function PasswordSection() {
         authFailureMessage(null, "Could not update your password.", true),
       );
     } finally {
+      savingLock.current = false;
       setSaving(false);
     }
   };

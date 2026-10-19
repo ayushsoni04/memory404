@@ -268,4 +268,39 @@ describe("password settings", () => {
     expect(screen.getByText("Confirm your new password.")).toBeInTheDocument();
     expect(fetchMock).not.toHaveBeenCalled();
   });
+
+  it("ignores a second update until the first one finishes", async () => {
+    let release: (value: { ok: boolean; json: () => Promise<{ ok: boolean }> }) => void =
+      () => {};
+    const fetchMock = vi.fn(
+      () =>
+        new Promise<{ ok: boolean; json: () => Promise<{ ok: boolean }> }>((resolve) => {
+          release = resolve;
+        }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    render(<PasswordSection />);
+
+    fireEvent.change(screen.getByLabelText("Current password"), {
+      target: { value: "OldPassword1" },
+    });
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "NewPassword2" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "NewPassword2" },
+    });
+    const update = screen.getByRole("button", { name: "Update password" });
+    fireEvent.click(update);
+    fireEvent.click(update);
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    release({ ok: false, json: async () => ({ ok: false, error: "Could not update your password." }) });
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not update your password.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Update password" }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+  });
 });
