@@ -96,6 +96,8 @@ export default function VaultInbox({
     fetchError,
     loadMoreError,
     retryLoadMore,
+    loadingMore,
+    loadMoreLinks,
     hasMoreLinks,
     sentinelRef,
     scrollRootRef,
@@ -345,6 +347,8 @@ export default function VaultInbox({
           openLinkDetail={openLinkDetail}
           feedImageSizes={feedImageSizes}
           hasMoreLinks={hasMoreLinks}
+          loadingMore={loadingMore}
+          onLoadMore={loadMoreLinks}
           sentinelRef={sentinelRef}
           scrollRootRef={scrollRootRef}
         />

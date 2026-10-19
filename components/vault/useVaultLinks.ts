@@ -533,6 +533,7 @@ export function useVaultLinks(
     loadMoreError,
     retryLoadMore,
     loadingMore,
+    loadMoreLinks,
     hasMoreLinks,
     sentinelRef,
     scrollRootRef,
