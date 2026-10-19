@@ -4,6 +4,7 @@ import { ThinkingOrb } from "thinking-orbs";
 import LoadingState from "./LoadingState";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { noteCountLabel, noteIssue } from "./note-limit";
+import { claimNoteSave, releaseNoteSave } from "./note-save";
 import {
   chooseSaveGroup,
   groupListEmptyCopy,
@@ -220,6 +221,7 @@ function App({ onClose }) {
   const saveClaimedRef = useRef(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
+  const noteSaveLock = useRef(false);
   const [noteSaved, setNoteSaved] = useState(false);
   const [noteError, setNoteError] = useState("");
 
@@ -648,19 +650,24 @@ function App({ onClose }) {
       setNoteError(issue);
       return;
     }
+    if (!claimNoteSave(noteSaveLock)) return;
     setNoteSaving(true);
     setNoteError("");
-    const res = await sendMessage({
-      type: "SAVE_LINK_NOTE",
-      linkId,
-      notes,
-    });
-    setNoteSaving(false);
-    if (!res?.ok) {
-      setNoteError(res?.error || "Could not save the note");
-      return;
+    try {
+      const res = await sendMessage({
+        type: "SAVE_LINK_NOTE",
+        linkId,
+        notes,
+      });
+      if (!res?.ok) {
+        setNoteError(res?.error || "Could not save the note");
+        return;
+      }
+      setNoteSaved(true);
+    } finally {
+      releaseNoteSave(noteSaveLock);
+      setNoteSaving(false);
     }
-    setNoteSaved(true);
   };
 
   const pickGroup = (g) => {
