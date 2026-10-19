@@ -56,6 +56,7 @@ export function useLinkActions({
   const undoToken = useRef(0);
   const undoTimer = useRef<number | null>(null);
   const movesInFlight = useRef(new Set<string>());
+  const deletesInFlight = useRef(new Set<string>());
   const openedGroupIdRef = useRef(openedGroupId);
   const linksRef = useRef(links);
   const returnFocusId = useRef<string | null>(null);
@@ -198,6 +199,8 @@ export function useLinkActions({
   }, [openedLink, sortedLinks]);
 
   const handleDelete = async (id: string) => {
+    if (deletesInFlight.current.has(id)) return;
+    deletesInFlight.current.add(id);
     setDeleteErrors((prev) => {
       const next = { ...prev };
       delete next[id];
@@ -246,6 +249,8 @@ export function useLinkActions({
       }
     } catch {
       reportDeleteFailure(deleteFailureNotice(null, true));
+    } finally {
+      deletesInFlight.current.delete(id);
     }
   };
 
