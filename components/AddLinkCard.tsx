@@ -40,6 +40,7 @@ export default function AddLinkCard({
   const openerRef = useRef<HTMLButtonElement | null>(null);
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
   const saveGen = useRef(0);
+  const savingRef = useRef(false);
   const savingNoteRef = useRef(false);
   const [savingNote, setSavingNote] = useState(false);
 
@@ -79,6 +80,7 @@ export default function AddLinkCard({
       onSaved(finalLink);
       setOpen(false);
       setUrl("");
+      savingRef.current = false;
       setSaving(false);
       setShowSuccess(false);
       setShowNotesForm(false);
@@ -104,6 +106,7 @@ export default function AddLinkCard({
   };
 
   const submit = async () => {
+    if (savingRef.current) return;
     const trimmed = url.trim();
     const issue = linkUrlIssue(trimmed);
     if (issue) {
@@ -116,6 +119,7 @@ export default function AddLinkCard({
       return;
     }
 
+    savingRef.current = true;
     const gen = ++saveGen.current;
     setSaving(true);
     setShowSuccess(false);
@@ -128,6 +132,7 @@ export default function AddLinkCard({
       if (gen !== saveGen.current) return;
       if (!result.ok) {
         setError(result.error);
+        savingRef.current = false;
         setSaving(false);
         return;
       }
@@ -143,6 +148,7 @@ export default function AddLinkCard({
     } catch {
       if (gen !== saveGen.current) return;
       setError(saveFailureMessage(null, true));
+      savingRef.current = false;
       setSaving(false);
     }
   };
@@ -221,7 +227,10 @@ export default function AddLinkCard({
               <div className="flex items-center gap-2">
                 <button
                   type="submit"
-                  disabled={!url.trim() || !groupId || Boolean(linkUrlDraftIssue(url))}
+                  disabled={
+                    saving || !url.trim() || !groupId || Boolean(linkUrlDraftIssue(url))
+                  }
+                  aria-busy={saving || undefined}
                   tabIndex={phase === "form" ? 0 : -1}
                   className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-45 ${controlPress}`}
                 >
