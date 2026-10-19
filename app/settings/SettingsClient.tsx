@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 import { STATS_INTRO } from "@/lib/stats-scope";
-import { explainLoadError } from "@/lib/load-error";
+import { explainLoadError, SESSION_EXPIRED_MESSAGE } from "@/lib/load-error";
 import { settingsTabHref, type Tab } from "./_components/constants";
 import { DeactivateModal } from "./_components/DeactivateModal";
 import { ProfileTab } from "./_components/ProfileTab";
@@ -127,6 +127,27 @@ export default function SettingsClient({
     };
   }, [loadProfile]);
 
+  const dismissProfileError = () => {
+    setProfileError((current) =>
+      current === SESSION_EXPIRED_MESSAGE ? current : null,
+    );
+  };
+
+  const changeName = (value: string) => {
+    dismissProfileError();
+    setName(value);
+  };
+
+  const changeUsername = (value: string) => {
+    dismissProfileError();
+    setUsername(value);
+  };
+
+  const changeBannerStyle = (value: string) => {
+    dismissProfileError();
+    setBannerStyle(value);
+  };
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setProfileError(null);
@@ -165,6 +186,7 @@ export default function SettingsClient({
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    dismissProfileError();
     const reader = new FileReader();
     reader.onloadend = () => {
       const base64String = reader.result as string;
@@ -225,12 +247,12 @@ export default function SettingsClient({
           {activeTab === "profile" && (
             <ProfileTab
               name={name}
-              setName={setName}
+              setName={changeName}
               username={username}
-              setUsername={setUsername}
+              setUsername={changeUsername}
               email={email}
               bannerStyle={bannerStyle}
-              setBannerStyle={setBannerStyle}
+              setBannerStyle={changeBannerStyle}
               avatarPreview={avatarPreview}
               onAvatarChange={handleAvatarChange}
               isSaved={isSaved}

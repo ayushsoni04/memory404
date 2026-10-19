@@ -143,4 +143,59 @@ describe("settings actions after the session expires", () => {
       "Couldn't reach memory404. Check your connection and try again.",
     );
   });
+
+  it("clears a failed profile save when the name changes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(loadedProfile())
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 409,
+          json: async () => ({ error: "Username already taken" }),
+        }),
+    );
+    installMatchMedia();
+
+    render(<SettingsClient isOwner={false} />);
+    expect(await screen.findByDisplayValue("Ada Lovelace")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save profile changes" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Username already taken");
+
+    fireEvent.change(screen.getByLabelText("Full Name"), {
+      target: { value: "Ada" },
+    });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("keeps the sign-in link when a session error is still the problem", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi
+        .fn()
+        .mockResolvedValueOnce(loadedProfile())
+        .mockResolvedValueOnce({
+          ok: false,
+          status: 401,
+          json: async () => ({ error: "Unauthorized" }),
+        }),
+    );
+    installMatchMedia();
+
+    render(<SettingsClient isOwner={false} />);
+    expect(await screen.findByDisplayValue("Ada Lovelace")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save profile changes" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Your session expired. Sign in again.",
+    );
+
+    fireEvent.change(screen.getByLabelText("Username"), {
+      target: { value: "ada_lovelace" },
+    });
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Your session expired. Sign in again.",
+    );
+    expect(screen.getByRole("link", { name: "Sign in" })).toBeInTheDocument();
+  });
 });
