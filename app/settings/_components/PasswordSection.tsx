@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useRef, useState, type FormEvent, type Ref } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
@@ -11,6 +11,7 @@ import {
   authRevealClass,
 } from "@/components/auth/auth-field";
 import { authFailureMessage } from "@/lib/auth-form-error";
+import { withAuthRedirect } from "@/lib/auth-redirect";
 import { explainLoadError } from "@/lib/load-error";
 import {
   firstPasswordChangeError,
@@ -23,6 +24,7 @@ import { visibleConfirmPasswordError } from "@/lib/password-confirm";
 import { controlPress } from "@/components/vault/types";
 
 const labelClass = "block text-xs font-medium text-muted";
+const CURRENT_PASSWORD_INCORRECT = "Current password is incorrect";
 
 function visibleError(
   attempted: boolean,
@@ -42,6 +44,9 @@ export function PasswordSection() {
   const [showNew, setShowNew] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [attempted, setAttempted] = useState(false);
+  const currentRef = useRef<HTMLInputElement>(null);
+  const newRef = useRef<HTMLInputElement>(null);
+  const confirmRef = useRef<HTMLInputElement>(null);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
@@ -63,6 +68,11 @@ export function PasswordSection() {
     errors.confirmPassword,
     attempted,
   );
+  const currentFieldError =
+    currentError ??
+    (serverError === CURRENT_PASSWORD_INCORRECT ? serverError : null);
+  const bannerError =
+    serverError && serverError !== CURRENT_PASSWORD_INCORRECT ? serverError : null;
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -71,6 +81,9 @@ export function PasswordSection() {
     const issue = firstPasswordChangeError(errors);
     if (issue) {
       setServerError(null);
+      if (errors.currentPassword) currentRef.current?.focus();
+      else if (errors.newPassword) newRef.current?.focus();
+      else confirmRef.current?.focus();
       return;
     }
     setSaving(true);
@@ -84,7 +97,9 @@ export function PasswordSection() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         const message = authFailureMessage(data, "Could not update your password.");
-        setServerError(explainLoadError(message) ?? message);
+        const explained = explainLoadError(message) ?? message;
+        setServerError(explained);
+        if (explained === CURRENT_PASSWORD_INCORRECT) currentRef.current?.focus();
         return;
       }
       setCurrentPassword("");
@@ -114,13 +129,14 @@ export function PasswordSection() {
       <form onSubmit={(event) => void onSubmit(event)} className="space-y-4">
         <PasswordField
           id="current-password"
+          inputRef={currentRef}
           label="Current password"
           autoComplete="current-password"
           value={currentPassword}
           shown={showCurrent}
           onToggle={() => setShowCurrent((value) => !value)}
           toggleLabel={showCurrent ? "Hide current password" : "Show current password"}
-          error={currentError}
+          error={currentFieldError}
           errorId="current-password-error"
           onChange={(value) => {
             setCurrentPassword(value);
@@ -130,6 +146,7 @@ export function PasswordSection() {
         />
         <PasswordField
           id="new-password"
+          inputRef={newRef}
           label="New password"
           autoComplete="new-password"
           value={newPassword}
@@ -147,6 +164,7 @@ export function PasswordSection() {
         />
         <PasswordField
           id="confirm-password"
+          inputRef={confirmRef}
           label="Confirm new password"
           autoComplete="new-password"
           value={confirmPassword}
@@ -163,10 +181,10 @@ export function PasswordSection() {
             setSaved(false);
           }}
         />
-        {serverError ? (
+        {bannerError ? (
           <div className="flex flex-col items-start gap-2" role="alert">
-            <p className="text-[12px] text-danger">{serverError}</p>
-            <SessionSignInLink message={serverError} returnPath="/settings" />
+            <p className="text-[12px] text-danger">{bannerError}</p>
+            <SessionSignInLink message={bannerError} returnPath="/settings" />
           </div>
         ) : null}
         {saved ? (
@@ -182,7 +200,10 @@ export function PasswordSection() {
           >
             {saving ? "Updating…" : "Update password"}
           </button>
-          <Link href="/forgot-password" className={authQuietControlClass}>
+          <Link
+            href={withAuthRedirect("/forgot-password", "/settings")}
+            className={authQuietControlClass}
+          >
             Forgot your password?
           </Link>
         </div>
@@ -193,6 +214,7 @@ export function PasswordSection() {
 
 function PasswordField({
   id,
+  inputRef,
   label,
   autoComplete,
   value,
@@ -205,6 +227,7 @@ function PasswordField({
   onChange,
 }: {
   id: string;
+  inputRef?: Ref<HTMLInputElement>;
   label: string;
   autoComplete: string;
   value: string;
@@ -228,6 +251,7 @@ function PasswordField({
       <div className="relative max-w-md">
         <input
           id={id}
+          ref={inputRef}
           type={shown ? "text" : "password"}
           value={value}
           autoComplete={autoComplete}
