@@ -1,6 +1,17 @@
 import React, { useState } from "react";
 
-/** Password row with a Show / Hide control, matching the site sign-in field. */
+/** Password row with a Show / Hide control, matching the site sign-in field.
+ * @param {{
+ *   id: string,
+ *   value: string,
+ *   onChange: (event: { target: { value: string } }) => void,
+ *   autoComplete?: string,
+ *   required?: boolean,
+ *   invalid?: boolean,
+ *   describedBy?: string,
+ *   inputRef?: React.Ref<HTMLInputElement>,
+ * }} props
+ */
 export default function PasswordField({
   id,
   value,
