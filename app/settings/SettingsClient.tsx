@@ -63,6 +63,7 @@ export default function SettingsClient({
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [deactivatedSuccess, setDeactivatedSuccess] = useState(false);
   const [deactivateError, setDeactivateError] = useState<string | null>(null);
+  const deactivateLock = useRef(false);
 
   const applyUser = useCallback((user: MeUser) => {
     setName(user.name ?? "");
@@ -197,7 +198,9 @@ export default function SettingsClient({
 
   const handleDeactivate = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (deactivateLock.current) return;
     if (!isDeactivateConfirmation(deactivateInput)) return;
+    deactivateLock.current = true;
     setDeactivateError(null);
     setIsDeactivating(true);
     try {
@@ -218,6 +221,7 @@ export default function SettingsClient({
       const message = err instanceof Error ? err.message : "Failed to delete account";
       setDeactivateError(explainLoadError(message) ?? "Failed to delete account");
       setIsDeactivating(false);
+      deactivateLock.current = false;
     }
   };
 
