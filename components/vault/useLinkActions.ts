@@ -198,8 +198,8 @@ export function useLinkActions({
     setOpenedLink(next);
   }, [openedLink, sortedLinks]);
 
-  const handleDelete = async (id: string) => {
-    if (deletesInFlight.current.has(id)) return;
+  const handleDelete = async (id: string): Promise<boolean> => {
+    if (deletesInFlight.current.has(id)) return false;
     deletesInFlight.current.add(id);
     setDeleteErrors((prev) => {
       const next = { ...prev };
@@ -223,12 +223,7 @@ export function useLinkActions({
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         reportDeleteFailure(deleteFailureNotice(data));
-        return;
-      }
-
-      if (openedLink?.id === id) {
-        setOpenedLink(null);
-        setOverlayOrigin(null);
+        return false;
       }
 
       if (openedGroupId) {
@@ -247,8 +242,10 @@ export function useLinkActions({
       if (removed) {
         showUndo(deleteUndoMessage(), () => restoreDeleted(removed));
       }
+      return true;
     } catch {
       reportDeleteFailure(deleteFailureNotice(null, true));
+      return false;
     } finally {
       deletesInFlight.current.delete(id);
     }
