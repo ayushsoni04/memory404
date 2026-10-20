@@ -86,6 +86,45 @@ describe("long group names", () => {
     expect(pill).toHaveAttribute("title", longName);
   });
 
+  it("keeps the new-group field from growing past a pill", () => {
+    render(
+      <VaultGroupToolbar
+        openedGroupId="all"
+        selectGroup={() => {}}
+        generalGroup={null}
+        filteredFolders={[]}
+        draggingGroupId={null}
+        setDraggingGroupId={() => {}}
+        persistFolderOrder={() => {}}
+        canReorderPills={false}
+        handleDeleteGroup={() => {}}
+        addingAt={0}
+        createGroupName={longName}
+        setCreateGroupName={() => {}}
+        creatingGroup={false}
+        createGroupError={null}
+        setCreateGroupError={() => {}}
+        createGroup={async () => undefined}
+        openAddGroup={() => {}}
+        cancelAddGroup={() => {}}
+        groupInputRef={{ current: null }}
+        groupSizerRef={{ current: null }}
+        groupInputWidth={480}
+        sortBy="newest"
+        setSortByAndPersist={() => {}}
+        loadGroups={async () => undefined}
+      />,
+    );
+
+    const field = screen.getByRole("textbox", { name: "Group name" });
+    expect(field.className).toContain("max-w-48");
+    expect(field.className).toContain("min-w-0");
+    expect(field.style.width).toBe("192px");
+    expect(field.parentElement?.className).toContain("max-w-48");
+    expect(field.parentElement?.className).toContain("min-w-0");
+    expect(field.parentElement?.className).not.toContain("shrink-0");
+  });
+
   it("lets the library heading wrap instead of pushing the count off", () => {
     render(
       <VaultFeed
