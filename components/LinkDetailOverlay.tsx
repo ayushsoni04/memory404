@@ -90,6 +90,7 @@ const NoteEditor = forwardRef<
   const dirty = draft.trim() !== saved;
   const draftRef = useRef(draft);
   const savedRef = useRef(saved);
+  const fieldRef = useRef<HTMLTextAreaElement | null>(null);
   const inflight = useRef<Promise<boolean> | null>(null);
   draftRef.current = draft;
   savedRef.current = saved;
@@ -100,6 +101,7 @@ const NoteEditor = forwardRef<
     const issue = noteIssue(draftRef.current);
     if (issue) {
       setError(issue);
+      fieldRef.current?.focus();
       return Promise.resolve(false);
     }
     const run = (async (): Promise<boolean> => {
@@ -115,6 +117,7 @@ const NoteEditor = forwardRef<
         if (!res.ok) {
           const serverMessage = typeof data.error === "string" ? data.error : "";
           setError(explainLoadError(serverMessage) ?? "Could not save the note");
+          fieldRef.current?.focus();
           return false;
         }
         onSaved(next);
@@ -123,6 +126,7 @@ const NoteEditor = forwardRef<
       } catch (error: unknown) {
         const raw = error instanceof Error ? error.message : "";
         setError(explainLoadError(raw) ?? "Could not save the note. Try again.");
+        fieldRef.current?.focus();
         return false;
       } finally {
         setSaving(false);
@@ -157,6 +161,7 @@ const NoteEditor = forwardRef<
         Note
       </label>
       <textarea
+        ref={fieldRef}
         id={`link-note-${linkId}`}
         value={draft}
         onChange={(event) => {
@@ -170,6 +175,11 @@ const NoteEditor = forwardRef<
         className={`mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-subtle focus:border-white/30 ${overlayFocus}`}
       />
       <NoteCount notes={draft} id={countId} />
+      {error ? (
+        <p id={errorId} className="mt-2 text-[12px] text-danger" role="alert">
+          {error}
+        </p>
+      ) : null}
       {dirty ? (
         <button
           type="button"
@@ -179,11 +189,6 @@ const NoteEditor = forwardRef<
         >
           {saving ? "Saving…" : SAVE_NOTE_LABEL}
         </button>
-      ) : null}
-      {error ? (
-        <p id={errorId} className="mt-2 text-[12px] text-danger" role="alert">
-          {error}
-        </p>
       ) : null}
     </div>
   );
