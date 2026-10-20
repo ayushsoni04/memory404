@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Download } from "lucide-react";
@@ -98,8 +98,15 @@ export default function VaultSidebar({
   selectGroup,
 }: VaultSidebarProps) {
   const noteProblem = noteIssue(sidebarNotesText);
+  const noteAlert = noteProblem ?? (sidebarShowNotesForm ? saveError : null);
+  const noteRef = useRef<HTMLTextAreaElement | null>(null);
   const savingNoteRef = useRef(false);
   const [savingNote, setSavingNote] = useState(false);
+
+  useEffect(() => {
+    if (!sidebarShowNotesForm || !saveError || noteProblem) return;
+    noteRef.current?.focus();
+  }, [noteProblem, saveError, sidebarShowNotesForm]);
   const saveSidebarNote = async () => {
     if (savingNoteRef.current) return;
     savingNoteRef.current = true;
@@ -113,7 +120,7 @@ export default function VaultSidebar({
   };
   const noteDescribedBy = [
     noteCountLabel(sidebarNotesText) ? "sidebar-note-count" : null,
-    noteProblem ? "sidebar-note-error" : null,
+    noteAlert ? "sidebar-note-error" : null,
   ]
     .filter(Boolean)
     .join(" ");
@@ -160,19 +167,23 @@ export default function VaultSidebar({
                       Add a note
                     </label>
                     <textarea
+                      ref={noteRef}
                       id="sidebar-save-note"
                       value={sidebarNotesText}
-                      onChange={(e) => setSidebarNotesText(e.target.value)}
+                      onChange={(e) => {
+                        setSidebarNotesText(e.target.value);
+                        if (saveError) setSaveError(null);
+                      }}
                       placeholder="What should you remember?"
                       rows={2}
-                      aria-invalid={noteProblem ? true : undefined}
+                      aria-invalid={noteAlert ? true : undefined}
                       aria-describedby={noteDescribedBy || undefined}
                       className={`${FIELD_CLASS} resize-none`}
                     />
                     <NoteCount notes={sidebarNotesText} id="sidebar-note-count" />
-                    {noteProblem ? (
+                    {noteAlert ? (
                       <p id="sidebar-note-error" className="text-xs text-danger" role="alert">
-                        {noteProblem}
+                        {noteAlert}
                       </p>
                     ) : null}
                     <button
@@ -340,7 +351,7 @@ export default function VaultSidebar({
                     </div>
                   </>
                 )}
-                {saveError ? (
+                {saveError && !sidebarShowNotesForm ? (
                   <p id="save-flow-error" className="text-xs text-danger" role="alert">
                     {saveError}
                   </p>
