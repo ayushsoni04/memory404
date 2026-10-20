@@ -193,6 +193,7 @@ export function SignupForm() {
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               aria-label={showPassword ? "Hide password" : "Show password"}
+              aria-pressed={showPassword}
               className={authRevealClass}
             >
               {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -235,6 +236,7 @@ export function SignupForm() {
               type="button"
               onClick={() => setShowConfirm(!showConfirm)}
               aria-label={showConfirm ? "Hide confirmed password" : "Show confirmed password"}
+              aria-pressed={showConfirm}
               className={authRevealClass}
             >
               {showConfirm ? <EyeOff className="size-4" /> : <Eye className="size-4" />}

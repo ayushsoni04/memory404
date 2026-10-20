@@ -270,6 +270,7 @@ function PasswordField({
           type="button"
           onClick={onToggle}
           aria-label={toggleLabel}
+          aria-pressed={shown}
           className={authRevealClass}
         >
           {shown ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
