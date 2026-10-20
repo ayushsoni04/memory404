@@ -379,7 +379,7 @@ export default function VaultInbox({
           onClose={closeLinkDetail}
           onPrev={goPrevLink}
           onNext={goNextLink}
-          onDelete={(id) => void handleDelete(id)}
+          onDelete={(id) => handleDelete(id)}
           onMove={(link, groupId) => void moveLinkToGroup(link, groupId)}
           hasPrev={openedLinkIndex > 0}
           hasNext={

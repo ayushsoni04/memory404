@@ -44,7 +44,7 @@ type Props = {
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string) => void | Promise<boolean | void>;
   onMove: (link: LinkApiRow, groupId: string) => void;
   hasPrev: boolean;
   hasNext: boolean;
@@ -245,6 +245,8 @@ export default function LinkDetailOverlay({
   const closingRef = useRef(false);
   const noteRef = useRef<NoteEditorHandle>(null);
   const leavingRef = useRef(false);
+  const trashingRef = useRef(false);
+  const [trashing, setTrashing] = useState(false);
   const hasOpenedRef = useRef(false);
   const previousLinkIdRef = useRef(link.id);
   const keyboardNavigationRef = useRef(false);
@@ -400,6 +402,7 @@ export default function LinkDetailOverlay({
   );
 
   const leave = useCallback((go: () => void) => {
+    if (trashingRef.current) return;
     const editor = noteRef.current;
     if (!editor || !editor.isDirty()) {
       go();
@@ -412,6 +415,23 @@ export default function LinkDetailOverlay({
       if (ok) go();
     });
   }, []);
+
+  const moveToTrash = () => {
+    if (trashingRef.current) return;
+    leave(() => {
+      if (trashingRef.current) return;
+      trashingRef.current = true;
+      setTrashing(true);
+      void Promise.resolve(onDelete(link.id)).then((result) => {
+        if (result === false) {
+          trashingRef.current = false;
+          setTrashing(false);
+          return;
+        }
+        animateClose();
+      });
+    });
+  };
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -858,15 +878,12 @@ export default function LinkDetailOverlay({
                 </label>
                 <button
                   type="button"
-                  onClick={() => {
-                    leave(() => {
-                      onDelete(link.id);
-                      animateClose();
-                    });
-                  }}
-                  className={`rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 ${overlayFocus}`}
+                  onClick={moveToTrash}
+                  disabled={trashing}
+                  aria-busy={trashing}
+                  className={`rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50 ${overlayFocus}`}
                 >
-                  Move to Trash
+                  {trashing ? "Moving…" : "Move to Trash"}
                 </button>
                 <p className="text-[11px] leading-snug text-subtle">
                   You can restore it from Trash for 30 days.
