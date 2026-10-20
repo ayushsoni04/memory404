@@ -527,7 +527,7 @@ export default function VaultGroupToolbar({
 
         {addingAt !== null ? (
           <form
-            className="relative flex shrink-0 items-center"
+            className="relative flex min-w-0 max-w-48 shrink items-center"
             onSubmit={(e) => {
               e.preventDefault();
               submitCreateGroup();
@@ -560,8 +560,8 @@ export default function VaultGroupToolbar({
               }}
               placeholder="Group"
               disabled={creatingGroup}
-              style={{ width: groupInputWidth }}
-              className="h-7 shrink-0 rounded-full border border-dashed border-foreground/40 bg-surface px-4 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              style={{ width: Math.min(groupInputWidth, 192) }}
+              className="h-7 w-full min-w-0 max-w-48 rounded-full border border-dashed border-foreground/40 bg-surface px-4 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
             {creatingGroup ? (
               <span className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
