@@ -260,18 +260,19 @@ export default function VaultSidebar({
                             key={g.id}
                             type="button"
                             aria-pressed={active}
+                            title={displayName}
                             onClick={() => {
                               setCreatingNewGroup(false);
                               setNewGroupNameDraft("");
                               setPlaceGroupId(g.id);
                             }}
-                            className={`min-h-6 rounded-lg px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
+                            className={`flex min-h-11 w-full min-w-0 items-center rounded-lg px-2.5 text-start text-[13px] transition-colors cursor-pointer sm:min-h-6 sm:py-1.5 ${
                               active
                                 ? "bg-pill-active text-pill-active-fg"
                                 : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
                             }`}
                           >
-                            {displayName}
+                            <span className="min-w-0 truncate">{displayName}</span>
                           </button>
                         );
                       })}
@@ -282,7 +283,7 @@ export default function VaultSidebar({
                           setCreatingNewGroup(true);
                           setPlaceGroupId(null);
                         }}
-                        className={`min-h-6 rounded-lg border border-dashed px-2.5 py-1.5 text-start text-[13px] transition-colors cursor-pointer ${
+                        className={`flex min-h-11 w-full min-w-0 items-center rounded-lg border border-dashed px-2.5 text-start text-[13px] transition-colors cursor-pointer sm:min-h-6 sm:py-1.5 ${
                           creatingNewGroup
                             ? "border-foreground/40 bg-surface text-foreground"
                             : "border-muted/50 bg-transparent text-muted hover:border-foreground/35 hover:text-foreground"

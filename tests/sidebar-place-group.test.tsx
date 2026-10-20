@@ -146,4 +146,67 @@ describe("where a link is saved", () => {
     expect(all).toHaveAttribute("aria-pressed", "false");
     expect(reading).toHaveAttribute("aria-pressed", "false");
   });
+
+  it("keeps a long group name inside the list and easy to tap", () => {
+    const longName = "Research-notes-for-the-quarterly-review-archive-2026";
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: () => ({
+        matches: false,
+        media: "",
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          user: { name: "Ada", username: "ada", avatarUrl: null },
+        }),
+      }),
+    );
+
+    render(
+      <VaultSidebar
+        gridSize="default"
+        setGridSizeAndPersist={() => {}}
+        sidebarShowNotesForm={false}
+        sidebarNotesText=""
+        setSidebarNotesText={() => {}}
+        finishSidebarNotesFlow={() => {}}
+        saving={false}
+        saveSuccess={false}
+        savePhase="place"
+        setSavePhase={() => {}}
+        urlInput="https://example.com/pricing"
+        handleSubmit={(event) => event.preventDefault()}
+        groups={[{ ...groups[1], name: longName }]}
+        creatingNewGroup={false}
+        setCreatingNewGroup={() => {}}
+        placeGroupId="reading"
+        setPlaceGroupId={() => {}}
+        newGroupNameDraft=""
+        setNewGroupNameDraft={() => {}}
+        saveError={null}
+        setSaveError={() => {}}
+        savedFlash={false}
+        groupsError={null}
+        loadGroups={async () => undefined}
+        onDeleteLink={() => {}}
+        onDeleteGroup={() => {}}
+        groupSearch=""
+        setGroupSearch={() => {}}
+        filteredFolders={[]}
+        selectGroup={() => {}}
+      />,
+    );
+
+    const choice = screen.getByRole("button", { name: longName });
+    expect(choice).toHaveAttribute("title", longName);
+    expect(choice.className).toContain("min-h-11");
+    expect(choice.className).toContain("min-w-0");
+    expect(choice.querySelector("span")?.className).toContain("truncate");
+  });
 });
