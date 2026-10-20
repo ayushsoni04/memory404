@@ -227,8 +227,11 @@ export default function PastePrompt({
               }}
             >
               {variant === "empty" && emptyMode === "group" ? (
-                <div className="space-y-1 text-center">
-                  <p className="text-[13px] text-foreground">
+                <div className="w-full min-w-0 space-y-1 text-center">
+                  <p
+                    className="max-w-full text-[13px] text-foreground [overflow-wrap:anywhere]"
+                    title={groupName}
+                  >
                     Nothing in {groupName} yet
                   </p>
                   <p className="text-[12px] text-muted">
