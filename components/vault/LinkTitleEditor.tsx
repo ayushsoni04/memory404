@@ -50,6 +50,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
     const issue = linkTitleIssue(draft);
     if (issue) {
       setError(issue);
+      inputRef.current?.focus();
       return;
     }
     const next = draft.trim();
@@ -78,6 +79,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
             ? data.error
             : "";
         setError(explainLoadError(serverMessage) ?? "Could not rename the link.");
+        inputRef.current?.focus();
         return;
       }
       onSaved?.(data.link as LinkApiRow);
@@ -85,6 +87,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
     } catch (error: unknown) {
       const raw = error instanceof Error ? error.message : "";
       setError(explainLoadError(raw) ?? "Could not rename the link. Try again.");
+      inputRef.current?.focus();
     } finally {
       setSaving(false);
     }

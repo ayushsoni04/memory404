@@ -121,6 +121,7 @@ describe("LinkTitleEditor", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/session expired/i);
     expect(field).toHaveValue("Launch notes");
+    expect(field).toHaveFocus();
   });
 
   it("explains a dropped connection when the rename cannot be saved", async () => {
@@ -142,6 +143,7 @@ describe("LinkTitleEditor", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       /Couldn't reach memory404/,
     );
+    expect(field).toHaveFocus();
   });
 
   it("keeps a long name inside the panel", () => {
