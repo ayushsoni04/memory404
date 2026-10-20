@@ -234,7 +234,7 @@ export default function SettingsClient({
         isOwner={isOwner}
       />
 
-      <main className="flex min-w-0 flex-1 flex-col">
+      <main className="flex min-h-0 min-w-0 flex-1 flex-col lg:overflow-y-auto lg:overscroll-contain lg:[scrollbar-width:thin]">
         <div
           role="tabpanel"
           id={`settings-panel-${activeTab}`}
