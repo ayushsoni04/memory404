@@ -31,7 +31,10 @@ test("showing the password reports that state", async ({ page }) => {
   await show.click();
   const hide = page.getByRole("button", { name: "Hide password" });
   await expect(hide).toHaveAttribute("aria-pressed", "true");
-  await expect(page.getByLabel("Password")).toHaveAttribute("type", "text");
+  await expect(page.getByRole("textbox", { name: "Password", exact: true })).toHaveAttribute(
+    "type",
+    "text",
+  );
 });
 
 test("signup explains the password rules", async ({ page }) => {
