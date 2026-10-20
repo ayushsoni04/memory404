@@ -121,8 +121,41 @@ describe("CommandPalette note after save", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save the note");
     expect(notes).toHaveValue("Remember the pricing section.");
+    expect(notes).toHaveFocus();
     expect(onNoteSaved).not.toHaveBeenCalled();
     expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("says the note is saving until the request finishes", async () => {
+    let release: () => void = () => {};
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/links?")) {
+        return { ok: true, json: async () => ({ links: [] }) };
+      }
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      return { ok: false, json: async () => ({ error: "Could not save the note" }) };
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    renderPalette(vi.fn().mockResolvedValue({ ok: true, link: savedLink }));
+
+    await offerSave();
+    fireEvent.click(screen.getByText("Save https://example.com/pricing"));
+    const notes = await screen.findByLabelText("Add a note");
+    fireEvent.change(notes, { target: { value: "Remember the pricing section." } });
+    fireEvent.click(screen.getByRole("button", { name: "Save note" }));
+
+    const saving = await screen.findByRole("button", { name: "Saving…" });
+    expect(saving).toBeDisabled();
+    expect(saving).toHaveAttribute("aria-busy", "true");
+
+    release();
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("Could not save the note");
+    expect(alert.compareDocumentPosition(screen.getByRole("button", { name: "Save note" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(notes).toHaveFocus();
   });
 });
 
