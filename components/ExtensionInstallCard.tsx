@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Check, Copy, Download, Puzzle } from "lucide-react";
+import { copyTextToClipboard } from "@/components/vault/link-utils";
 import {
   EXTENSION_ZIP_FILENAME,
   EXTENSION_ZIP_HREF,
@@ -17,6 +18,7 @@ export function ExtensionInstallCard({
 }: ExtensionInstallCardProps) {
   const [appUrl, setAppUrl] = useState("");
   const [copied, setCopied] = useState(false);
+  const [copyError, setCopyError] = useState<string | null>(null);
 
   useEffect(() => {
     const id = window.setTimeout(() => setAppUrl(window.location.origin), 0);
@@ -25,13 +27,15 @@ export function ExtensionInstallCard({
 
   const copyAppUrl = async () => {
     if (!appUrl) return;
-    try {
-      await navigator.clipboard.writeText(appUrl);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
-    } catch {
-      /* ignore */
+    setCopyError(null);
+    const ok = await copyTextToClipboard(appUrl);
+    if (!ok) {
+      setCopied(false);
+      setCopyError("Couldn't copy. Select the address and copy it yourself.");
+      return;
     }
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
   };
 
   if (variant === "empty") {
@@ -117,6 +121,7 @@ export function ExtensionInstallCard({
               disabled={!appUrl}
               className="inline-flex h-9 shrink-0 items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted transition-colors hover:bg-pill hover:text-foreground disabled:opacity-50"
               aria-label={copied ? "Copied" : "Copy App URL"}
+              aria-describedby={copyError ? "app-url-copy-error" : undefined}
             >
               {copied ? (
                 <Check className="size-3.5 text-success" aria-hidden />
@@ -126,6 +131,11 @@ export function ExtensionInstallCard({
               {copied ? "Copied" : "Copy"}
             </button>
           </div>
+          {copyError ? (
+            <p id="app-url-copy-error" className="text-[12px] text-danger" role="alert">
+              {copyError}
+            </p>
+          ) : null}
           <p className="text-[10px] text-subtle">
             Self-hosting? Deploy memory404 (Vercel + API + MongoDB), then paste
             that origin as App URL instead.
