@@ -62,6 +62,25 @@ describe("PastePrompt empty states", () => {
     expect(screen.queryByText("Download extension")).not.toBeInTheDocument();
   });
 
+  it("keeps a long group name inside the empty group", () => {
+    const groupName = "Research-notes-for-the-quarterly-review-archive-2026";
+    render(
+      <PastePrompt
+        variant="empty"
+        emptyMode="group"
+        groupName={groupName}
+        groupId="group-1"
+        saveLink={saveLink}
+        onSaved={() => {}}
+      />,
+    );
+
+    const line = screen.getByText(`Nothing in ${groupName} yet`);
+    expect(line.className).toContain("[overflow-wrap:anywhere]");
+    expect(line.className).toContain("max-w-full");
+    expect(line).toHaveAttribute("title", groupName);
+  });
+
   it("says the URL is already saved instead of asking for a note", async () => {
     const onSaved = vi.fn();
     saveLink.mockResolvedValueOnce({
