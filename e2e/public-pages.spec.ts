@@ -24,6 +24,16 @@ test("login form is keyboard reachable and links to signup and reset", async ({ 
   await expect(page.getByRole("link", { name: "Sign up" })).toHaveAttribute("href", "/signup");
 });
 
+test("showing the password reports that state", async ({ page }) => {
+  await page.goto("/login");
+  const show = page.getByRole("button", { name: "Show password" });
+  await expect(show).toHaveAttribute("aria-pressed", "false");
+  await show.click();
+  const hide = page.getByRole("button", { name: "Hide password" });
+  await expect(hide).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByLabel("Password")).toHaveAttribute("type", "text");
+});
+
 test("signup explains the password rules", async ({ page }) => {
   await page.goto("/signup");
   await expect(page.getByRole("heading", { name: "Create your account" })).toBeVisible();
