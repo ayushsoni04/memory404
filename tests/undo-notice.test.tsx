@@ -121,6 +121,45 @@ describe("undo after delete and move", () => {
     expect(screen.queryByRole("button", { name: "Undo" })).not.toBeInTheDocument();
   });
 
+  it("ignores a second Undo until the first one finishes", async () => {
+    let release: () => void = () => {};
+    const fetchMock = vi.fn((url: string, init?: RequestInit) => {
+      if (init?.method === "PATCH") {
+        return new Promise((resolve) => {
+          release = () =>
+            resolve({
+              ok: true,
+              json: async () => ({ ok: true }),
+            });
+        });
+      }
+      return Promise.resolve({
+        ok: true,
+        json: async () => ({ ok: true }),
+        url,
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<Harness />);
+    fireEvent.click(screen.getByRole("button", { name: "Delete link" }));
+    const undo = await screen.findByRole("button", { name: "Undo" });
+    fireEvent.click(undo);
+    fireEvent.click(screen.getByRole("button", { name: /Undo/ }));
+
+    const patches = () =>
+      fetchMock.mock.calls.filter(
+        (call) => (call[1] as RequestInit | undefined)?.method === "PATCH",
+      );
+    expect(patches()).toHaveLength(1);
+
+    release();
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: /Undo/ })).not.toBeInTheDocument();
+    });
+    expect(patches()).toHaveLength(1);
+  });
+
   it("undoes a move back to the previous group", async () => {
     const bodies: unknown[] = [];
     vi.stubGlobal(

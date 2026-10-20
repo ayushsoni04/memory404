@@ -55,6 +55,7 @@ export function useLinkActions({
   const [undoNotice, setUndoNotice] = useState<UndoNoticeModel | null>(null);
   const undoToken = useRef(0);
   const undoTimer = useRef<number | null>(null);
+  const undoLock = useRef(false);
   const movesInFlight = useRef(new Set<string>());
   const deletesInFlight = useRef(new Set<string>());
   const openedGroupIdRef = useRef(openedGroupId);
@@ -393,21 +394,28 @@ export function useLinkActions({
 
   const runUndo = async () => {
     const current = undoNotice;
-    if (!current || current.busy || current.error || !current.perform) return;
-    clearUndoTimer();
-    setUndoNotice({ ...current, busy: true });
-    const ok = await current.perform();
-    if (ok) {
-      setUndoNotice(null);
-      playUiSound("success");
+    if (undoLock.current || !current || current.busy || current.error || !current.perform) {
       return;
     }
-    setUndoNotice({
-      ...current,
-      busy: false,
-      perform: null,
-      error: "Couldn't undo that. Try again from Trash.",
-    });
+    undoLock.current = true;
+    clearUndoTimer();
+    setUndoNotice({ ...current, busy: true });
+    try {
+      const ok = await current.perform();
+      if (ok) {
+        setUndoNotice(null);
+        playUiSound("success");
+        return;
+      }
+      setUndoNotice({
+        ...current,
+        busy: false,
+        perform: null,
+        error: "Couldn't undo that. Try again from Trash.",
+      });
+    } finally {
+      undoLock.current = false;
+    }
   };
 
   return {
