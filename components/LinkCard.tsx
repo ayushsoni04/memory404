@@ -75,7 +75,7 @@ function LinkCard({
   return (
     <article
       ref={cardRef}
-      className={`mind-card break-inside-avoid${entering ? " mind-card-enter" : ""}`}
+      className={`mind-card min-w-0 max-w-full break-inside-avoid [overflow-wrap:anywhere]${entering ? " mind-card-enter" : ""}`}
       draggable
       onDragStart={(e) => {
         // Avoid treating a normal click as a drag (which suppresses click).
@@ -184,11 +184,17 @@ function LinkCard({
         <MindCardActions url={link.url} host={host} />
       </div>
       <div className="mind-card-caption">
-        <p className="mind-card-title mt-2 px-0.5 text-[13px] leading-snug text-muted">
+        <p
+          className="mind-card-title mt-2 min-w-0 px-0.5 text-[13px] leading-snug text-muted [overflow-wrap:anywhere]"
+          title={link.displayTitle}
+        >
           {link.displayTitle}
         </p>
         {link.notes ? (
-          <p className="mt-0.5 line-clamp-2 px-0.5 text-[12px] leading-snug text-subtle">
+          <p
+            className="mt-0.5 line-clamp-2 min-w-0 px-0.5 text-[12px] leading-snug text-subtle [overflow-wrap:anywhere]"
+            title={link.notes}
+          >
             {link.notes}
           </p>
         ) : null}
