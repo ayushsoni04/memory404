@@ -285,7 +285,10 @@ export default function SettingsClient({
           setDeactivateError(null);
         }}
         deactivateInput={deactivateInput}
-        setDeactivateInput={setDeactivateInput}
+        setDeactivateInput={(value) => {
+          setDeactivateInput(value);
+          setDeactivateError(null);
+        }}
         isDeactivating={isDeactivating}
         deactivatedSuccess={deactivatedSuccess}
         error={deactivateError}
