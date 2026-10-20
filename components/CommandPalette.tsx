@@ -79,6 +79,8 @@ export default function CommandPalette({
   const [savingNote, setSavingNote] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
   const requestIdRef = useRef(0);
+  const savingUrlRef = useRef(false);
+  const savingNoteRef = useRef(false);
 
   const closePalette = useCallback(() => {
     onOpenChange(false);
@@ -195,22 +197,27 @@ export default function CommandPalette({
   );
 
   const saveOfferedUrl = useCallback(async () => {
-    if (!offerUrl || !onSaveUrl || savingUrl) return;
+    if (!offerUrl || !onSaveUrl || savingUrlRef.current) return;
+    savingUrlRef.current = true;
     setSavingUrl(true);
     setSaveError(null);
-    const result = await onSaveUrl(offerUrl);
-    setSavingUrl(false);
-    if (!result.ok) {
-      setSaveError(result.error);
-      return;
+    try {
+      const result = await onSaveUrl(offerUrl);
+      if (!result.ok) {
+        setSaveError(result.error);
+        return;
+      }
+      setSavedLink(result.link);
+      setNote("");
+      setNoteError(null);
+    } finally {
+      savingUrlRef.current = false;
+      setSavingUrl(false);
     }
-    setSavedLink(result.link);
-    setNote("");
-    setNoteError(null);
-  }, [offerUrl, onSaveUrl, savingUrl]);
+  }, [offerUrl, onSaveUrl]);
 
   const finishNote = useCallback(async () => {
-    if (!savedLink || savingNote) return;
+    if (!savedLink || savingNoteRef.current) return;
     const trimmed = note.trim();
     if (!trimmed) {
       closePalette();
@@ -222,18 +229,23 @@ export default function CommandPalette({
       noteRef.current?.focus();
       return;
     }
+    savingNoteRef.current = true;
     setSavingNote(true);
     setNoteError(null);
-    const result = await saveLinkNote(savedLink.id, trimmed);
-    setSavingNote(false);
-    if (!result.ok) {
-      setNoteError(result.error);
-      noteRef.current?.focus();
-      return;
+    try {
+      const result = await saveLinkNote(savedLink.id, trimmed);
+      if (!result.ok) {
+        setNoteError(result.error);
+        noteRef.current?.focus();
+        return;
+      }
+      onNoteSaved?.(result.link);
+      closePalette();
+    } finally {
+      savingNoteRef.current = false;
+      setSavingNote(false);
     }
-    onNoteSaved?.(result.link);
-    closePalette();
-  }, [closePalette, note, onNoteSaved, savedLink, savingNote]);
+  }, [closePalette, note, onNoteSaved, savedLink]);
 
   return (
     <CommandDialog
@@ -362,6 +374,7 @@ export default function CommandPalette({
           >
             <CommandItem
               value="save-typed-url"
+              disabled={savingUrl}
               onSelect={() => {
                 void saveOfferedUrl();
               }}
