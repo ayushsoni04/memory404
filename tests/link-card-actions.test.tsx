@@ -48,4 +48,25 @@ describe("link card actions", () => {
     fireEvent.click(details);
     expect(onOpen).toHaveBeenCalledOnce();
   });
+
+  it("keeps a long title and note inside the card", () => {
+    const title = "A".repeat(80);
+    const notes = "B".repeat(80);
+    const link = { ...sample(), displayTitle: title, title, notes };
+    render(<LinkCard link={link} onOpen={() => {}} />);
+
+    const card = screen.getByText(title).closest("article");
+    expect(card?.className).toContain("min-w-0");
+    expect(card?.className).toContain("max-w-full");
+    expect(card?.className).toContain("[overflow-wrap:anywhere]");
+
+    const titleLine = screen.getByText(title);
+    expect(titleLine).toHaveAttribute("title", title);
+    expect(titleLine.className).toContain("[overflow-wrap:anywhere]");
+
+    const noteLine = screen.getByText(notes);
+    expect(noteLine).toHaveAttribute("title", notes);
+    expect(noteLine.className).toContain("line-clamp-2");
+    expect(noteLine.className).toContain("[overflow-wrap:anywhere]");
+  });
 });
