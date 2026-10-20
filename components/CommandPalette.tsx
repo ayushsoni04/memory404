@@ -219,6 +219,7 @@ export default function CommandPalette({
     const issue = noteIssue(note);
     if (issue) {
       setNoteError(issue);
+      noteRef.current?.focus();
       return;
     }
     setSavingNote(true);
@@ -227,6 +228,7 @@ export default function CommandPalette({
     setSavingNote(false);
     if (!result.ok) {
       setNoteError(result.error);
+      noteRef.current?.focus();
       return;
     }
     onNoteSaved?.(result.link);
@@ -278,22 +280,23 @@ export default function CommandPalette({
             className="w-full resize-none rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
           />
           <NoteCount notes={note} id="palette-note-count" />
-          <div>
-            <button
-              type="submit"
-              disabled={savingNote || Boolean(noteIssue(note))}
-              className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
-            >
-              <MorphText duration={220}>
-                {note.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
-              </MorphText>
-            </button>
-          </div>
           {noteError ? (
             <p id="palette-note-error" className="text-[12px] text-danger" role="alert">
               {noteError}
             </p>
           ) : null}
+          <div>
+            <button
+              type="submit"
+              disabled={savingNote || Boolean(noteIssue(note))}
+              aria-busy={savingNote || undefined}
+              className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+            >
+              <MorphText duration={220}>
+                {savingNote ? "Saving…" : note.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
+              </MorphText>
+            </button>
+          </div>
         </form>
       ) : null}
       {savedLink ? null : (
