@@ -10,14 +10,25 @@ export default function SearchResultText({
   groupLabel?: string | null;
 }) {
   const note = visibleSearchNote(link.notes);
+  const title = link.displayTitle || link.title;
+  const place = groupLabel
+    ? `${linkHostname(link.url)} · in ${groupLabel}`
+    : linkHostname(link.url);
   return (
     <>
-      <span className="truncate">{link.displayTitle || link.title}</span>
+      <span className="block min-w-0 truncate" title={title}>
+        {title}
+      </span>
       {note ? (
-        <span className="line-clamp-2 text-[12px] leading-snug text-muted">{note}</span>
+        <span
+          className="line-clamp-2 min-w-0 text-[12px] leading-snug text-muted [overflow-wrap:anywhere]"
+          title={note}
+        >
+          {note}
+        </span>
       ) : null}
-      <span className="truncate text-[11px] text-subtle">
-        {groupLabel ? `${linkHostname(link.url)} · in ${groupLabel}` : linkHostname(link.url)}
+      <span className="block min-w-0 truncate text-[11px] text-subtle" title={place}>
+        {place}
       </span>
     </>
   );

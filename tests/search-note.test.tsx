@@ -60,4 +60,31 @@ describe("search result notes", () => {
     const place = screen.getByText("example.com · in Reading");
     expect(title.compareDocumentPosition(place) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
+
+  it("keeps a long title, note, and group inside the result", () => {
+    const title = "A".repeat(80);
+    const notes = "B".repeat(80);
+    const groupLabel = "Research-notes-for-the-quarterly-review-archive-2026";
+    render(
+      <SearchResultText
+        link={{ ...sample(notes), displayTitle: title, title }}
+        groupLabel={groupLabel}
+      />,
+    );
+
+    const titleLine = screen.getByText(title);
+    expect(titleLine.className).toContain("truncate");
+    expect(titleLine.className).toContain("min-w-0");
+    expect(titleLine).toHaveAttribute("title", title);
+
+    const noteLine = screen.getByText(notes);
+    expect(noteLine.className).toContain("line-clamp-2");
+    expect(noteLine.className).toContain("[overflow-wrap:anywhere]");
+    expect(noteLine).toHaveAttribute("title", notes);
+
+    const place = screen.getByText(`example.com · in ${groupLabel}`);
+    expect(place.className).toContain("truncate");
+    expect(place.className).toContain("min-w-0");
+    expect(place).toHaveAttribute("title", `example.com · in ${groupLabel}`);
+  });
 });

@@ -417,7 +417,7 @@ export default function CommandPalette({
                   else openLink(link.url);
                   closePalette();
                 }}
-                className="flex cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+                className="flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
               >
                 <SearchResultText
                   link={link}
