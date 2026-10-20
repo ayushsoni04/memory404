@@ -22,7 +22,7 @@ describe("extension note save", () => {
     expect(sendAt).toBeGreaterThan(claimAt);
     expect(overlay).toContain("releaseNoteSave(noteSaveLock)");
     expect(readFileSync("extension/public/static/manifest.json", "utf8")).toContain(
-      '"version": "0.2.24"',
+      '"version": "0.2.25"',
     );
   });
 });

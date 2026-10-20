@@ -27,7 +27,13 @@ import { saveHeadline, saveRowsToReview } from "./save-outcome";
 import { signInSaveHint } from "./sign-in-hint";
 import { libraryHomeUrl } from "./library-url";
 import { APP_URL_HINT, normalizeApiBase } from "./api-base";
-import { EMAIL_INVALID, keepSignInForm, loginEmailIssue } from "./login-email";
+import {
+  EMAIL_INVALID,
+  keepSignInForm,
+  loginEmailIssue,
+  passwordFieldInvalid,
+  signInFailureMessage,
+} from "./login-email";
 import PasswordField from "./PasswordField";
 import { CreateGroupOption, CurrentGroupLine, GroupOptionName } from "./GroupName";
 import SaveTaskRows from "./SaveTaskRows";
@@ -215,6 +221,9 @@ function App({ onClose }) {
   });
   const [saveItems, setSaveItems] = useState([]);
   const inputRef = useRef(null);
+  const emailRef = useRef(null);
+  const passwordRef = useRef(null);
+  const loginLock = useRef(false);
   const panelRef = useRef(null);
   const phaseRef = useRef(phase);
   const groupTouchedRef = useRef(false);
@@ -729,27 +738,36 @@ function App({ onClose }) {
   const needsSignIn = keepSignInForm(error);
 
   const submitSignIn = async () => {
+    if (loginLock.current) return;
     const emailProblem = loginEmailIssue(loginEmail);
     if (emailProblem) {
       setError(emailProblem);
+      emailRef.current?.focus();
       return;
     }
+    loginLock.current = true;
     setLoginPending(true);
-    const res = await sendMessage({
-      type: "SIGN_IN",
-      email: loginEmail.trim(),
-      password: loginPassword,
-    });
-    setLoginPending(false);
-    if (!res?.ok) {
-      setError(res?.error || "Failed to sign in");
-      return;
+    try {
+      const res = await sendMessage({
+        type: "SIGN_IN",
+        email: loginEmail.trim(),
+        password: loginPassword,
+      });
+      if (!res?.ok) {
+        const message = signInFailureMessage(res?.error);
+        setError(message);
+        window.setTimeout(() => passwordRef.current?.focus(), 0);
+        return;
+      }
+      setLoginPassword("");
+      setError("");
+      setPhase("pick");
+      setGroupsLoading(true);
+      setBootToken((n) => n + 1);
+    } finally {
+      loginLock.current = false;
+      setLoginPending(false);
     }
-    setLoginPassword("");
-    setError("");
-    setPhase("pick");
-    setGroupsLoading(true);
-    setBootToken((n) => n + 1);
   };
 
   const saveApiBase = async () => {
@@ -912,6 +930,7 @@ function App({ onClose }) {
                 </label>
                 <input
                   id="m404-email"
+                  ref={emailRef}
                   className="settings-input"
                   type="email"
                   autoComplete="email"
@@ -934,8 +953,16 @@ function App({ onClose }) {
                 </label>
                 <PasswordField
                   id="m404-password"
+                  inputRef={passwordRef}
                   value={loginPassword}
-                  onChange={(event) => setLoginPassword(event.target.value)}
+                  invalid={passwordFieldInvalid(error)}
+                  describedBy={passwordFieldInvalid(error) ? "m404-overlay-error" : undefined}
+                  onChange={(event) => {
+                    setLoginPassword(event.target.value);
+                    if (passwordFieldInvalid(error)) {
+                      setError("Sign in to save this page.");
+                    }
+                  }}
                 />
                 <button type="submit" className="save-btn" disabled={loginPending}>
                   {loginPending ? "Signing in…" : "Sign in"}

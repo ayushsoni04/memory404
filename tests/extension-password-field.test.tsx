@@ -42,6 +42,25 @@ describe("extension password field", () => {
     expect(screen.getByLabelText("Password")).toHaveAttribute("type", "password");
   });
 
+  it("marks the password invalid and points at the sign-in error", () => {
+    render(
+      <form>
+        <label htmlFor="m404-password">Password</label>
+        <PasswordField
+          id="m404-password"
+          value="secret"
+          onChange={() => {}}
+          invalid
+          describedBy="m404-overlay-error"
+        />
+      </form>,
+    );
+
+    const input = screen.getByLabelText("Password");
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAttribute("aria-describedby", "m404-overlay-error");
+  });
+
   it("is what the overlay sign-in form uses", () => {
     const overlay = readFileSync("extension/src/overlay.jsx", "utf8");
     expect(overlay).toContain("<PasswordField");
@@ -65,6 +84,6 @@ describe("extension password field", () => {
     const overlay = readFileSync("extension/dist/overlay.js", "utf8");
     expect(overlay).toContain("Show password");
     expect(overlay).toContain("Hide password");
-    expect(readFileSync("extension/dist/manifest.json", "utf8")).toContain('"version": "0.2.24"');
+    expect(readFileSync("extension/dist/manifest.json", "utf8")).toContain('"version": "0.2.25"');
   });
 });

@@ -1,17 +1,32 @@
 import React, { useState } from "react";
 
-/** Password row with a Show / Hide control, matching the site sign-in field. */
+/** Password row with a Show / Hide control, matching the site sign-in field.
+ * @param {{
+ *   id: string,
+ *   value: string,
+ *   onChange: (event: { target: { value: string } }) => void,
+ *   autoComplete?: string,
+ *   required?: boolean,
+ *   invalid?: boolean,
+ *   describedBy?: string,
+ *   inputRef?: React.Ref<HTMLInputElement>,
+ * }} props
+ */
 export default function PasswordField({
   id,
   value,
   onChange,
   autoComplete = "current-password",
   required = true,
+  invalid = false,
+  describedBy,
+  inputRef,
 }) {
   const [shown, setShown] = useState(false);
   return (
     <div className="password-field">
       <input
+        ref={inputRef}
         id={id}
         className="settings-input"
         type={shown ? "text" : "password"}
@@ -19,6 +34,8 @@ export default function PasswordField({
         value={value}
         onChange={onChange}
         required={required}
+        aria-invalid={invalid ? true : undefined}
+        aria-describedby={describedBy || undefined}
       />
       <button
         type="button"
