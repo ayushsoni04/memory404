@@ -22,10 +22,12 @@ export function ForgotPasswordForm() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
+  const submitLock = useRef(false);
   const address = normalizeEmail(email);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
     if (emailIssue(email)) {
       setEmailError(EMAIL_INVALID);
@@ -33,6 +35,7 @@ export function ForgotPasswordForm() {
       return;
     }
     setEmailError(null);
+    submitLock.current = true;
     setIsSubmitting(true);
 
     try {
@@ -42,14 +45,17 @@ export function ForgotPasswordForm() {
         body: JSON.stringify({ email: address }),
       });
       const data = await res.json().catch(() => ({}));
-      setIsSubmitting(false);
       if (!res.ok) {
         setError(authFailureMessage(data, "Failed to send reset link"));
+        emailRef.current?.focus();
         return;
       }
       setSent(true);
     } catch {
       setError(authFailureMessage(null, "Failed to send reset link", true));
+      emailRef.current?.focus();
+    } finally {
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
