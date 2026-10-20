@@ -135,17 +135,34 @@ export function useLinkActions({
     return sortedLinks.find((l) => l.id === openedLink.id) ?? openedLink;
   }, [openedLink, sortedLinks]);
 
+  const clearLinkActionError = useCallback((id: string) => {
+    setDeleteErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setPatchErrors((prev) => {
+      if (!prev[id]) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+  }, []);
+
   const openLinkDetail = useCallback(
     (link: LinkApiRow, originEl: HTMLElement) => {
       returnFocusId.current = detailReturnFocusId(originEl, link.id);
       setOverlayOrigin(originEl.getBoundingClientRect());
+      clearLinkActionError(link.id);
       setOpenedLink(link);
     },
-    [],
+    [clearLinkActionError],
   );
 
   const updateSavedLink = useCallback(
     (updated: LinkApiRow) => {
+      clearLinkActionError(updated.id);
       setLinks((prev) => prev.map((link) => (link.id === updated.id ? updated : link)));
       setLinksCache((prev) => {
         let changed = false;
@@ -162,7 +179,7 @@ export function useLinkActions({
       });
       setOpenedLink((current) => (current?.id === updated.id ? updated : current));
     },
-    [setLinks, setLinksCache],
+    [clearLinkActionError, setLinks, setLinksCache],
   );
 
   const closeLinkDetail = useCallback(() => {
