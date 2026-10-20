@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -45,6 +45,7 @@ export default function PastePrompt({
   const [notes, setNotes] = useState("");
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const notesRef = useRef<HTMLTextAreaElement | null>(null);
   const saveGen = useRef(0);
   const savingRef = useRef(false);
   const savingNoteRef = useRef(false);
@@ -61,6 +62,7 @@ export default function PastePrompt({
         const result = await saveLinkNote(savedLink.id, trimmed);
         if (!result.ok) {
           setError(result.error);
+          notesRef.current?.focus();
           return;
         }
         finalLink = result.link;
@@ -77,6 +79,12 @@ export default function PastePrompt({
       setSavingNote(false);
     }
   }, [notes, onSaved, savedLink]);
+
+  useEffect(() => {
+    if (phase !== "notes") return;
+    const id = window.setTimeout(() => notesRef.current?.focus(), 30);
+    return () => window.clearTimeout(id);
+  }, [phase]);
 
   const submit = async () => {
     if (savingRef.current) return;
@@ -184,6 +192,7 @@ export default function PastePrompt({
                 Add a note
               </label>
               <textarea
+                ref={notesRef}
                 id="paste-save-note"
                 value={notes}
                 onChange={(e) => {
