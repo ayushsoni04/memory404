@@ -49,6 +49,16 @@ export function buildActivityCells(
   return cells;
 }
 
+/**
+ * Bring a focused day into the scrolling calendar.
+ * The grid is wider than a phone, so arrow keys would otherwise move
+ * focus onto a day that is still off screen.
+ */
+export function revealActivityCell(node: HTMLElement | null | undefined) {
+  if (!node || typeof node.scrollIntoView !== "function") return;
+  node.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+
 /** Readable day summary. Replaces a hover-only tooltip. */
 export function activityDayLabel(date: string, count: number): string {
   const formatted = new Date(`${date}T00:00:00`).toLocaleDateString(undefined, {
