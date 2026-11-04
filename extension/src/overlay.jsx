@@ -233,6 +233,7 @@ function App({ onClose }) {
   const [noteDraft, setNoteDraft] = useState("");
   const [noteSaving, setNoteSaving] = useState(false);
   const noteSaveLock = useRef(false);
+  const noteRef = useRef(null);
   const [noteSaved, setNoteSaved] = useState(false);
   const [noteError, setNoteError] = useState("");
 
@@ -659,6 +660,7 @@ function App({ onClose }) {
     if (!canAddNote || !notes) return;
     if (issue) {
       setNoteError(issue);
+      noteRef.current?.focus();
       return;
     }
     if (!claimNoteSave(noteSaveLock)) return;
@@ -672,6 +674,7 @@ function App({ onClose }) {
       });
       if (!res?.ok) {
         setNoteError(res?.error || "Could not save the note");
+        noteRef.current?.focus();
         return;
       }
       setNoteSaved(true);
@@ -1031,9 +1034,10 @@ function App({ onClose }) {
             {phase === "pick" &&
             saveMode !== "remember" &&
             (highlightedTabs.length > 1 || activeTabGroup) ? (
-              <div className="save-mode-selector">
+              <div className="save-mode-selector" role="group" aria-label="What to save">
                 <button
                   type="button"
+                  aria-pressed={saveMode === "active"}
                   className={`save-mode-btn ${saveMode === "active" ? "active" : ""}`}
                   onClick={() => handleSaveModeChange("active")}
                 >
@@ -1042,6 +1046,7 @@ function App({ onClose }) {
                 {highlightedTabs.length > 1 ? (
                   <button
                     type="button"
+                    aria-pressed={saveMode === "selected"}
                     className={`save-mode-btn ${saveMode === "selected" ? "active" : ""}`}
                     onClick={() => handleSaveModeChange("selected")}
                   >
@@ -1051,6 +1056,7 @@ function App({ onClose }) {
                 {activeTabGroup ? (
                   <button
                     type="button"
+                    aria-pressed={saveMode === "group"}
                     className={`save-mode-btn ${saveMode === "group" ? "active" : ""}`}
                     onClick={() => handleSaveModeChange("group")}
                     title={`Group: ${activeTabGroup.title || "Unnamed"}`}
@@ -1227,12 +1233,13 @@ function App({ onClose }) {
                           Add a note
                         </label>
                         <textarea
+                          ref={noteRef}
                           id="m404-save-note"
                           className="note-input"
                           rows={2}
                           value={noteDraft}
                           placeholder="What should you remember?"
-                          aria-invalid={noteProblem ? true : undefined}
+                          aria-invalid={noteProblem || noteError ? true : undefined}
                           aria-describedby={
                             [
                               noteCount ? "m404-note-count" : null,
