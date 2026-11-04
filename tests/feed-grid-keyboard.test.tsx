@@ -144,6 +144,29 @@ describe("sort menu keyboard", () => {
     expect(trigger).toHaveFocus();
   });
 
+  it("returns focus to Sort when Tab closes the menu", () => {
+    render(<SortPill sortBy="newest" setSortByAndPersist={() => {}} />);
+    const trigger = screen.getByRole("button", { name: "Sort links, Newest" });
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+
+    const newest = screen.getByRole("button", { name: "Newest" });
+    expect(newest).toHaveFocus();
+    fireEvent.keyDown(newest, { key: "Tab" });
+
+    expect(screen.queryByRole("listbox", { name: "Sort links" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+
+    trigger.focus();
+    fireEvent.keyDown(trigger, { key: "ArrowDown" });
+    fireEvent.keyDown(screen.getByRole("button", { name: "Newest" }), {
+      key: "Tab",
+      shiftKey: true,
+    });
+    expect(screen.queryByRole("listbox", { name: "Sort links" })).not.toBeInTheDocument();
+    expect(trigger).toHaveFocus();
+  });
+
   it("names the sort that is already in use", () => {
     render(<SortPill sortBy="domain" setSortByAndPersist={() => {}} />);
     expect(screen.getByRole("button", { name: "Sort links, Site" })).toBeInTheDocument();

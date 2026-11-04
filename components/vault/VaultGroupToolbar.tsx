@@ -193,7 +193,9 @@ export function SortPill({
           className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[10.5rem] overflow-hidden rounded-xl border border-border bg-surface-elevated p-1 shadow-lg"
           onKeyDown={(event) => {
             if (event.key === "Tab") {
+              event.preventDefault();
               setOpen(false);
+              buttonRef.current?.focus();
               return;
             }
             if (!moveOption(event.key)) return;
