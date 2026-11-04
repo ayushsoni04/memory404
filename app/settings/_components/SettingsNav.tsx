@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, LogOut, TrendingUp, User } from "lucide-react";
 import GlitchText from "@/components/GlitchText";
@@ -31,23 +31,38 @@ export function SettingsNav({
   const router = useRouter();
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+  const signOutLock = useRef(false);
+  const signOutRef = useRef<HTMLButtonElement>(null);
+  const returnFocusRef = useRef(false);
+
+  useEffect(() => {
+    if (signingOut || !returnFocusRef.current) return;
+    returnFocusRef.current = false;
+    signOutRef.current?.focus();
+  }, [signingOut, signOutError]);
+
+  const failSignOut = (message: string) => {
+    returnFocusRef.current = true;
+    setSignOutError(message);
+    setSigningOut(false);
+    signOutLock.current = false;
+  };
 
   const handleSignOut = async () => {
-    if (signingOut) return;
+    if (signOutLock.current) return;
+    signOutLock.current = true;
     setSigningOut(true);
     setSignOutError(null);
     try {
       const res = await fetch("/api/auth/logout", { method: "POST" });
       if (!res.ok) {
-        setSignOutError(SIGN_OUT_FAILED);
-        setSigningOut(false);
+        failSignOut(SIGN_OUT_FAILED);
         return;
       }
       router.push("/login");
       router.refresh();
     } catch {
-      setSignOutError(UNREACHABLE_MESSAGE);
-      setSigningOut(false);
+      failSignOut(UNREACHABLE_MESSAGE);
     }
   };
 
@@ -110,16 +125,18 @@ export function SettingsNav({
       {/* Global Footer Links & Login CTA */}
       <div className="flex flex-col gap-4">
         <button
+          ref={signOutRef}
           type="button"
           onClick={handleSignOut}
           disabled={signingOut}
+          aria-describedby={signOutError ? "sign-out-error" : undefined}
           className={`flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 py-2 px-3 text-center text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground disabled:opacity-60 ${controlPress}`}
         >
           <LogOut className="size-3.5 text-subtle" aria-hidden />
           {signingOut ? "Signing out…" : "Sign out"}
         </button>
         {signOutError ? (
-          <p className="text-[12px] text-danger" role="alert">
+          <p id="sign-out-error" className="text-[12px] text-danger" role="alert">
             {signOutError}
           </p>
         ) : null}
