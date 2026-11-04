@@ -59,4 +59,37 @@ describe("profile header", () => {
     expect(handle.className).toContain("break-all");
     expect(handle).toHaveAttribute("title", `@${username}`);
   });
+
+  it("keeps a long email inside the profile field", () => {
+    const email = `${"ada".repeat(40)}@example.com`;
+    render(
+      <ProfileTab
+        name="Ada Lovelace"
+        setName={() => {}}
+        username="ada"
+        setUsername={() => {}}
+        email={email}
+        bannerStyle="midnight"
+        setBannerStyle={() => {}}
+        avatarPreview={null}
+        onAvatarChange={() => {}}
+        isSaved={false}
+        profileReady
+        onSaveProfile={(event: FormEvent) => event.preventDefault()}
+        onOpenDeactivateModal={() => {}}
+      />,
+    );
+
+    const field = screen.getByLabelText("Email address");
+    expect(field).toHaveValue(email);
+    expect(field).toHaveAttribute("title", email);
+    expect(field).toHaveAttribute("aria-describedby", "profile-email-hint");
+    expect(screen.getByText("Email is set at signup and cannot be changed here.")).toHaveAttribute(
+      "id",
+      "profile-email-hint",
+    );
+    expect(field.className).toContain("truncate");
+    expect(field.className).toContain("min-w-0");
+    expect(field.parentElement?.className).toContain("min-w-0");
+  });
 });
