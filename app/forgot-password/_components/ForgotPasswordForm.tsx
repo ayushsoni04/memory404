@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import MorphText from "@/components/MorphText";
 import {
   authFieldClass,
@@ -23,7 +23,14 @@ export function ForgotPasswordForm() {
   const [sent, setSent] = useState(false);
   const emailRef = useRef<HTMLInputElement>(null);
   const submitLock = useRef(false);
+  const returnToEmail = useRef(false);
   const address = normalizeEmail(email);
+
+  useEffect(() => {
+    if (sent || !returnToEmail.current) return;
+    returnToEmail.current = false;
+    emailRef.current?.focus();
+  }, [sent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,6 +86,7 @@ export function ForgotPasswordForm() {
           <button
             type="button"
             onClick={() => {
+              returnToEmail.current = true;
               setSent(false);
               setEmailError(null);
               setError(null);
