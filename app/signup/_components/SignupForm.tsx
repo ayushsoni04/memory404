@@ -48,6 +48,7 @@ export function SignupForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const submitLock = useRef(false);
   const allowDevSkip = process.env.NODE_ENV !== "production";
 
   const fieldErrors = signupPasswordErrors(password, confirm);
@@ -67,6 +68,7 @@ export function SignupForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
     setAttempted(true);
 
@@ -77,6 +79,7 @@ export function SignupForm() {
       return;
     }
 
+    submitLock.current = true;
     setIsSubmitting(true);
     const utm = readUtmFromSearchParams(searchParams);
 
@@ -95,6 +98,7 @@ export function SignupForm() {
       if (!res.ok) {
         const message = authFailureMessage(data, "Failed to create account");
         setError(message);
+        submitLock.current = false;
         setIsSubmitting(false);
         if (emailAlreadyRegistered(message)) emailRef.current?.focus();
         return;
@@ -102,6 +106,7 @@ export function SignupForm() {
       window.location.assign(redirectPath);
     } catch {
       setError(authFailureMessage(null, "Failed to create account", true));
+      submitLock.current = false;
       setIsSubmitting(false);
     }
   };
