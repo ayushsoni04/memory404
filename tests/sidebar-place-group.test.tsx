@@ -64,9 +64,14 @@ const groups: GroupRow[] = [
   },
 ];
 
-function PlaceHarness() {
+function PlaceHarness({
+  initialError = null,
+}: {
+  initialError?: string | null;
+}) {
   const [placeGroupId, setPlaceGroupId] = useState<string | null>("reading");
   const [creatingNewGroup, setCreatingNewGroup] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(initialError);
   return (
     <VaultSidebar
       gridSize="default"
@@ -88,8 +93,8 @@ function PlaceHarness() {
       setPlaceGroupId={setPlaceGroupId}
       newGroupNameDraft=""
       setNewGroupNameDraft={() => {}}
-      saveError={null}
-      setSaveError={() => {}}
+      saveError={saveError}
+      setSaveError={setSaveError}
       savedFlash={false}
       groupsError={null}
       loadGroups={async () => undefined}
@@ -145,6 +150,75 @@ describe("where a link is saved", () => {
     expect(created).toHaveAttribute("aria-pressed", "true");
     expect(all).toHaveAttribute("aria-pressed", "false");
     expect(reading).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("clears a save error when the destination changes", () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: () => ({
+        matches: false,
+        media: "",
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          user: { name: "Ada", username: "ada", avatarUrl: null },
+        }),
+      }),
+    );
+
+    render(<PlaceHarness initialError="Pick a group" />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Pick a group");
+
+    fireEvent.click(screen.getByRole("button", { name: "All" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "All" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  });
+
+  it("clears a save error when a new group is started", () => {
+    Object.defineProperty(window, "matchMedia", {
+      writable: true,
+      value: () => ({
+        matches: false,
+        media: "",
+        addEventListener: () => {},
+        removeEventListener: () => {},
+      }),
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: true,
+        json: async () => ({
+          user: { name: "Ada", username: "ada", avatarUrl: null },
+        }),
+      }),
+    );
+
+    render(<PlaceHarness initialError="Couldn't save that link. Try again." />);
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Couldn't save that link. Try again.",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "New group…" }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "New group…" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(screen.getByRole("textbox", { name: "Group name" })).not.toHaveAttribute(
+      "aria-invalid",
+    );
   });
 
   it("keeps a long group name inside the list and easy to tap", () => {

@@ -276,6 +276,7 @@ export default function VaultSidebar({
                               setCreatingNewGroup(false);
                               setNewGroupNameDraft("");
                               setPlaceGroupId(g.id);
+                              setSaveError(null);
                             }}
                             className={`flex min-h-11 w-full min-w-0 items-center rounded-lg px-2.5 text-start text-[13px] transition-colors cursor-pointer sm:min-h-6 sm:py-1.5 ${
                               active
@@ -291,6 +292,7 @@ export default function VaultSidebar({
                         type="button"
                         aria-pressed={creatingNewGroup}
                         onClick={() => {
+                          if (!creatingNewGroup) setSaveError(null);
                           setCreatingNewGroup(true);
                           setPlaceGroupId(null);
                         }}
