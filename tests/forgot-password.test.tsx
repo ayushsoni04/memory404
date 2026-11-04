@@ -55,6 +55,7 @@ describe("forgot password", () => {
     await user.click(screen.getByRole("button", { name: "Use a different email" }));
     const email = screen.getByLabelText("Email address");
     expect(email).toHaveValue("ada@example.com");
+    expect(email).toHaveFocus();
     await user.clear(email);
     await user.type(email, "ada.lovelace@example.com");
     await user.click(screen.getByRole("button", { name: "Send reset link" }));
