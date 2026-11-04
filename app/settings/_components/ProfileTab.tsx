@@ -399,13 +399,14 @@ export function ProfileTab({
             </span>
           ) : null}
         </label>
-        <label className="block space-y-1.5 sm:col-span-2 group">
+        <label className="block min-w-0 space-y-1.5 sm:col-span-2 group">
           <span className="text-xs font-medium text-muted transition group-focus-within:text-foreground">Email address</span>
           <input
             type="email"
             value={email}
             readOnly
-            className="w-full rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-sm text-muted outline-none cursor-default"
+            title={email}
+            className="w-full min-w-0 truncate rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-sm text-muted outline-none cursor-default"
             autoComplete="email"
           />
           <span className="text-[10px] text-subtle">Email is set at signup and cannot be changed here.</span>
