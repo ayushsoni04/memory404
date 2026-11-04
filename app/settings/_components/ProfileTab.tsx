@@ -86,6 +86,9 @@ export function ProfileTab({
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
   const [exportNotice, setExportNotice] = useState<string | null>(null);
+  const exportLock = useRef(false);
+  const exportButtonRef = useRef<HTMLButtonElement>(null);
+  const returnExportFocus = useRef(false);
   const [exportNoticeTone, setExportNoticeTone] = useState<"ok" | "empty">("ok");
   const [photoError, setPhotoError] = useState<string | null>(null);
   const [soundsOn, setSoundsOn] = useState(true);
@@ -103,12 +106,21 @@ export function ProfileTab({
   }, []);
 
   useEffect(() => {
+    if (isExporting || !returnExportFocus.current) return;
+    returnExportFocus.current = false;
+    exportButtonRef.current?.focus();
+  }, [isExporting, exportError, exportNotice]);
+
+  useEffect(() => {
     if (!usernameTaken) return;
     usernameRef.current?.focus();
   }, [usernameTaken]);
 
   // Real backup downloader (paginated so it works with cursor-based /api/links)
   const handleExportData = async () => {
+    if (exportLock.current) return;
+    exportLock.current = true;
+    returnExportFocus.current = true;
     setExportError(null);
     setExportNotice(null);
     setExportNoticeTone("ok");
@@ -166,6 +178,7 @@ export function ProfileTab({
       const raw = error instanceof Error ? error.message : "";
       setExportError(libraryExportError(raw));
     } finally {
+      exportLock.current = false;
       setIsExporting(false);
     }
   };
@@ -502,9 +515,11 @@ export function ProfileTab({
             <p className="text-[10px] text-subtle font-mono">Includes group names, titles, notes, tags, and dates.</p>
           </div>
           <button
+            ref={exportButtonRef}
             type="button"
             onClick={handleExportData}
             disabled={isExporting}
+            aria-describedby={exportError ? "library-export-error" : undefined}
             className={`inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted hover:bg-pill hover:text-foreground disabled:opacity-50 ${controlPress}`}
           >
             {isExporting ? <AppLoader compact progressive label="exporting" /> : (
@@ -516,7 +531,7 @@ export function ProfileTab({
           </button>
         </div>
         {exportError ? (
-          <p className="text-[12px] text-danger" role="alert">
+          <p id="library-export-error" className="text-[12px] text-danger" role="alert">
             {exportError}
           </p>
         ) : null}
