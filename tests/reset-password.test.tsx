@@ -161,13 +161,24 @@ describe("ResetPasswordForm", () => {
     );
 
     render(<ResetPasswordForm />);
-    await user.type(screen.getByLabelText("New password"), "Memory404");
+    const password = screen.getByLabelText("New password");
+    await user.type(password, "Memory404");
     await user.type(screen.getByLabelText("Confirm new password"), "Memory404");
     await user.click(screen.getByRole("button", { name: "Update password" }));
-    expect(await screen.findByRole("alert")).toHaveTextContent(serverError);
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(serverError);
+    expect(alert).toHaveAttribute("id", "reset-form-error");
+    expect(password).toHaveFocus();
+    expect(password).toHaveAttribute("aria-invalid", "true");
+    expect(password).toHaveAttribute(
+      "aria-describedby",
+      "reset-password-hint reset-form-error",
+    );
 
-    await user.type(screen.getByLabelText("New password"), "1");
+    await user.type(password, "1");
     expect(screen.queryByText(serverError)).not.toBeInTheDocument();
+    expect(password).not.toHaveAttribute("aria-invalid");
+    expect(password).toHaveAttribute("aria-describedby", "reset-password-hint");
     await user.type(screen.getByLabelText("Confirm new password"), "1");
 
     await user.click(screen.getByRole("button", { name: "Update password" }));

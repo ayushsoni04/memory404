@@ -48,6 +48,13 @@ export function ResetPasswordForm() {
     fieldErrors.confirm,
     attempted,
   );
+  const passwordDescribedBy = [
+    "reset-password-hint",
+    passwordError ? "reset-password-error" : null,
+    error ? "reset-form-error" : null,
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -77,6 +84,7 @@ export function ResetPasswordForm() {
 
       if (!res.ok) {
         setError(authFailureMessage(data, "Failed to reset password"));
+        passwordRef.current?.focus();
         return;
       }
 
@@ -85,6 +93,7 @@ export function ResetPasswordForm() {
     } catch {
       setError(authFailureMessage(null, "Failed to reset password", true));
       setIsSubmitting(false);
+      passwordRef.current?.focus();
     }
   };
 
@@ -138,10 +147,8 @@ export function ResetPasswordForm() {
                 }}
                 placeholder="••••••••"
                 autoComplete="new-password"
-                aria-invalid={passwordError ? true : undefined}
-                aria-describedby={
-                  passwordError ? "reset-password-hint reset-password-error" : "reset-password-hint"
-                }
+                aria-invalid={passwordError || error ? true : undefined}
+                aria-describedby={passwordDescribedBy}
                 onFocus={() => setPasswordFocused(true)}
                 onBlur={() => setPasswordFocused(false)}
                 className={authPasswordFieldClass}
@@ -209,7 +216,7 @@ export function ResetPasswordForm() {
           </div>
 
           {error ? (
-            <p className="text-xs text-danger" role="alert">
+            <p id="reset-form-error" className="text-xs text-danger" role="alert">
               {error}
             </p>
           ) : null}
