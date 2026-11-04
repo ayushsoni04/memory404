@@ -694,7 +694,7 @@ export default function LinkDetailOverlay({
           <button
             type="button"
             onClick={() => leave(() => animateClose())}
-            className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 hover:text-foreground ${overlayFocus}`}
+            className={`flex size-11 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 hover:text-foreground sm:size-8 ${overlayFocus}`}
             data-overlay-close=""
             aria-label="Close"
           >
@@ -704,8 +704,8 @@ export default function LinkDetailOverlay({
             type="button"
             disabled={!hasPrev}
             onClick={() => leave(onPrev)}
-            className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 ${overlayFocus}`}
-            aria-label="Previous"
+            className={`flex size-11 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 sm:size-8 ${overlayFocus}`}
+            aria-label="Previous link"
           >
             ‹
           </button>
@@ -713,8 +713,8 @@ export default function LinkDetailOverlay({
             type="button"
             disabled={!hasNext}
             onClick={() => leave(onNext)}
-            className={`flex size-8 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 ${overlayFocus}`}
-            aria-label="Next"
+            className={`flex size-11 items-center justify-center rounded-[4px] border border-white/10 bg-white/10 text-subtle backdrop-blur-md transition hover:bg-white/15 disabled:opacity-30 sm:size-8 ${overlayFocus}`}
+            aria-label="Next link"
           >
             ›
           </button>
