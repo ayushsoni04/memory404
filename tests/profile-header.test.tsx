@@ -83,6 +83,11 @@ describe("profile header", () => {
     const field = screen.getByLabelText("Email address");
     expect(field).toHaveValue(email);
     expect(field).toHaveAttribute("title", email);
+    expect(field).toHaveAttribute("aria-describedby", "profile-email-hint");
+    expect(screen.getByText("Email is set at signup and cannot be changed here.")).toHaveAttribute(
+      "id",
+      "profile-email-hint",
+    );
     expect(field.className).toContain("truncate");
     expect(field.className).toContain("min-w-0");
     expect(field.parentElement?.className).toContain("min-w-0");
