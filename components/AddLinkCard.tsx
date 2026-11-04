@@ -72,6 +72,7 @@ export default function AddLinkCard({
         const result = await saveLinkNote(savedLink.id, trimmed);
         if (!result.ok) {
           setError(result.error);
+          notesRef.current?.focus();
           return;
         }
         finalLink = result.link;
@@ -134,6 +135,7 @@ export default function AddLinkCard({
         setError(result.error);
         savingRef.current = false;
         setSaving(false);
+        inputRef.current?.focus();
         return;
       }
 
@@ -150,6 +152,7 @@ export default function AddLinkCard({
       setError(saveFailureMessage(null, true));
       savingRef.current = false;
       setSaving(false);
+      inputRef.current?.focus();
     }
   };
 

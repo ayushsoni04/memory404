@@ -71,12 +71,34 @@ describe("AddLinkCard focus", () => {
     expect(alert).toHaveTextContent("Could not save that link");
     expect(url).toHaveAttribute("aria-invalid", "true");
     expect(url).toHaveAttribute("aria-describedby", "add-link-url-error");
+    expect(url).toHaveFocus();
     expect(screen.getByRole("button", { name: "Cancel" }).className).toContain(
       "focus-visible:ring-2",
     );
     expect(screen.getByRole("button", { name: "Save" }).className).toContain(
       "focus-visible:ring-2",
     );
+  });
+
+  it("returns to the link field when memory404 cannot be reached", async () => {
+    render(
+      <AddLinkCard
+        groupId="reading"
+        onSaved={() => {}}
+        saveLink={async () => {
+          throw new Error("offline");
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add link" }));
+    const url = screen.getByRole("textbox", { name: "Link" });
+    fireEvent.change(url, { target: { value: "https://example.com" } });
+    url.blur();
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/connection/i);
+    expect(url).toHaveFocus();
   });
 
   it("returns focus to Add link when the form is cancelled", () => {
@@ -139,7 +161,9 @@ describe("AddLinkCard focus", () => {
     fireEvent.click(screen.getByRole("button", { name: "Save note" }));
 
     expect(await screen.findByRole("alert")).toHaveTextContent("Couldn't save the note. Try again.");
-    expect(screen.getByRole("textbox", { name: "Add a note" })).toHaveValue("remember");
+    const note = screen.getByRole("textbox", { name: "Add a note" });
+    expect(note).toHaveValue("remember");
+    expect(note).toHaveFocus();
     expect(screen.getByRole("button", { name: "Add link", hidden: true })).not.toHaveFocus();
   });
 });
