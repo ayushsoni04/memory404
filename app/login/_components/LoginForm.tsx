@@ -33,10 +33,12 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
+  const submitLock = useRef(false);
   const allowDevSkip = process.env.NODE_ENV !== "production";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
     if (emailIssue(email)) {
       setEmailError(EMAIL_INVALID);
@@ -44,6 +46,7 @@ export function LoginForm() {
       return;
     }
     setEmailError(null);
+    submitLock.current = true;
     setIsSubmitting(true);
 
     try {
@@ -55,6 +58,7 @@ export function LoginForm() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(authFailureMessage(data, "Failed to sign in"));
+        submitLock.current = false;
         setIsSubmitting(false);
         passwordRef.current?.focus();
         return;
@@ -62,6 +66,7 @@ export function LoginForm() {
       window.location.assign(redirectPath);
     } catch {
       setError(authFailureMessage(null, "Failed to sign in", true));
+      submitLock.current = false;
       setIsSubmitting(false);
       passwordRef.current?.focus();
     }

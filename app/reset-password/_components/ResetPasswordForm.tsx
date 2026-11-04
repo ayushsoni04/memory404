@@ -35,6 +35,7 @@ export function ResetPasswordForm() {
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const submitLock = useRef(false);
 
   const fieldErrors = resetPasswordErrors(password, confirm);
   const passwordError = visiblePasswordRequirementError(
@@ -58,6 +59,7 @@ export function ResetPasswordForm() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitLock.current) return;
     setError(null);
 
     if (!token) {
@@ -72,6 +74,7 @@ export function ResetPasswordForm() {
       return;
     }
 
+    submitLock.current = true;
     setIsSubmitting(true);
     try {
       const res = await fetch("/api/auth/reset-password", {
@@ -80,18 +83,21 @@ export function ResetPasswordForm() {
         body: JSON.stringify({ token, password }),
       });
       const data = await res.json().catch(() => ({}));
-      setIsSubmitting(false);
 
       if (!res.ok) {
         setError(authFailureMessage(data, "Failed to reset password"));
+        submitLock.current = false;
+        setIsSubmitting(false);
         passwordRef.current?.focus();
         return;
       }
 
+      setIsSubmitting(false);
       setDone(true);
       setTimeout(() => router.push("/login"), 1500);
     } catch {
       setError(authFailureMessage(null, "Failed to reset password", true));
+      submitLock.current = false;
       setIsSubmitting(false);
       passwordRef.current?.focus();
     }

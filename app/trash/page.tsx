@@ -78,6 +78,7 @@ export default function TrashPage() {
     if (actionRef.current) return false;
     actionRef.current = true;
     setActionBusy(true);
+    setActionError(null);
     return true;
   };
 

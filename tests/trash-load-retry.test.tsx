@@ -232,4 +232,62 @@ describe("Trash load errors", () => {
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it("clears the previous failure when the next restore starts", async () => {
+    let resolveRestore: (value: { ok: boolean; json: () => Promise<unknown> }) => void =
+      () => {};
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              type: "link",
+              id: "link-1",
+              url: "https://example.com/pricing",
+              title: "Pricing",
+              displayTitle: "Pricing",
+              imageUrl: "/placeholder-unicorn.jpg",
+              faviconUrl: "/placeholder-unicorn.jpg",
+              groupId: "group-1",
+              groupName: "Reading",
+              deletedAt: new Date().toISOString(),
+              daysLeft: 12,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Could not restore that link" }),
+      })
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveRestore = resolve;
+          }),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrashPage />);
+    expect(await screen.findByText("Pricing")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not restore that link",
+    );
+    expect(screen.getByText("Nothing changed.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Restore / }));
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText("Nothing changed.")).not.toBeInTheDocument();
+    expect(screen.getByText("Pricing")).toBeInTheDocument();
+
+    resolveRestore({ ok: true, json: async () => ({}) });
+    await waitFor(() => {
+      expect(screen.queryByText("Pricing")).not.toBeInTheDocument();
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
 });

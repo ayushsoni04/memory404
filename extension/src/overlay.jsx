@@ -32,6 +32,8 @@ import {
   keepSignInForm,
   loginEmailIssue,
   passwordFieldInvalid,
+  signInErrorAfterEmailEdit,
+  signInErrorAfterPasswordEdit,
   signInFailureMessage,
 } from "./login-email";
 import PasswordField from "./PasswordField";
@@ -938,9 +940,7 @@ function App({ onClose }) {
                   onChange={(event) => {
                     const next = event.target.value;
                     setLoginEmail(next);
-                    if (error === EMAIL_INVALID && !loginEmailIssue(next)) {
-                      setError("Sign in to save this page.");
-                    }
+                    setError(signInErrorAfterEmailEdit(error, next));
                   }}
                   aria-invalid={error === EMAIL_INVALID ? true : undefined}
                   aria-describedby={
@@ -959,9 +959,7 @@ function App({ onClose }) {
                   describedBy={passwordFieldInvalid(error) ? "m404-overlay-error" : undefined}
                   onChange={(event) => {
                     setLoginPassword(event.target.value);
-                    if (passwordFieldInvalid(error)) {
-                      setError("Sign in to save this page.");
-                    }
+                    setError(signInErrorAfterPasswordEdit(error));
                   }}
                 />
                 <button type="submit" className="save-btn" disabled={loginPending}>
