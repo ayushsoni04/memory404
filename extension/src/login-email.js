@@ -26,6 +26,29 @@ export function keepSignInForm(error) {
   return /sign in/i.test(error);
 }
 
+/** Shown once the user starts correcting a sign-in field. */
+export const SIGN_IN_PROMPT = "Sign in to save this page.";
+
+/**
+ * Editing the email drops a password failure immediately.
+ * A bad-email failure stays until the address can be used.
+ * @param {unknown} error
+ * @param {unknown} nextEmail
+ */
+export function signInErrorAfterEmailEdit(error, nextEmail) {
+  if (error === EMAIL_INVALID) {
+    return loginEmailIssue(nextEmail) ? error : SIGN_IN_PROMPT;
+  }
+  if (passwordFieldInvalid(error)) return SIGN_IN_PROMPT;
+  return error;
+}
+
+/** Editing the password drops a failure that belongs on that field. */
+export function signInErrorAfterPasswordEdit(error) {
+  if (passwordFieldInvalid(error)) return SIGN_IN_PROMPT;
+  return error;
+}
+
 /**
  * A failed sign-in belongs on the password field.
  * The prompt that asks you to sign in, and a bad email address, do not.

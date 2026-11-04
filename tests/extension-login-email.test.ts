@@ -2,10 +2,13 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   EMAIL_INVALID,
+  SIGN_IN_PROMPT,
   SIGN_IN_UNREACHABLE,
   keepSignInForm,
   loginEmailIssue,
   passwordFieldInvalid,
+  signInErrorAfterEmailEdit,
+  signInErrorAfterPasswordEdit,
   signInFailureMessage,
 } from "../extension/src/login-email.js";
 
@@ -44,10 +47,27 @@ describe("extension login email", () => {
     expect(signInFailureMessage("Invalid email or password")).toBe("Invalid email or password");
   });
 
+  it("clears a wrong password when the email changes, and keeps a bad email until it is fixed", () => {
+    expect(signInErrorAfterEmailEdit("Invalid email or password", "ada@example.com")).toBe(
+      SIGN_IN_PROMPT,
+    );
+    expect(signInErrorAfterEmailEdit("Failed to sign in", "a")).toBe(SIGN_IN_PROMPT);
+    expect(signInErrorAfterEmailEdit(EMAIL_INVALID, "ada@")).toBe(EMAIL_INVALID);
+    expect(signInErrorAfterEmailEdit(EMAIL_INVALID, "ada@example.com")).toBe(SIGN_IN_PROMPT);
+    expect(signInErrorAfterEmailEdit("Failed to load groups", "ada@example.com")).toBe(
+      "Failed to load groups",
+    );
+    expect(signInErrorAfterPasswordEdit("Invalid email or password")).toBe(SIGN_IN_PROMPT);
+    expect(signInErrorAfterPasswordEdit(EMAIL_INVALID)).toBe(EMAIL_INVALID);
+    expect(signInErrorAfterPasswordEdit(SIGN_IN_PROMPT)).toBe(SIGN_IN_PROMPT);
+  });
+
   it("is what the save overlay uses for the email and the app address", () => {
     const overlay = readFileSync("extension/src/overlay.jsx", "utf8");
     expect(overlay).toContain("keepSignInForm(error)");
     expect(overlay).toContain("passwordFieldInvalid(error)");
+    expect(overlay).toContain("signInErrorAfterEmailEdit(error, next)");
+    expect(overlay).toContain("signInErrorAfterPasswordEdit(error)");
     expect(overlay).toContain("signInFailureMessage");
     expect(overlay).toContain('htmlFor="m404-app-url"');
     expect(overlay).toContain('aria-describedby=');
