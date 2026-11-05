@@ -225,6 +225,9 @@ function App({ onClose }) {
   const inputRef = useRef(null);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
+  const apiBaseRef = useRef(null);
+  const apiBaseLock = useRef(false);
+  const [savingApiBase, setSavingApiBase] = useState(false);
   const loginLock = useRef(false);
   const panelRef = useRef(null);
   const phaseRef = useRef(phase);
@@ -775,25 +778,42 @@ function App({ onClose }) {
     }
   };
 
+  const rejectApiBase = (message) => {
+    setApiBaseError(message);
+  };
+
+  useEffect(() => {
+    if (!apiBaseError || savingApiBase) return;
+    apiBaseRef.current?.focus();
+  }, [apiBaseError, savingApiBase]);
+
   const saveApiBase = async () => {
+    if (apiBaseLock.current) return;
     const normalized = normalizeApiBase(apiBase);
     if (!normalized.ok) {
-      setApiBaseError(normalized.error);
+      rejectApiBase(normalized.error);
       return;
     }
+    apiBaseLock.current = true;
+    setSavingApiBase(true);
     setApiBaseError("");
-    const res = await sendMessage({ type: "SET_API_BASE", apiBase: normalized.apiBase });
-    if (!res?.ok) {
-      setApiBaseError(res?.error || APP_URL_HINT);
-      return;
-    }
-    setApiBase(res.apiBase);
-    setShowSettings(false);
-    if (res.signedOut) {
-      setGroups([]);
-      setSelectedGroupId(null);
-      setGroupQuery("");
-      setBootToken((n) => n + 1);
+    try {
+      const res = await sendMessage({ type: "SET_API_BASE", apiBase: normalized.apiBase });
+      if (!res?.ok) {
+        rejectApiBase(res?.error || APP_URL_HINT);
+        return;
+      }
+      setApiBase(res.apiBase);
+      setShowSettings(false);
+      if (res.signedOut) {
+        setGroups([]);
+        setSelectedGroupId(null);
+        setGroupQuery("");
+        setBootToken((n) => n + 1);
+      }
+    } finally {
+      apiBaseLock.current = false;
+      setSavingApiBase(false);
     }
   };
 
@@ -823,6 +843,7 @@ function App({ onClose }) {
           </label>
           <input
             id="m404-app-url"
+            ref={apiBaseRef}
             className="settings-input"
             value={apiBase}
             onChange={(e) => {
@@ -830,19 +851,27 @@ function App({ onClose }) {
               setApiBaseError("");
             }}
             placeholder="http://localhost:3000"
+            disabled={savingApiBase}
             aria-invalid={apiBaseError ? true : undefined}
-            aria-describedby={apiBaseError ? "m404-app-url-error" : undefined}
+            aria-describedby={apiBaseError ? "m404-app-url-error" : "m404-app-url-hint"}
           />
           {apiBaseError ? (
             <p id="m404-app-url-error" className="field-error" role="alert">
               {apiBaseError}
             </p>
           ) : (
-            <p className="hint">Change this if your app runs on a different host.</p>
+            <p id="m404-app-url-hint" className="hint">
+              Change this if your app runs on a different host.
+            </p>
           )}
           <div className="group-section" style={{ borderTop: 0, paddingTop: 0 }}>
-            <button type="button" className="save-btn" onClick={() => void saveApiBase()}>
-              Save App URL
+            <button
+              type="button"
+              className="save-btn"
+              disabled={savingApiBase}
+              onClick={() => void saveApiBase()}
+            >
+              {savingApiBase ? "Saving…" : "Save App URL"}
             </button>
           </div>
         </div>
