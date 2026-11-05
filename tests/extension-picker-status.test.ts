@@ -19,10 +19,10 @@ describe("extension group picker", () => {
     expect(overlay).toContain('className="group-empty" role="status"');
   });
 
-  it("gives the group list button a 32px target", () => {
+  it("gives the group list button a 44px target", () => {
     const rules = css.slice(css.indexOf(".chevron-btn {"));
-    expect(rules).toContain("width: 32px;");
-    expect(rules).toContain("height: 32px;");
-    expect(rules).toContain("flex: 0 0 32px;");
+    expect(rules).toContain("width: 44px;");
+    expect(rules).toContain("height: 44px;");
+    expect(rules).toContain("flex: 0 0 44px;");
   });
 });
