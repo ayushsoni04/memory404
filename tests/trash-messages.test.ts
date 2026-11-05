@@ -6,6 +6,7 @@ import {
   trashActionMessage,
   trashLoadHint,
   trashLoadMessage,
+  trashPageStatus,
 } from "@/lib/trash-messages";
 
 describe("trash messages", () => {
@@ -36,5 +37,13 @@ describe("trash messages", () => {
       "Sign in, then open Trash again.",
     );
     expect(trashLoadHint(TRASH_LOAD_FAILED)).toBe("Try again in a moment.");
+  });
+
+  it("announces loading, an empty bin, and how many items are waiting", () => {
+    expect(trashPageStatus(true, null, 0)).toBe("Loading trash…");
+    expect(trashPageStatus(false, "Couldn't load Trash. Try again.", 0)).toBe("");
+    expect(trashPageStatus(false, null, 0)).toBe("Trash is empty");
+    expect(trashPageStatus(false, null, 1)).toBe("1 item in Trash");
+    expect(trashPageStatus(false, null, 4)).toBe("4 items in Trash");
   });
 });

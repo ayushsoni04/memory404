@@ -86,6 +86,12 @@ describe("Trash load errors", () => {
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
 
     expect(await screen.findByText("Trash is empty")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Trash is empty");
+    const library = screen.getByRole("link", { name: "Return to your links" });
+    expect(library).toHaveAttribute("href", "/");
+    expect(library.className).toContain("min-h-11");
+    expect(library.className).toContain("sm:min-h-8");
+    expect(library.className).toContain("focus-visible:ring-2");
     await waitFor(() => {
       expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     });
@@ -133,8 +139,11 @@ describe("Trash load errors", () => {
     expect(screen.getByText("Pricing")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
+    const dismiss = screen.getByRole("button", { name: "Dismiss" });
+    expect(dismiss.className).toContain("min-h-11");
+    expect(dismiss.className).toContain("focus-visible:ring-2");
 
-    fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
+    fireEvent.click(dismiss);
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(screen.getByText("Pricing")).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(2);
