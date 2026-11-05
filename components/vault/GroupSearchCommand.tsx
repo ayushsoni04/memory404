@@ -27,6 +27,13 @@ export default function GroupSearchCommand({
 }: Props) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const clearSearch = () => {
+    onChange("");
+    setOpen(false);
+    inputRef.current?.focus();
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -49,6 +56,7 @@ export default function GroupSearchCommand({
     >
       <div className="relative flex items-center">
         <Command.Input
+          ref={inputRef}
           value={value}
           onValueChange={onChange}
           onFocus={() => setOpen(true)}
@@ -67,10 +75,8 @@ export default function GroupSearchCommand({
         {value ? (
           <button
             type="button"
-            onClick={() => {
-              onChange("");
-              setOpen(false);
-            }}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={clearSearch}
             aria-label="Clear search"
             className="absolute right-0.5 flex size-6 items-center justify-center rounded-full bg-pill text-muted transition-[transform,background-color,color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)]"
           >
@@ -97,6 +103,7 @@ export default function GroupSearchCommand({
                     onSelectGroup(g.id);
                     onChange("");
                     setOpen(false);
+                    inputRef.current?.focus();
                   }}
                   className="min-w-0 cursor-pointer rounded-lg px-2 py-1.5 text-[13px] text-foreground transition-[background-color] duration-[var(--duration-press)] data-[selected=true]:bg-pill-hover"
                 >
@@ -109,10 +116,8 @@ export default function GroupSearchCommand({
               <p className="break-words text-[12px] text-subtle">{groupSearchMiss(query)}</p>
               <button
                 type="button"
-                onClick={() => {
-                  onChange("");
-                  setOpen(false);
-                }}
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={clearSearch}
                 className="text-[12px] text-foreground underline-offset-2 hover:underline"
               >
                 Clear search
