@@ -7,7 +7,9 @@ import ShortcutHelp from "@/components/vault/ShortcutHelp";
 import {
   SHORTCUT_HELP_EVENT,
   formatShortcutKeys,
+  isMacPlatform,
   isShortcutHelpKey,
+  spokenShortcut,
 } from "@/components/vault/shortcut-help";
 
 afterEach(() => {
@@ -46,6 +48,16 @@ describe("formatShortcutKeys", () => {
   });
 });
 
+describe("spokenShortcut", () => {
+  it("names the modifier and the arrow keys", () => {
+    expect(spokenShortcut(["mod", "K"], false)).toBe("Control, K");
+    expect(spokenShortcut(["mod", "Z"], true)).toBe("Command, Z");
+    expect(spokenShortcut(["↑", "↓", "←", "→"], false)).toBe("Up, Down, Left, Right");
+    expect(spokenShortcut(["?"], false)).toBe("Question mark");
+    expect(spokenShortcut(["Esc"], false)).toBe("Escape");
+  });
+});
+
 describe("ShortcutHelp", () => {
   it("opens from ? and closes with Escape", () => {
     render(<ShortcutHelp />);
@@ -57,6 +69,14 @@ describe("ShortcutHelp", () => {
     ).toBeInTheDocument();
     expect(screen.getByText("Undo the last delete or move")).toBeInTheDocument();
     expect(screen.getByText("Search links, groups, and pages")).toBeInTheDocument();
+    expect(
+      screen.getByText(spokenShortcut(["mod", "K"], isMacPlatform(navigator.platform))),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Question mark")).toBeInTheDocument();
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(close.className).toContain("min-h-11");
+    expect(close.className).toContain("sm:min-h-8");
+    expect(close.className).toContain("focus-visible:ring-2");
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
