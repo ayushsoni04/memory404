@@ -46,10 +46,71 @@ describe("group search field", () => {
 
     const clear = screen.getByRole("button", { name: "Clear search" });
     expect(clear.className).toContain("size-6");
-    fireEvent.keyDown(screen.getByRole("combobox", { name: "Search groups" }), {
-      key: "Escape",
-    });
+    const field = screen.getByRole("combobox", { name: "Search groups" });
+    field.focus();
+    fireEvent.keyDown(field, { key: "Escape" });
     expect(onChange).toHaveBeenCalledWith("");
+    expect(field).toHaveFocus();
+  });
+
+  it("returns focus to the field when the search is cleared", () => {
+    const onChange = vi.fn();
+    render(
+      <GroupSearchCommand
+        value="read"
+        onChange={onChange}
+        groups={[{ id: "reading", name: "Reading" }]}
+        onSelectGroup={() => {}}
+        placeholder="Search groups"
+      />,
+    );
+
+    const field = screen.getByRole("combobox", { name: "Search groups" });
+    const clear = screen.getByRole("button", { name: "Clear search" });
+    clear.focus();
+    fireEvent.click(clear);
+    expect(onChange).toHaveBeenCalledWith("");
+    expect(field).toHaveFocus();
+  });
+
+  it("returns focus to the field when a miss is cleared", () => {
+    const onChange = vi.fn();
+    render(
+      <GroupSearchCommand
+        value="zzzz"
+        onChange={onChange}
+        groups={[]}
+        onSelectGroup={() => {}}
+        placeholder="Search groups"
+      />,
+    );
+
+    const field = screen.getByRole("combobox", { name: "Search groups" });
+    fireEvent.focus(field);
+    const clear = screen.getAllByRole("button", { name: "Clear search" });
+    clear[clear.length - 1]?.focus();
+    fireEvent.click(clear[clear.length - 1]!);
+    expect(onChange).toHaveBeenCalledWith("");
+    expect(field).toHaveFocus();
+  });
+
+  it("returns focus to the field after jumping to a group", () => {
+    const onSelectGroup = vi.fn();
+    render(
+      <GroupSearchCommand
+        value="read"
+        onChange={() => {}}
+        groups={[{ id: "reading", name: "Reading" }]}
+        onSelectGroup={onSelectGroup}
+        placeholder="Search groups"
+      />,
+    );
+
+    const field = screen.getByRole("combobox", { name: "Search groups" });
+    fireEvent.focus(field);
+    fireEvent.click(screen.getByText("Reading"));
+    expect(onSelectGroup).toHaveBeenCalledWith("reading");
+    expect(field).toHaveFocus();
   });
 
   it("keeps a long group name and a pasted miss inside the menu", () => {
