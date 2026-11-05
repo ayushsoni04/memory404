@@ -53,24 +53,29 @@
 #m404-save-root .settings-btn,
 #m404-save-root .close-btn {
   position: absolute;
-  top: 8px;
+  top: 4px;
   z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
   border: 0;
   background: transparent;
   color: var(--subtle);
   font-size: 14px;
   line-height: 1;
-  padding: 4px;
+  padding: 0;
   cursor: pointer;
   border-radius: 6px;
 }
 
 #m404-save-root .settings-btn {
-  right: 32px;
+  right: 40px;
 }
 
 #m404-save-root .close-btn {
-  right: 8px;
+  right: 4px;
 }
 
 #m404-save-root .settings-btn:hover,
