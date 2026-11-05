@@ -19,6 +19,12 @@ export default function SidebarProfile() {
   const [savingAvatar, setSavingAvatar] = useState(false);
   const [photoError, setPhotoError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    if (!photoError || savingAvatar) return;
+    buttonRef.current?.focus();
+  }, [photoError, savingAvatar]);
 
   const applyUser = useCallback((user: MeUser) => {
     setAvatar(user.avatarUrl);
@@ -114,39 +120,44 @@ export default function SidebarProfile() {
   return (
     <div className="flex flex-col gap-1.5">
       <div className="flex items-center gap-2.5">
-        <button
-          type="button"
-          onClick={() => inputRef.current?.click()}
-          disabled={savingAvatar}
-          aria-label={avatar ? "Change profile photo" : "Add profile photo"}
-          aria-describedby={photoError ? "sidebar-photo-error" : undefined}
-          title={avatar ? "Change photo" : "Add photo"}
-          className="group/avatar relative flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-60"
-        >
+        <div className="relative size-10 shrink-0">
+          <button
+            ref={buttonRef}
+            type="button"
+            onClick={() => inputRef.current?.click()}
+            disabled={savingAvatar}
+            aria-label={avatar ? "Change profile photo" : "Add profile photo"}
+            aria-describedby={photoError ? "sidebar-photo-error" : undefined}
+            title={avatar ? "Change photo" : "Add photo"}
+            className="group/avatar relative flex size-full items-center justify-center overflow-hidden rounded-full border border-border bg-surface text-muted transition-colors hover:border-foreground/35 hover:text-foreground disabled:opacity-60"
+          >
+            {avatar ? (
+              <Image
+                src={avatar}
+                alt=""
+                fill
+                unoptimized
+                className="object-cover transition duration-200 group-hover/avatar:brightness-50"
+              />
+            ) : (
+              <span className="font-mono text-[12px] font-semibold tracking-wide uppercase transition duration-200 group-hover/avatar:opacity-40">
+                {initials}
+              </span>
+            )}
+            <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition duration-200 group-hover/avatar:opacity-100">
+              <Camera className="size-3.5 text-white" aria-hidden />
+            </span>
+          </button>
           <input
             ref={inputRef}
             type="file"
             accept="image/png,image/jpeg,image/webp,image/gif"
+            tabIndex={-1}
+            aria-hidden
             onChange={handleAvatarChange}
-            className="hidden"
+            className="sr-only"
           />
-          {avatar ? (
-            <Image
-              src={avatar}
-              alt=""
-              fill
-              unoptimized
-              className="object-cover transition duration-200 group-hover/avatar:brightness-50"
-            />
-          ) : (
-            <span className="font-mono text-[12px] font-semibold tracking-wide uppercase transition duration-200 group-hover/avatar:opacity-40">
-              {initials}
-            </span>
-          )}
-          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/45 opacity-0 transition duration-200 group-hover/avatar:opacity-100">
-            <Camera className="size-3.5 text-white" aria-hidden />
-          </span>
-        </button>
+        </div>
 
         <Link
           href="/settings"
