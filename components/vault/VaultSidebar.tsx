@@ -203,7 +203,11 @@ export default function VaultSidebar({
                     </button>
                   </div>
                 ) : saving ? (
-                  <div className="flex flex-col items-center justify-center py-2 w-full min-h-[64px]">
+                  <div
+                    className="flex w-full min-h-[64px] flex-col items-center justify-center py-2"
+                    role="status"
+                    aria-live="polite"
+                  >
                     {saveSuccess ? (
                       <div className="flex items-center gap-2">
                         <span
@@ -234,7 +238,10 @@ export default function VaultSidebar({
                         </span>
                       </div>
                     ) : (
-                      <ThinkingOrb state="searching" size={64} speed={0.95} />
+                      <>
+                        <ThinkingOrb state="searching" size={64} speed={0.95} />
+                        <span className="sr-only">Saving…</span>
+                      </>
                     )}
                   </div>
                 ) : (
