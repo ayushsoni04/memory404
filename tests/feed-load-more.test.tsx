@@ -153,8 +153,29 @@ describe("VaultFeed load more failure", () => {
       hasMoreLinks: false,
     });
 
-    expect(screen.getByText("Something went wrong loading this group.")).toBeInTheDocument();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Something went wrong loading this group.",
+    );
+    const retry = screen.getByRole("button", { name: "Retry" });
+    expect(retry.className).toContain("min-h-11");
+    expect(retry.className).toContain("sm:min-h-8");
+    expect(retry.className).toContain("focus-visible:ring-2");
     expect(screen.queryByText("A saved article")).not.toBeInTheDocument();
+  });
+
+  it("announces when groups cannot be loaded", () => {
+    renderFeed({
+      groupsError: "Failed to load groups",
+      sortedLinks: [],
+      hasMoreLinks: false,
+      allLinksCount: 0,
+    });
+
+    const alert = screen.getByRole("alert");
+    expect(alert).toHaveTextContent("Groups could not be loaded.");
+    expect(alert).toHaveTextContent("Check your connection, then try again.");
+    expect(screen.getByRole("button", { name: "Retry" }).className).toContain("min-h-11");
+    expect(screen.queryByText("Paste empty")).not.toBeInTheDocument();
   });
 
   it("loads the next page from a button, and says so only while that page is loading", () => {
