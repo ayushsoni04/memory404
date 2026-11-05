@@ -100,7 +100,7 @@ describe("leaving a link keeps the note", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
     const { onNext } = renderOverlay();
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next link" }));
     expect(onNext).toHaveBeenCalledOnce();
     expect(fetchMock).not.toHaveBeenCalled();
   });
@@ -116,7 +116,7 @@ describe("leaving a link keeps the note", () => {
     fireEvent.change(screen.getByLabelText("Note"), {
       target: { value: "Bring this to the review" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    fireEvent.click(screen.getByRole("button", { name: "Next link" }));
 
     expect(onNext).not.toHaveBeenCalled();
     await waitFor(() => expect(onNext).toHaveBeenCalledOnce());

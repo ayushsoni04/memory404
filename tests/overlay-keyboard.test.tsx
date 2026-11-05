@@ -77,6 +77,19 @@ function renderOverlay(onNext = vi.fn()) {
 }
 
 describe("link detail keyboard", () => {
+  it("names the previous and next links and keeps them easy to tap", () => {
+    renderOverlay();
+    const previous = screen.getByRole("button", { name: "Previous link" });
+    const next = screen.getByRole("button", { name: "Next link" });
+    const close = screen.getByRole("button", { name: "Close" });
+    for (const button of [previous, next, close]) {
+      expect(button.className).toContain("size-11");
+      expect(button.className).toContain("sm:size-8");
+    }
+    expect(previous).toBeDisabled();
+    expect(next).toBeEnabled();
+  });
+
   it("names the action Move to Trash, matching the undo toast", () => {
     const onDelete = vi.fn();
     vi.stubGlobal("matchMedia", () => ({
@@ -167,7 +180,7 @@ describe("link detail keyboard", () => {
     expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
     expect(document.body.style.overflow).toBe("hidden");
 
-    const next = screen.getByRole("button", { name: "Next" });
+    const next = screen.getByRole("button", { name: "Next link" });
     next.focus();
     fireEvent.keyDown(next, { key: "ArrowRight" });
 
