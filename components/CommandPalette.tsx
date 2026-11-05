@@ -78,6 +78,7 @@ export default function CommandPalette({
   const [noteError, setNoteError] = useState<string | null>(null);
   const [savingNote, setSavingNote] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
+  const searchRef = useRef<HTMLInputElement | null>(null);
   const requestIdRef = useRef(0);
   const savingUrlRef = useRef(false);
   const savingNoteRef = useRef(false);
@@ -139,6 +140,11 @@ export default function CommandPalette({
       setSaveError(null);
     }
   }, []);
+
+  const clearSearch = useCallback(() => {
+    handleSearchChange("");
+    searchRef.current?.focus();
+  }, [handleSearchChange]);
 
   useEffect(() => {
     const query = search.trim();
@@ -313,6 +319,7 @@ export default function CommandPalette({
       ) : null}
       {savedLink ? null : (
       <CommandInput
+        ref={searchRef}
         value={search}
         onValueChange={handleSearchChange}
         placeholder="Search links, jump to a group, or go to a page…"
@@ -359,7 +366,8 @@ export default function CommandPalette({
             </p>
             <button
               type="button"
-              onClick={() => handleSearchChange("")}
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={clearSearch}
               className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] font-medium text-foreground outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97]"
             >
               Clear search
