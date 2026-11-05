@@ -8,6 +8,7 @@ import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
 import type { PermanentDelete } from "@/app/trash/permanent-delete";
 import LoadRecovery, { SessionSignInLink } from "@/components/LoadRecovery";
 import { apiUrl } from "@/lib/api-base";
+import { isSessionExpiredMessage } from "@/lib/session-recovery";
 import {
   trashActionMessage,
   trashLoadHint,
@@ -29,6 +30,21 @@ export default function TrashPage() {
   const [confirming, setConfirming] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
   const actionRef = useRef(false);
+  const restoreReturnId = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (actionBusy || loading) return;
+    const id = restoreReturnId.current;
+    if (!id || !actionError) return;
+    restoreReturnId.current = null;
+    if (isSessionExpiredMessage(actionError)) {
+      document.querySelector<HTMLElement>("#trash-action-error a")?.focus();
+      return;
+    }
+    document
+      .querySelector<HTMLButtonElement>(`[data-trash-restore="${CSS.escape(id)}"]`)
+      ?.focus();
+  }, [actionBusy, actionError, loading]);
 
   const loadTrash = useCallback(async () => {
     setLoading(true);
@@ -100,6 +116,8 @@ export default function TrashPage() {
     try {
       if (await runTrashAction(`/api/trash/links/${id}`, "PATCH")) {
         await removeWithExit([id]);
+      } else {
+        restoreReturnId.current = id;
       }
     } finally {
       endAction();
@@ -111,6 +129,8 @@ export default function TrashPage() {
     try {
       if (await runTrashAction(`/api/trash/groups/${id}`, "PATCH")) {
         await removeWithExit([id]);
+      } else {
+        restoreReturnId.current = id;
       }
     } finally {
       endAction();
@@ -223,6 +243,7 @@ export default function TrashPage() {
         ) : null}
         {actionError && !pendingDelete ? (
           <div
+            id="trash-action-error"
             className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
             role="alert"
           >
