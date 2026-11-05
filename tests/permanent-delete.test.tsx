@@ -89,7 +89,40 @@ describe("PermanentDeleteConfirm", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent("Network error — try again");
-    fireEvent.click(screen.getByRole("button", { name: "Empty Trash" }));
+    const action = screen.getByRole("button", { name: "Empty Trash" });
+    expect(action).toHaveFocus();
+    expect(action).toHaveAttribute("aria-describedby", "permanent-delete-error");
+    expect(action.className).toContain("min-h-11");
+    expect(screen.getByRole("button", { name: "Cancel" }).className).toContain("min-h-11");
+    fireEvent.click(action);
     expect(onConfirm).toHaveBeenCalledOnce();
+  });
+
+  it("returns to the action after a delete stops failing", () => {
+    const view = render(
+      <PermanentDeleteConfirm
+        pending={{ kind: "link", id: "1", title: "Pricing page" }}
+        busy
+        error={null}
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Deleting…" })).toBeDisabled();
+    view.rerender(
+      <PermanentDeleteConfirm
+        pending={{ kind: "link", id: "1", title: "Pricing page" }}
+        busy={false}
+        error="Couldn't update Trash. Try again."
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const action = screen.getByRole("button", { name: "Delete forever" });
+    expect(action).toHaveFocus();
+    expect(action).toHaveAttribute("aria-describedby", "permanent-delete-error");
+    expect(action).toBeEnabled();
   });
 });

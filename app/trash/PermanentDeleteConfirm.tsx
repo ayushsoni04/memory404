@@ -24,8 +24,14 @@ export default function PermanentDeleteConfirm({
   const portalRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const copy = permanentDeleteCopy(pending);
   useDialogContainment(true, portalRef, dialogRef, cancelRef);
+
+  useEffect(() => {
+    if (!error || busy) return;
+    confirmRef.current?.focus();
+  }, [error, busy]);
 
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
@@ -55,7 +61,7 @@ export default function PermanentDeleteConfirm({
         </h2>
         <p className="mt-2 text-[13px] leading-relaxed text-muted">{copy.detail}</p>
         {error ? (
-          <p className="mt-3 text-[13px] text-danger" role="alert">
+          <p id="permanent-delete-error" className="mt-3 text-[13px] text-danger" role="alert">
             {error}
           </p>
         ) : null}
@@ -65,15 +71,17 @@ export default function PermanentDeleteConfirm({
             type="button"
             onClick={onCancel}
             disabled={busy}
-            className={`inline-flex h-8 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground disabled:opacity-50 ${controlPress}`}
+            className={`inline-flex min-h-11 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground disabled:opacity-50 sm:min-h-8 ${controlPress}`}
           >
             Cancel
           </button>
           <button
+            ref={confirmRef}
             type="button"
             onClick={onConfirm}
             disabled={busy}
-            className={`inline-flex h-8 items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 text-[13px] font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 ${controlPress}`}
+            aria-describedby={error ? "permanent-delete-error" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-full border border-red-500/30 bg-red-500/10 px-3 text-[13px] font-medium text-red-400 hover:bg-red-500/20 disabled:opacity-50 sm:min-h-8 ${controlPress}`}
           >
             {busy ? "Deleting…" : copy.action}
           </button>
