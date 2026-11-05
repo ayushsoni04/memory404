@@ -172,7 +172,7 @@ const NoteEditor = forwardRef<
         placeholder="What should you remember?"
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy || undefined}
-        className={`mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm leading-relaxed text-foreground placeholder:text-subtle focus:border-white/30 ${overlayFocus}`}
+        className={`mt-1 w-full resize-none rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-base leading-relaxed text-foreground placeholder:text-subtle focus:border-white/30 sm:text-sm ${overlayFocus}`}
       />
       <NoteCount notes={draft} id={countId} />
       {error ? (
@@ -185,7 +185,7 @@ const NoteEditor = forwardRef<
           type="button"
           onClick={() => void save()}
           disabled={saving || Boolean(noteIssue(draft))}
-          className={`mt-2 inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 ${overlayFocus}`}
+          className={`mt-2 inline-flex h-11 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 sm:h-8 ${overlayFocus}`}
         >
           {saving ? "Saving…" : SAVE_NOTE_LABEL}
         </button>
