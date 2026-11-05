@@ -8,7 +8,15 @@ import { TrashGroupRow, TrashLinkRow } from "@/app/trash/TrashRows";
 import type { PermanentDelete } from "@/app/trash/permanent-delete";
 import LoadRecovery, { SessionSignInLink } from "@/components/LoadRecovery";
 import { apiUrl } from "@/lib/api-base";
-import { trashActionMessage, trashLoadHint, trashLoadMessage } from "@/lib/trash-messages";
+import {
+  trashActionMessage,
+  trashLoadHint,
+  trashLoadMessage,
+  trashPageStatus,
+} from "@/lib/trash-messages";
+
+const recoveryControl =
+  "inline-flex min-h-11 items-center justify-center rounded-full px-3 text-[13px] font-medium transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:min-h-8";
 
 export default function TrashPage() {
   const [items, setItems] = useState<TrashApiItem[]>([]);
@@ -186,8 +194,16 @@ export default function TrashPage() {
       </div>
 
       <div className="mx-auto max-w-3xl px-6 py-8 space-y-8">
+        {!loading && !loadError && items.length > 0 ? (
+          <p className="sr-only" role="status">
+            {trashPageStatus(false, null, items.length)}
+          </p>
+        ) : null}
         {loading && (
-          <div className="flex items-center justify-center py-20 text-muted text-sm">
+          <div
+            className="flex items-center justify-center py-20 text-muted text-sm"
+            role="status"
+          >
             Loading trash…
           </div>
         )}
@@ -217,7 +233,7 @@ export default function TrashPage() {
               <button
                 type="button"
                 onClick={() => setActionError(null)}
-                className="inline-flex h-8 items-center justify-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+                className={`${recoveryControl} bg-pill text-foreground`}
               >
                 Dismiss
               </button>
@@ -226,18 +242,20 @@ export default function TrashPage() {
         ) : null}
         {!loading && !loadError && items.length === 0 && (
           <div className="flex flex-col items-center justify-center py-24 gap-4">
-            <svg viewBox="0 0 48 48" fill="none" className="size-12 text-border">
+            <svg viewBox="0 0 48 48" fill="none" className="size-12 text-border" aria-hidden="true">
               <path d="M20 10h8a4 4 0 0 0-8 0ZM16 10a8 8 0 0 1 16 0h10a2 2 0 0 1 0 4h-1.3l-2.2 26.1A7 7 0 0 1 31.7 46H16.3a7 7 0 0 1-6.8-5.9L7.3 14H6a2 2 0 0 1 0-4h10Z" fill="currentColor" />
             </svg>
             <div className="space-y-2 text-center">
-              <p className="text-sm text-foreground">Trash is empty</p>
+              <p className="text-sm text-foreground" role="status">
+                Trash is empty
+              </p>
               <p className="max-w-sm text-[13px] text-muted">
                 Move a link or a group to Trash and it will show up here for 30 days.
               </p>
             </div>
             <Link
               href="/"
-              className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90"
+              className={`${recoveryControl} bg-pill-active text-pill-active-fg`}
             >
               Return to your links
             </Link>

@@ -39,3 +39,18 @@ export function trashLoadHint(message: string): string {
   if (message === SESSION_EXPIRED_MESSAGE) return "Sign in, then open Trash again.";
   return "Try again in a moment.";
 }
+
+/**
+ * A single sentence for the Trash page status.
+ * An error has its own alert, so this stays quiet then.
+ */
+export function trashPageStatus(
+  loading: boolean,
+  loadError: string | null,
+  count: number,
+): string {
+  if (loading) return "Loading trash…";
+  if (loadError) return "";
+  if (count <= 0) return "Trash is empty";
+  return count === 1 ? "1 item in Trash" : `${count} items in Trash`;
+}
