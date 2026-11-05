@@ -44,6 +44,10 @@ describe("GridSizeControl", () => {
     expect(compact).toHaveAttribute("tabindex", "-1");
     expect(large).toHaveAttribute("tabindex", "-1");
     expect(medium.className).toContain("focus-visible:ring-2");
+    expect(medium.className).toContain("h-11");
+    expect(medium.className).toContain("min-w-11");
+    expect(medium.className).toContain("sm:h-7");
+    expect(medium.className).toContain("sm:min-w-7");
 
     fireEvent.keyDown(medium, { key: "ArrowRight" });
     expect(setGridSizeAndPersist).toHaveBeenCalledWith("large");
