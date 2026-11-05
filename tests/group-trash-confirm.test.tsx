@@ -153,14 +153,49 @@ describe("GroupTrashConfirm", () => {
       />,
     );
 
+    const action = screen.getByRole("button", { name: "Move to Trash" });
     expect(screen.getByRole("alert")).toHaveTextContent(/Check your connection/);
+    expect(action).toHaveFocus();
+    expect(action).toHaveAttribute("aria-describedby", "group-trash-error");
+    expect(action.className).toContain("min-h-11");
+    expect(action.className).toContain("sm:min-h-8");
+    expect(screen.getByRole("button", { name: "Cancel" }).className).toContain("min-h-11");
     expect(screen.getByRole("dialog", { name: "Move Reading to Trash?" })).toBeInTheDocument();
 
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onCancel).toHaveBeenCalledOnce();
 
-    fireEvent.click(screen.getByRole("button", { name: "Move to Trash" }));
+    fireEvent.click(action);
     expect(onConfirm).toHaveBeenCalledOnce();
+  });
+
+  it("returns to Move to Trash after the move stops failing", () => {
+    const view = render(
+      <GroupTrashConfirm
+        name="Reading"
+        linksCount={2}
+        pending
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Moving…" })).toBeDisabled();
+    view.rerender(
+      <GroupTrashConfirm
+        name="Reading"
+        linksCount={2}
+        pending={false}
+        error="Couldn't move that group to Trash."
+        onConfirm={() => {}}
+        onCancel={() => {}}
+      />,
+    );
+
+    const action = screen.getByRole("button", { name: "Move to Trash" });
+    expect(action).toHaveFocus();
+    expect(action).toHaveAttribute("aria-describedby", "group-trash-error");
+    expect(action).toBeEnabled();
   });
 
   it("ignores a second Move to Trash until the first one finishes", () => {
