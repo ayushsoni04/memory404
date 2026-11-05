@@ -492,6 +492,10 @@ pre,
 }
 
 @media (hover: none), (pointer: coarse) {
+  .mind-card-actions {
+    --mind-card-action-size: 44px;
+  }
+
   .mind-card-open,
   .mind-card-copy {
     pointer-events: auto;
