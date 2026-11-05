@@ -96,12 +96,15 @@ export function StatsTab({ bannerStyle }: StatsTabProps) {
   const emptyStats = libraryStatsEmptyState(totalLinks, trashedLinks);
   if (!loadingStats && emptyStats) {
     return (
-      <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface p-6">
+      <div
+        className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface p-6"
+        role="status"
+      >
         <p className="text-sm font-medium text-foreground">{emptyStats.title}</p>
         <p className="max-w-md text-[13px] text-subtle">{emptyStats.body}</p>
         <Link
           href={emptyStats.href}
-          className="inline-flex h-8 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97]"
+          className="inline-flex min-h-11 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:min-h-8"
         >
           {emptyStats.action}
         </Link>

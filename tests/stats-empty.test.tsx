@@ -31,10 +31,12 @@ describe("empty statistics", () => {
     expect(
       screen.getByText(/Save a link in the library/),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Go to your library" })).toHaveAttribute(
-      "href",
-      "/",
-    );
+    const library = screen.getByRole("link", { name: "Go to your library" });
+    expect(library).toHaveAttribute("href", "/");
+    expect(library.className).toContain("min-h-11");
+    expect(library.className).toContain("sm:min-h-8");
+    expect(library.className).toContain("focus-visible:ring-2");
+    expect(screen.getByRole("status")).toHaveTextContent("No links yet");
     expect(screen.queryByText("0")).not.toBeInTheDocument();
     expect(screen.queryByText("No groups yet.")).not.toBeInTheDocument();
     expect(screen.queryByText("Days you added links")).not.toBeInTheDocument();
@@ -60,10 +62,11 @@ describe("empty statistics", () => {
 
     expect(await screen.findByText("Your links are in Trash")).toBeInTheDocument();
     expect(screen.getByText(/Restore a link/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Open Trash" })).toHaveAttribute(
-      "href",
-      "/trash",
-    );
+    const trash = screen.getByRole("link", { name: "Open Trash" });
+    expect(trash).toHaveAttribute("href", "/trash");
+    expect(trash.className).toContain("min-h-11");
+    expect(trash.className).toContain("focus-visible:ring-2");
+    expect(screen.getByRole("status")).toHaveTextContent("Your links are in Trash");
     expect(screen.queryByText("No links yet")).not.toBeInTheDocument();
     expect(screen.queryByText("0")).not.toBeInTheDocument();
   });
