@@ -7,6 +7,7 @@ import VaultFeed from "@/components/vault/VaultFeed";
 import {
   feedMoreView,
   isLaterLinksPage,
+  loadMoreFocusAfter,
   replaceFeedWithLoadError,
   showRefreshFailure,
 } from "@/components/vault/feed-load";
@@ -56,35 +57,39 @@ function renderFeed(
 ) {
   const retryLoadMore = vi.fn(async () => undefined);
   const loadLinks = vi.fn(async () => undefined);
-  render(
-    <VaultFeed
-      groupToolbar={<div>Toolbar</div>}
-      openedGroupId="all"
-      openedGroup={null}
-      allLinksCount={1}
-      groupsError={null}
-      missingGroupNotice={null}
-      loadGroups={async () => undefined}
-      loadingLinks={false}
-      fetchError={null}
-      loadMoreError={null}
-      retryLoadMore={retryLoadMore}
-      loadLinks={loadLinks}
-      gridSize="default"
-      generalGroup={null}
-      saveLink={async () => ({ ok: false, error: "unused" })}
-      onLinkSaved={() => {}}
-      enteringLinkId={null}
-      sortedLinks={[link]}
-      openLinkDetail={() => {}}
-      feedImageSizes="50vw"
-      hasMoreLinks
-      sentinelRef={{ current: null }}
-      scrollRootRef={{ current: null }}
-      {...overrides}
-    />,
-  );
-  return { retryLoadMore, loadLinks };
+  const props: ComponentProps<typeof VaultFeed> = {
+    groupToolbar: <div>Toolbar</div>,
+    openedGroupId: "all",
+    openedGroup: null,
+    allLinksCount: 1,
+    groupsError: null,
+    missingGroupNotice: null,
+    loadGroups: async () => undefined,
+    loadingLinks: false,
+    fetchError: null,
+    loadMoreError: null,
+    retryLoadMore,
+    loadLinks,
+    gridSize: "default",
+    generalGroup: null,
+    saveLink: async () => ({ ok: false, error: "unused" }),
+    onLinkSaved: () => {},
+    enteringLinkId: null,
+    sortedLinks: [link],
+    openLinkDetail: () => {},
+    feedImageSizes: "50vw",
+    hasMoreLinks: true,
+    sentinelRef: { current: null },
+    scrollRootRef: { current: null },
+    ...overrides,
+  };
+  const view = render(<VaultFeed {...props} />);
+  return {
+    retryLoadMore,
+    loadLinks,
+    rerender: (next: Partial<ComponentProps<typeof VaultFeed>> = {}) =>
+      view.rerender(<VaultFeed {...props} {...next} />),
+  };
 }
 
 describe("feed load helpers", () => {
@@ -107,6 +112,14 @@ describe("feed load helpers", () => {
     expect(feedMoreView(true, true, null)).toBe("loading");
     expect(feedMoreView(true, true, "Failed to load links")).toBe("hidden");
     expect(feedMoreView(false, false, null)).toBe("hidden");
+  });
+
+  it("returns focus to Load more, or to Retry when the next page fails", () => {
+    expect(loadMoreFocusAfter(false, false, null, true)).toBeNull();
+    expect(loadMoreFocusAfter(true, true, null, true)).toBeNull();
+    expect(loadMoreFocusAfter(true, false, null, true)).toBe("button");
+    expect(loadMoreFocusAfter(true, false, "Failed to load links", true)).toBe("retry");
+    expect(loadMoreFocusAfter(true, false, null, false)).toBeNull();
   });
 
   it("shows a refresh failure only when links are already on screen", () => {
@@ -204,5 +217,63 @@ describe("VaultFeed load more failure", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
     expect(loadLinks).toHaveBeenCalledOnce();
+  });
+
+  it("returns to Load more when the next page finishes", () => {
+    const { rerender } = renderFeed({ loadingMore: true });
+    expect(screen.getByLabelText("Loading more links")).toBeInTheDocument();
+
+    rerender({ loadingMore: false });
+    expect(screen.getByRole("button", { name: "Load more" })).toHaveFocus();
+  });
+
+  it("returns to Retry when the next page fails", () => {
+    const { rerender } = renderFeed({ loadingMore: true });
+    rerender({ loadingMore: false, loadMoreError: "Failed to load links" });
+    expect(screen.getByRole("button", { name: "Retry" })).toHaveFocus();
+    expect(screen.getByText("The links above are still here.")).toBeInTheDocument();
+  });
+
+  it("leaves focus alone when it has already moved", () => {
+    function Harness({ loadingMore }: { loadingMore: boolean }) {
+      return (
+        <>
+          <input aria-label="Note" />
+          <VaultFeed
+            groupToolbar={<div>Toolbar</div>}
+            openedGroupId="all"
+            openedGroup={null}
+            allLinksCount={1}
+            groupsError={null}
+            missingGroupNotice={null}
+            loadGroups={async () => undefined}
+            loadingLinks={false}
+            fetchError={null}
+            loadMoreError={null}
+            retryLoadMore={async () => undefined}
+            loadLinks={async () => undefined}
+            gridSize="default"
+            generalGroup={null}
+            saveLink={async () => ({ ok: false, error: "unused" })}
+            onLinkSaved={() => {}}
+            enteringLinkId={null}
+            sortedLinks={[link]}
+            openLinkDetail={() => {}}
+            feedImageSizes="50vw"
+            hasMoreLinks
+            loadingMore={loadingMore}
+            sentinelRef={{ current: null }}
+            scrollRootRef={{ current: null }}
+          />
+        </>
+      );
+    }
+
+    const view = render(<Harness loadingMore />);
+    const note = screen.getByRole("textbox", { name: "Note" });
+    note.focus();
+    view.rerender(<Harness loadingMore={false} />);
+    expect(note).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Load more" })).not.toHaveFocus();
   });
 });
