@@ -9,6 +9,7 @@ import {
   formatShortcutKeys,
   isMacPlatform,
   isShortcutHelpKey,
+  spokenShortcut,
 } from "./shortcut-help";
 import { controlPress } from "./types";
 
@@ -87,7 +88,7 @@ export default function ShortcutHelp() {
             id="shortcut-help-close"
             type="button"
             onClick={() => setOpen(false)}
-            className={`inline-flex h-8 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground ${controlPress}`}
+            className={`inline-flex min-h-11 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground sm:min-h-8 ${controlPress}`}
           >
             Close
           </button>
@@ -96,7 +97,7 @@ export default function ShortcutHelp() {
           {SHORTCUT_ROWS.map((row) => (
             <li key={row.id} className="flex items-center justify-between gap-4 py-2.5">
               <span className="text-[13px] text-foreground">{row.label}</span>
-              <span className="flex shrink-0 items-center gap-1">
+              <span className="flex shrink-0 items-center gap-1" aria-hidden>
                 {formatShortcutKeys(row.keys, mac).map((key) => (
                   <kbd
                     key={key}
@@ -106,6 +107,7 @@ export default function ShortcutHelp() {
                   </kbd>
                 ))}
               </span>
+              <span className="sr-only">{spokenShortcut(row.keys, mac)}</span>
             </li>
           ))}
         </ul>

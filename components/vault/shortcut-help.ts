@@ -28,6 +28,28 @@ export function formatShortcutKeys(keys: string[], mac: boolean): string[] {
   return keys.map((key) => (key === "mod" ? (mac ? "⌘" : "Ctrl") : key));
 }
 
+const SPOKEN_KEYS: Record<string, string> = {
+  "↑": "Up",
+  "↓": "Down",
+  "←": "Left",
+  "→": "Right",
+  Esc: "Escape",
+  Enter: "Enter",
+  Home: "Home",
+  End: "End",
+  "?": "Question mark",
+};
+
+/** A name a screen reader can say. Visible keys stay as symbols. */
+export function spokenShortcut(keys: string[], mac: boolean): string {
+  return keys
+    .map((key) => {
+      if (key === "mod") return mac ? "Command" : "Control";
+      return SPOKEN_KEYS[key] ?? key;
+    })
+    .join(", ");
+}
+
 /** `?` opens the list. Typing, repeats, and modified chords stay with the field. */
 export function isShortcutHelpKey(event: {
   key: string;

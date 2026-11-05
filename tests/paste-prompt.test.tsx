@@ -5,6 +5,22 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import PastePrompt from "@/components/vault/PastePrompt";
 
+vi.mock("next/link", () => ({
+  default: ({
+    href,
+    children,
+    className,
+  }: {
+    href: string;
+    children: ReactNode;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("framer-motion", () => ({
   useReducedMotion: () => true,
   motion: {
@@ -42,9 +58,10 @@ describe("PastePrompt empty states", () => {
         onSaved={() => {}}
       />,
     );
-    expect(screen.getByText(/Save webpages/)).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent(/Save webpages/);
     expect(screen.getByText(/Paste a link/)).toBeInTheDocument();
     expect(screen.getByText("Download extension")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "See all links" })).not.toBeInTheDocument();
   });
 
   it("names the group when other links already exist", () => {
@@ -58,7 +75,15 @@ describe("PastePrompt empty states", () => {
         onSaved={() => {}}
       />,
     );
-    expect(screen.getByText("Nothing in References yet")).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Nothing in References yet");
+    const all = screen.getByRole("link", { name: "See all links" });
+    expect(all).toHaveAttribute("href", "/?group=all");
+    expect(all.className).toContain("min-h-11");
+    expect(all.className).toContain("sm:min-h-8");
+    expect(all.className).toContain("focus-visible:ring-2");
+    const add = screen.getByRole("button", { name: "Add link" });
+    expect(add.className).toContain("size-11");
+    expect(add.className).toContain("sm:size-[38px]");
     expect(screen.queryByText("Download extension")).not.toBeInTheDocument();
   });
 
