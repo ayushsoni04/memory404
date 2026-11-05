@@ -88,6 +88,41 @@ function installBlobDownload() {
 }
 
 describe("library export", () => {
+  it("ignores a second export until the first one finishes", async () => {
+    let releaseLinks: (value: {
+      ok: boolean;
+      json: () => Promise<unknown>;
+    }) => void = () => {};
+    let linkRequests = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const url = requestUrl(input);
+      if (url.includes("/api/me")) {
+        return { ok: true, json: async () => ({ user: profile }) };
+      }
+      linkRequests += 1;
+      return new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+        releaseLinks = resolve;
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    installMatchMedia();
+    render(<SettingsClient isOwner={false} />);
+
+    const exportButton = await screen.findByRole("button", {
+      name: "Export backup JSON",
+    });
+    fireEvent.click(exportButton);
+    fireEvent.click(exportButton);
+
+    await waitFor(() => expect(linkRequests).toBe(1));
+    releaseLinks({
+      ok: true,
+      json: async () => ({ links: [], hasMore: false }),
+    });
+    expect(await screen.findByText("Nothing to download yet. Save a link first.")).toBeInTheDocument();
+    expect(linkRequests).toBe(1);
+  });
+
   it("says when the backup cannot be downloaded and keeps the button", async () => {
     let linkRequests = 0;
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
@@ -127,7 +162,10 @@ describe("library export", () => {
       "Could not export your links. Try again.",
     );
     expect(screen.queryByText(/Downloaded memory404-backup/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Export backup JSON" })).toBeEnabled();
+    const retry = screen.getByRole("button", { name: "Export backup JSON" });
+    expect(retry).toBeEnabled();
+    expect(retry).toHaveFocus();
+    expect(retry).toHaveAttribute("aria-describedby", "library-export-error");
 
     fireEvent.click(screen.getByRole("button", { name: "Export backup JSON" }));
 
