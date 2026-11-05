@@ -101,8 +101,11 @@ describe("Paste prompt saves once", () => {
     );
     typeLink();
 
+    const link = screen.getByRole("textbox", { name: "Link" });
+    link.blur();
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("Could not save that link");
+    expect(screen.getByRole("textbox", { name: "Link" })).toHaveFocus();
 
     fireEvent.click(screen.getByRole("button", { name: "Add link" }));
     await waitFor(() => expect(saveLink).toHaveBeenCalledTimes(2));

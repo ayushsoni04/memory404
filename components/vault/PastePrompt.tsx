@@ -46,6 +46,7 @@ export default function PastePrompt({
   const [savedLink, setSavedLink] = useState<LinkApiRow | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const notesRef = useRef<HTMLTextAreaElement | null>(null);
+  const focusLinkRef = useRef(false);
   const saveGen = useRef(0);
   const savingRef = useRef(false);
   const savingNoteRef = useRef(false);
@@ -86,6 +87,12 @@ export default function PastePrompt({
     return () => window.clearTimeout(id);
   }, [phase]);
 
+  useEffect(() => {
+    if (phase !== "idle" || !focusLinkRef.current) return;
+    focusLinkRef.current = false;
+    inputRef.current?.focus();
+  }, [phase]);
+
   const submit = async () => {
     if (savingRef.current) return;
     const trimmed = url.trim();
@@ -111,6 +118,7 @@ export default function PastePrompt({
       if (!result.ok) {
         setError(result.error);
         savingRef.current = false;
+        focusLinkRef.current = true;
         setPhase("idle");
         return;
       }
@@ -127,6 +135,7 @@ export default function PastePrompt({
       if (gen !== saveGen.current) return;
       setError(saveFailureMessage(null, true));
       savingRef.current = false;
+      focusLinkRef.current = true;
       setPhase("idle");
     }
   };
