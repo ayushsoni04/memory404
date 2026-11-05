@@ -41,7 +41,7 @@ function usernameTakenError(message: string | null): boolean {
 }
 
 const profileField =
-  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)] disabled:cursor-not-allowed disabled:opacity-50";
+  "w-full rounded-lg border border-border bg-surface px-3 py-2 text-base text-foreground outline-none transition-[border-color,box-shadow] duration-[160ms] focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)] disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm";
 
 type ProfileTabProps = {
   name: string;
@@ -426,7 +426,7 @@ export function ProfileTab({
             readOnly
             title={email}
             aria-describedby="profile-email-hint"
-            className="w-full min-w-0 truncate rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-sm text-muted outline-none cursor-default"
+            className="w-full min-w-0 truncate rounded-lg border border-border bg-surface-elevated/50 px-3 py-2 text-base text-muted outline-none cursor-default sm:text-sm"
             autoComplete="email"
           />
           <span id="profile-email-hint" className="text-[10px] text-subtle">
@@ -439,7 +439,7 @@ export function ProfileTab({
         <button
           type="submit"
           disabled={isSaving || Boolean(fieldError || photoError)}
-          className={`inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg shadow-md hover:opacity-90 disabled:opacity-50 ${controlPress}`}
+          className={`inline-flex h-11 cursor-pointer items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg shadow-md hover:opacity-90 disabled:opacity-50 sm:h-9 ${controlPress}`}
         >
           <MorphText>
             {isSaving ? "Saving…" : isSaved ? "Saved!" : "Save profile changes"}
@@ -520,7 +520,7 @@ export function ProfileTab({
             onClick={handleExportData}
             disabled={isExporting}
             aria-describedby={exportError ? "library-export-error" : undefined}
-            className={`inline-flex h-8 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted hover:bg-pill hover:text-foreground disabled:opacity-50 ${controlPress}`}
+            className={`inline-flex h-11 cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-border px-3 text-xs font-medium text-muted hover:bg-pill hover:text-foreground disabled:opacity-50 sm:h-8 ${controlPress}`}
           >
             {isExporting ? <AppLoader compact progressive label="exporting" /> : (
               <>
@@ -559,7 +559,7 @@ export function ProfileTab({
           <button
             type="button"
             onClick={onOpenDeactivateModal}
-            className={`inline-flex h-8 cursor-pointer items-center justify-center rounded-lg border border-danger/25 bg-danger/10 px-3 text-xs font-semibold text-danger hover:border-danger/45 hover:bg-danger/20 ${controlPress}`}
+            className={`inline-flex h-11 cursor-pointer items-center justify-center rounded-lg border border-danger/25 bg-danger/10 px-3 text-xs font-semibold text-danger hover:border-danger/45 hover:bg-danger/20 sm:h-8 ${controlPress}`}
           >
             Delete account & data
           </button>
