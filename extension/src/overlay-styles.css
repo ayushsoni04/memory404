@@ -506,6 +506,7 @@
 #m404-save-root .cancel-save-btn {
   margin: 4px 16px 0;
   width: calc(100% - 32px);
+  min-height: 44px;
 }
 
 #m404-save-root .save-btn {
@@ -518,6 +519,7 @@
   font-size: 13px;
   font-weight: 500;
   padding: 10px 12px;
+  min-height: 44px;
   cursor: pointer;
 }
 
