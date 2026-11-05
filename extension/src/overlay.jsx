@@ -1035,8 +1035,10 @@ function App({ onClose }) {
           <>
             {phase === "pick" && !groupsLoading ? (
               <div className="orb-status orb-status--listen">
-                <ThinkingOrb state="listening" size={64} speed={0.95} theme="dark" />
-                <span className="orb-status-text">
+                <div className="orb-visual" aria-hidden="true">
+                  <ThinkingOrb state="listening" size={64} speed={0.95} theme="dark" />
+                </div>
+                <span className="orb-status-text" role="status">
                   {saveMode === "remember" && pendingRememberUrl
                     ? `Remember ${hostnameOf(pendingRememberUrl)}`
                     : groups.length === 0
@@ -1164,7 +1166,9 @@ function App({ onClose }) {
                     >
                       {filteredGroups.length ? null : (
                         <li role="presentation">
-                          <p className="group-empty">{groupListEmptyCopy(groupQuery)}</p>
+                          <p className="group-empty" role="status">
+                            {groupListEmptyCopy(groupQuery)}
+                          </p>
                         </li>
                       )}
                       {filteredGroups.map((g, index) => (
