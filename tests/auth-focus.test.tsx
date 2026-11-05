@@ -65,11 +65,22 @@ describe("auth focus rings", () => {
     render(<LoginForm />);
     expectFocusRing(screen.getByLabelText("Email address"));
     expectFocusRing(screen.getByLabelText("Password"));
+    const email = screen.getByLabelText("Email address");
+    expect(email.className).toContain("text-base");
+    expect(email.className).toContain("sm:text-sm");
+    expect(email.className).toContain("min-h-11");
     const reveal = screen.getByRole("button", { name: "Show password" });
     expectFocusRing(reveal);
-    expect(reveal.className).toContain("size-8");
-    expectFocusRing(screen.getByRole("button", { name: "Sign in" }));
-    expectFocusRing(screen.getByRole("link", { name: "Forgot password?" }));
+    expect(reveal.className).toContain("size-11");
+    expect(reveal.className).toContain("sm:size-8");
+    const submit = screen.getByRole("button", { name: "Sign in" });
+    expectFocusRing(submit);
+    expect(submit.className).toContain("min-h-11");
+    expect(submit.className).toContain("sm:h-9");
+    const forgot = screen.getByRole("link", { name: "Forgot password?" });
+    expectFocusRing(forgot);
+    expect(forgot.className).toContain("min-h-11");
+    expect(forgot.className).toContain("sm:min-h-0");
     expectFocusRing(screen.getByRole("link", { name: "Sign up" }));
   });
 

@@ -39,7 +39,7 @@ export type InitialVaultData = {
 };
 
 export const FIELD_CLASS =
-  "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-sm text-foreground outline-none transition-[border-color,box-shadow,background-color] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]";
+  "w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 text-base text-foreground outline-none transition-[border-color,box-shadow,background-color] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)] sm:text-sm";
 
 /** Shared press + focus language for vault chrome controls. */
 export const controlPress =
