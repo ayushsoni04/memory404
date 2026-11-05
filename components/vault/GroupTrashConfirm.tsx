@@ -65,12 +65,18 @@ export default function GroupTrashConfirm({
   const portalRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
   const confirmLock = useRef(false);
   useDialogContainment(true, portalRef, dialogRef, cancelRef);
 
   useEffect(() => {
     if (!pending) confirmLock.current = false;
   }, [pending]);
+
+  useEffect(() => {
+    if (!error || pending) return;
+    confirmRef.current?.focus();
+  }, [error, pending]);
 
   const confirm = () => {
     if (confirmLock.current || pending) return;
@@ -115,7 +121,7 @@ export default function GroupTrashConfirm({
           {groupTrashDetail(linksCount)}
         </p>
         {error ? (
-          <p className="mt-3 text-[13px] text-danger" role="alert">
+          <p id="group-trash-error" className="mt-3 text-[13px] text-danger" role="alert">
             {error}
           </p>
         ) : null}
@@ -125,15 +131,17 @@ export default function GroupTrashConfirm({
             type="button"
             onClick={onCancel}
             disabled={pending}
-            className={`inline-flex h-8 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground disabled:opacity-50 ${controlPress}`}
+            className={`inline-flex min-h-11 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground disabled:opacity-50 sm:min-h-8 ${controlPress}`}
           >
             Cancel
           </button>
           <button
+            ref={confirmRef}
             type="button"
             onClick={confirm}
             disabled={pending}
-            className={`inline-flex h-8 items-center rounded-full border border-danger/30 bg-danger/10 px-3 text-[13px] font-medium text-danger hover:bg-danger/20 disabled:opacity-50 ${controlPress}`}
+            aria-describedby={error ? "group-trash-error" : undefined}
+            className={`inline-flex min-h-11 items-center rounded-full border border-danger/30 bg-danger/10 px-3 text-[13px] font-medium text-danger hover:bg-danger/20 disabled:opacity-50 sm:min-h-8 ${controlPress}`}
           >
             {pending ? "Moving…" : "Move to Trash"}
           </button>
