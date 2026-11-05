@@ -109,7 +109,7 @@ export function SettingsNav({
                     onTabChange(next);
                     document.getElementById(`settings-tab-${next}`)?.focus();
                   }}
-                  className={`flex h-8 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium ${controlPress} ${
+                  className={`flex h-11 items-center gap-2 rounded-lg px-3 text-left text-sm font-medium sm:h-8 ${controlPress} ${
                     selected ? "bg-pill text-foreground shadow-sm" : "text-muted hover:text-foreground hover:bg-neutral-900/40"
                   }`}
                 >
@@ -130,7 +130,7 @@ export function SettingsNav({
           onClick={handleSignOut}
           disabled={signingOut}
           aria-describedby={signOutError ? "sign-out-error" : undefined}
-          className={`flex h-9 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 py-2 px-3 text-center text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground disabled:opacity-60 ${controlPress}`}
+          className={`flex h-11 items-center justify-center gap-2 rounded-lg border border-border bg-neutral-900/50 py-2 px-3 text-center text-[11px] font-mono uppercase tracking-wider text-muted hover:bg-pill hover:text-foreground disabled:opacity-60 sm:h-9 ${controlPress}`}
         >
           <LogOut className="size-3.5 text-subtle" aria-hidden />
           {signingOut ? "Signing out…" : "Sign out"}
