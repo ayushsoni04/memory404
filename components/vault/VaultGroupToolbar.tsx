@@ -271,6 +271,14 @@ export default function VaultGroupToolbar({
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
   const refreshLock = useRef(false);
+  const addGroupRef = useRef<HTMLButtonElement>(null);
+  const returnToAddRef = useRef(false);
+
+  useEffect(() => {
+    if (addingAt !== null || !returnToAddRef.current) return;
+    returnToAddRef.current = false;
+    addGroupRef.current?.focus();
+  }, [addingAt]);
   const createLock = useRef(false);
   const submitCreateGroup = () => {
     if (createLock.current || creatingGroup) return;
@@ -557,6 +565,7 @@ export default function VaultGroupToolbar({
               onKeyDown={(e) => {
                 if (e.key === "Escape") {
                   e.preventDefault();
+                  returnToAddRef.current = true;
                   cancelAddGroup();
                 }
               }}
@@ -573,6 +582,7 @@ export default function VaultGroupToolbar({
           </form>
         ) : (
           <button
+            ref={addGroupRef}
             type="button"
             onClick={() => {
               openAddGroup(filteredFolders.length);
