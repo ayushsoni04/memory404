@@ -34,6 +34,7 @@ export function trashRowActionName(action: "restore" | "delete", title: string):
 }
 
 function RowBody({
+  id,
   title,
   detail,
   days,
@@ -42,6 +43,7 @@ function RowBody({
   busy = false,
   media,
 }: {
+  id: string;
   title: string;
   detail: string;
   days: number;
@@ -65,6 +67,7 @@ function RowBody({
           <div className={actionsClass}>
             <button
               type="button"
+              data-trash-restore={id}
               onClick={onRestore}
               disabled={busy}
               aria-label={trashRowActionName("restore", title)}
@@ -104,6 +107,7 @@ export function TrashGroupRow({
   return (
     <div className={rowClass} data-exiting={exiting}>
       <RowBody
+        id={item.id}
         title={libraryGroupLabel(item.name) ?? item.name}
         detail={`${item.linksCount} ${item.linksCount === 1 ? "link" : "links"} inside`}
         days={item.daysLeft}
@@ -139,6 +143,7 @@ export function TrashLinkRow({
   return (
     <div className={rowClass} data-exiting={exiting}>
       <RowBody
+        id={item.id}
         title={item.displayTitle}
         detail={`${place ? `in ${place}` : "in deleted group"} · ${linkHostname(item.url)}`}
         days={item.daysLeft}
