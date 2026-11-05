@@ -45,8 +45,13 @@ describe("group search field", () => {
     );
 
     const clear = screen.getByRole("button", { name: "Clear search" });
-    expect(clear.className).toContain("size-6");
+    expect(clear.className).toContain("size-11");
+    expect(clear.className).toContain("sm:size-6");
     const field = screen.getByRole("combobox", { name: "Search groups" });
+    expect(field.className).toContain("h-11");
+    expect(field.className).toContain("text-base");
+    expect(field.className).toContain("sm:h-7");
+    expect(field.className).toContain("sm:text-[13px]");
     field.focus();
     fireEvent.keyDown(field, { key: "Escape" });
     expect(onChange).toHaveBeenCalledWith("");
@@ -88,8 +93,12 @@ describe("group search field", () => {
     const field = screen.getByRole("combobox", { name: "Search groups" });
     fireEvent.focus(field);
     const clear = screen.getAllByRole("button", { name: "Clear search" });
-    clear[clear.length - 1]?.focus();
-    fireEvent.click(clear[clear.length - 1]!);
+    const miss = clear[clear.length - 1]!;
+    expect(miss.className).toContain("min-h-11");
+    expect(miss.className).toContain("sm:min-h-8");
+    expect(miss.className).toContain("focus-visible:ring-2");
+    miss.focus();
+    fireEvent.click(miss);
     expect(onChange).toHaveBeenCalledWith("");
     expect(field).toHaveFocus();
   });
