@@ -251,6 +251,8 @@ export default function LinkDetailOverlay({
   const noteRef = useRef<NoteEditorHandle>(null);
   const leavingRef = useRef(false);
   const trashingRef = useRef(false);
+  const trashButtonRef = useRef<HTMLButtonElement>(null);
+  const returnToTrashRef = useRef(false);
   const [trashing, setTrashing] = useState(false);
   const hasOpenedRef = useRef(false);
   const previousLinkIdRef = useRef(link.id);
@@ -421,6 +423,12 @@ export default function LinkDetailOverlay({
     });
   }, []);
 
+  useEffect(() => {
+    if (trashing || !returnToTrashRef.current) return;
+    returnToTrashRef.current = false;
+    trashButtonRef.current?.focus();
+  }, [trashing]);
+
   const moveToTrash = () => {
     if (trashingRef.current) return;
     leave(() => {
@@ -430,6 +438,7 @@ export default function LinkDetailOverlay({
       void Promise.resolve(onDelete(link.id)).then((result) => {
         if (result === false) {
           trashingRef.current = false;
+          returnToTrashRef.current = true;
           setTrashing(false);
           return;
         }
@@ -882,11 +891,12 @@ export default function LinkDetailOverlay({
                   </select>
                 </label>
                 <button
+                  ref={trashButtonRef}
                   type="button"
                   onClick={moveToTrash}
                   disabled={trashing}
                   aria-busy={trashing}
-                  className={`rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50 ${overlayFocus}`}
+                  className={`inline-flex min-h-11 items-center justify-center rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50 sm:min-h-9 ${overlayFocus}`}
                 >
                   {trashing ? "Moving…" : "Move to Trash"}
                 </button>
