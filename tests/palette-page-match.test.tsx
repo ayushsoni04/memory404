@@ -73,7 +73,11 @@ describe("command palette pages", () => {
     expect(screen.queryByText("Settings")).not.toBeInTheDocument();
     expect(screen.queryByText("Trash")).not.toBeInTheDocument();
     expect(screen.queryByText("Workspace")).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Clear search" }));
+    const search = screen.getByRole("combobox", { name: "Command palette" });
+    const clear = screen.getByRole("button", { name: "Clear search" });
+    clear.focus();
+    fireEvent.click(clear);
+    expect(search).toHaveFocus();
     expect(await screen.findByText("Settings")).toBeInTheDocument();
     expect(screen.queryByText(/part of the link/)).not.toBeInTheDocument();
   });
