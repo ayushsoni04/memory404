@@ -270,7 +270,9 @@ export default function VaultGroupToolbar({
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
   const [refreshing, setRefreshing] = useState(false);
+  const [refreshStatus, setRefreshStatus] = useState("");
   const refreshLock = useRef(false);
+  const refreshButtonRef = useRef<HTMLButtonElement>(null);
   const addGroupRef = useRef<HTMLButtonElement>(null);
   const returnToAddRef = useRef(false);
 
@@ -290,14 +292,33 @@ export default function VaultGroupToolbar({
   const refreshLibrary = () => {
     if (refreshLock.current) return;
     refreshLock.current = true;
+    const hadFocus = document.activeElement === refreshButtonRef.current;
     setRefreshing(true);
+    setRefreshStatus("Refreshing your library…");
     playUiSound("loading");
-    void Promise.all([loadGroups(), loadLinks?.()]).finally(() => {
-      window.setTimeout(() => {
-        refreshLock.current = false;
-        setRefreshing(false);
-      }, 400);
-    });
+    void Promise.all([loadGroups(), loadLinks?.()])
+      .then(() => {
+        setRefreshStatus("Library updated");
+      })
+      .catch(() => {
+        setRefreshStatus("");
+      })
+      .finally(() => {
+        window.setTimeout(() => {
+          refreshLock.current = false;
+          setRefreshing(false);
+          if (!hadFocus) return;
+          const active = document.activeElement;
+          if (
+            active instanceof HTMLElement &&
+            active !== document.body &&
+            active !== document.documentElement
+          ) {
+            return;
+          }
+          refreshButtonRef.current?.focus();
+        }, 400);
+      });
   };
   const pillIds = groupPillIds(filteredFolders.map((group) => group.id));
   const currentPill = activeGroupPill(openedGroupId, pillIds);
@@ -616,7 +637,11 @@ export default function VaultGroupToolbar({
           </button>
         ) : null}
         <SortPill sortBy={sortBy} setSortByAndPersist={setSortByAndPersist} />
+        <p className="sr-only" role="status">
+          {refreshStatus}
+        </p>
         <button
+          ref={refreshButtonRef}
           type="button"
           onClick={refreshLibrary}
           disabled={refreshing}
