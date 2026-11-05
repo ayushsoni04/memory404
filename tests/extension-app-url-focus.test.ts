@@ -18,16 +18,16 @@ describe("extension App URL", () => {
     expect(overlay).toContain('{savingApiBase ? "Saving…" : "Save App URL"}');
   });
 
-  it("keeps Settings and Close easy to tap, at 0.2.31", () => {
+  it("keeps Settings and Close easy to tap, at 0.2.32", () => {
     const rules = css.slice(css.indexOf(".settings-btn,"));
     expect(rules).toContain("width: 32px;");
     expect(rules).toContain("height: 32px;");
     expect(readFileSync("extension/dist/manifest.json", "utf8")).toContain(
-      '"version": "0.2.31"',
+      '"version": "0.2.32"',
     );
-    expect(readFileSync("extension/package.json", "utf8")).toContain('"version": "0.2.31"');
+    expect(readFileSync("extension/package.json", "utf8")).toContain('"version": "0.2.32"');
     expect(readFileSync("lib/extension-download.ts", "utf8")).toContain(
-      'EXTENSION_VERSION = "0.2.31"',
+      'EXTENSION_VERSION = "0.2.32"',
     );
   });
 });

@@ -12,7 +12,7 @@ function expectTarget(css: string, selector: string) {
 }
 
 describe("extension group choices", () => {
-  it("keeps group rows, Back, and the save mode at 44px, at 0.2.31", () => {
+  it("keeps group rows, Back, and the save mode at 44px, at 0.2.32", () => {
     expectTarget(overlayCss, "#m404-save-root .group-option {");
     expectTarget(overlayCss, "#m404-save-root .create-option {");
     expectTarget(overlayCss, "#m404-save-root .save-mode-btn {");
@@ -23,11 +23,11 @@ describe("extension group choices", () => {
     expectTarget(popupCss, ".save-mode-btn {");
     expectTarget(popupCss, ".ghost-btn {");
     expect(readFileSync("extension/public/static/manifest.json", "utf8")).toContain(
-      '"version": "0.2.31"',
+      '"version": "0.2.32"',
     );
-    expect(readFileSync("extension/package.json", "utf8")).toContain('"version": "0.2.31"');
+    expect(readFileSync("extension/package.json", "utf8")).toContain('"version": "0.2.32"');
     expect(readFileSync("lib/extension-download.ts", "utf8")).toContain(
-      'EXTENSION_VERSION = "0.2.31"',
+      'EXTENSION_VERSION = "0.2.32"',
     );
   });
 });
