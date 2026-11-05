@@ -79,9 +79,13 @@ export default function CommandPalette({
   const [savingNote, setSavingNote] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const searchRecoveryRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const savingUrlRef = useRef(false);
   const savingNoteRef = useRef(false);
+  const searchWasLoading = useRef(false);
+  const retryArmed = useRef(false);
+  const retryQueryRef = useRef("");
 
   const closePalette = useCallback(() => {
     onOpenChange(false);
@@ -116,6 +120,24 @@ export default function CommandPalette({
     const timer = window.setTimeout(() => noteRef.current?.focus(), 30);
     return () => window.clearTimeout(timer);
   }, [open, savedLink]);
+
+  useEffect(() => {
+    const wasLoading = searchWasLoading.current;
+    searchWasLoading.current = loadingLinks;
+    if (!retryArmed.current) return;
+    if (retryQueryRef.current !== search.trim()) {
+      retryArmed.current = false;
+      return;
+    }
+    if (!wasLoading || loadingLinks) return;
+    retryArmed.current = false;
+    if (searchError) {
+      const recovery = searchRecoveryRef.current?.querySelector("button, a");
+      if (recovery instanceof HTMLElement) recovery.focus();
+      return;
+    }
+    searchRef.current?.focus();
+  }, [loadingLinks, search, searchError]);
 
   const handleDialogOpenChange = useCallback(
     (next: boolean) => {
@@ -308,7 +330,7 @@ export default function CommandPalette({
               type="submit"
               disabled={savingNote || Boolean(noteIssue(note))}
               aria-busy={savingNote || undefined}
-              className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+              className="inline-flex min-h-11 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated disabled:opacity-50 sm:min-h-8"
             >
               <MorphText duration={220}>
                 {savingNote ? "Saving…" : note.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
@@ -335,7 +357,11 @@ export default function CommandPalette({
         ) : null}
 
         {searchError && !loadingLinks ? (
-          <div className="flex flex-col items-start gap-2 px-2 py-3" role="alert">
+          <div
+            ref={searchRecoveryRef}
+            className="flex flex-col items-start gap-2 px-2 py-3"
+            role="alert"
+          >
             <p className="text-[13px] text-danger">
               {asSentence(explainLoadError(searchError) ?? searchError)} Your library is
               unchanged.
@@ -344,11 +370,14 @@ export default function CommandPalette({
               message={explainLoadError(searchError) ?? searchError}
               returnPath="/"
               onRetry={() => {
+                retryArmed.current = true;
+                retryQueryRef.current = search.trim();
+                searchRef.current?.focus();
                 setLoadingLinks(true);
                 setSearchError(null);
                 setSearchAttempt((attempt) => attempt + 1);
               }}
-              className="inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97]"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97] sm:min-h-8"
             />
           </div>
         ) : null}
@@ -368,7 +397,7 @@ export default function CommandPalette({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={clearSearch}
-              className="inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] font-medium text-foreground outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97]"
+              className="inline-flex min-h-11 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground outline-none transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated active:scale-[0.97] sm:min-h-8"
             >
               Clear search
             </button>
@@ -493,7 +522,7 @@ export default function CommandPalette({
             openShortcutHelp();
           }}
           aria-label="Show keyboard shortcuts"
-          className="rounded-md border border-border bg-pill px-1.5 py-0.5 font-mono text-[11px] text-subtle hover:text-foreground"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-pill px-2 font-mono text-[11px] text-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated sm:min-h-8 sm:min-w-8"
         >
           ?
         </button>
