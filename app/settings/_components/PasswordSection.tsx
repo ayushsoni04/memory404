@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, type FormEvent, type Ref } from "react";
+import { useEffect, useRef, useState, type FormEvent, type Ref } from "react";
 import Link from "next/link";
 import { Eye, EyeOff } from "lucide-react";
 import { CapsLockHint } from "@/components/auth/CapsLockHint";
@@ -47,6 +47,9 @@ export function PasswordSection() {
   const currentRef = useRef<HTMLInputElement>(null);
   const newRef = useRef<HTMLInputElement>(null);
   const confirmRef = useRef<HTMLInputElement>(null);
+  const submitRef = useRef<HTMLButtonElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
+  const resultFocus = useRef<"recovery" | null>(null);
   const savingLock = useRef(false);
   const [saving, setSaving] = useState(false);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -74,6 +77,17 @@ export function PasswordSection() {
     (serverError === CURRENT_PASSWORD_INCORRECT ? serverError : null);
   const bannerError =
     serverError && serverError !== CURRENT_PASSWORD_INCORRECT ? serverError : null;
+
+  useEffect(() => {
+    if (saving || resultFocus.current !== "recovery") return;
+    resultFocus.current = null;
+    const recovery = bannerRef.current?.querySelector("a");
+    if (recovery instanceof HTMLElement) {
+      recovery.focus();
+      return;
+    }
+    submitRef.current?.focus();
+  }, [saving, serverError, saved]);
 
   const onSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -103,6 +117,7 @@ export function PasswordSection() {
         const explained = explainLoadError(message) ?? message;
         setServerError(explained);
         if (explained === CURRENT_PASSWORD_INCORRECT) currentRef.current?.focus();
+        else resultFocus.current = "recovery";
         return;
       }
       setCurrentPassword("");
@@ -110,10 +125,12 @@ export function PasswordSection() {
       setConfirmPassword("");
       setAttempted(false);
       setSaved(true);
+      resultFocus.current = "recovery";
     } catch {
       setServerError(
         authFailureMessage(null, "Could not update your password.", true),
       );
+      resultFocus.current = "recovery";
     } finally {
       savingLock.current = false;
       setSaving(false);
@@ -186,9 +203,13 @@ export function PasswordSection() {
           }}
         />
         {bannerError ? (
-          <div className="flex flex-col items-start gap-2" role="alert">
+          <div ref={bannerRef} className="flex flex-col items-start gap-2" role="alert">
             <p className="text-[12px] text-danger">{bannerError}</p>
-            <SessionSignInLink message={bannerError} returnPath="/settings" />
+            <SessionSignInLink
+              message={bannerError}
+              returnPath="/settings"
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:min-h-8"
+            />
           </div>
         ) : null}
         {saved ? (
@@ -198,6 +219,7 @@ export function PasswordSection() {
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           <button
+            ref={submitRef}
             type="submit"
             disabled={saving}
             className={`inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg shadow-md hover:opacity-90 disabled:opacity-50 ${controlPress}`}
