@@ -299,4 +299,75 @@ describe("Trash load errors", () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(3);
   });
+
+  it("returns to Restore when a link cannot be restored", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              type: "link",
+              id: "link-1",
+              url: "https://example.com/pricing",
+              title: "Pricing",
+              displayTitle: "Pricing",
+              imageUrl: "/placeholder-unicorn.jpg",
+              faviconUrl: "/placeholder-unicorn.jpg",
+              groupId: "group-1",
+              groupName: "Reading",
+              deletedAt: new Date().toISOString(),
+              daysLeft: 12,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Could not restore that link" }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrashPage />);
+    const restore = await screen.findByRole("button", { name: "Restore Pricing" });
+    fireEvent.click(restore);
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Could not restore that link",
+    );
+    await waitFor(() => expect(restore).toHaveFocus());
+  });
+
+  it("returns to Sign in when the session dies during restore", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          items: [
+            {
+              type: "group",
+              id: "group-1",
+              name: "Reading",
+              linksCount: 2,
+              deletedAt: new Date().toISOString(),
+              daysLeft: 4,
+            },
+          ],
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: false,
+        json: async () => ({ error: "Unauthorized" }),
+      });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<TrashPage />);
+    fireEvent.click(await screen.findByRole("button", { name: "Restore Reading" }));
+
+    const signIn = await screen.findByRole("link", { name: "Sign in" });
+    await waitFor(() => expect(signIn).toHaveFocus());
+    expect(signIn).toHaveAttribute("href", "/login?redirect=%2Ftrash");
+  });
 });

@@ -82,7 +82,11 @@ describe("Move to Trash from an open link", () => {
     expect(screen.getByRole("alert")).toHaveTextContent(
       "Couldn't move that link to Trash. Try again.",
     );
-    expect(screen.getByRole("button", { name: "Move to Trash" })).toBeEnabled();
+    const action = screen.getByRole("button", { name: "Move to Trash" });
+    expect(action).toBeEnabled();
+    expect(action.className).toContain("min-h-11");
+    expect(action.className).toContain("sm:min-h-9");
+    await waitFor(() => expect(action).toHaveFocus());
   });
 
   it("closes after the move succeeds", async () => {
