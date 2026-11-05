@@ -22,7 +22,7 @@ describe("extension save target", () => {
       "aria-invalid={noteProblem || noteError ? true : undefined}",
     );
     expect(readFileSync("extension/dist/manifest.json", "utf8")).toContain(
-      '"version": "0.2.29"',
+      '"version": "0.2.30"',
     );
   });
 });

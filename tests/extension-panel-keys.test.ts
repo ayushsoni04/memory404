@@ -47,6 +47,39 @@ describe("focusOverlayPanel", () => {
     expect(focusOverlayPanel(panel)).toBe(false);
     expect(document.activeElement).toBe(group);
   });
+
+  it("focuses Try again when a save has failed, and Cancel while it is saving", () => {
+    document.body.innerHTML = `
+      <div id="panel">
+        <button type="button" id="settings">Settings</button>
+        <button type="button" class="try-again" id="retry">Try again</button>
+      </div>
+    `;
+    const failed = document.getElementById("panel")!;
+    expect(focusOverlayPanel(failed)).toBe(true);
+    expect(document.activeElement).toBe(document.getElementById("retry"));
+
+    document.body.innerHTML = `
+      <div id="panel">
+        <button type="button" id="close">Close</button>
+        <button type="button" class="cancel-save-btn" id="cancel">Cancel</button>
+      </div>
+    `;
+    const saving = document.getElementById("panel")!;
+    expect(focusOverlayPanel(saving)).toBe(true);
+    expect(document.activeElement).toBe(document.getElementById("cancel"));
+  });
+
+  it("focuses the sign-in email before Try again", () => {
+    document.body.innerHTML = `
+      <div id="panel">
+        <input class="settings-input" id="email" />
+        <button type="button" class="try-again" id="retry">Try again</button>
+      </div>
+    `;
+    expect(focusOverlayPanel(document.getElementById("panel")!)).toBe(true);
+    expect(document.activeElement).toBe(document.getElementById("email"));
+  });
 });
 
 function mountPanel() {

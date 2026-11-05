@@ -49,13 +49,13 @@ export function containPanelTab(event, root) {
 /**
  * Move focus into the save panel.
  * A text field the person is already using is left alone.
- * Otherwise the group field, the sign-in field, the note, Cancel, or the library link.
+ * Otherwise the group field, the sign-in field, the note, Try again, Cancel, or the library link.
  * @param {ParentNode | null} root
  */
 export function focusOverlayPanel(root) {
   if (!root || typeof document === "undefined") return false;
   const preferred = root.querySelector(
-    "input.group-input:not([disabled]), input.settings-input:not([disabled]), textarea:not([disabled]), button.cancel-save-btn, a.library-link",
+    "input.group-input:not([disabled]), input.settings-input:not([disabled]), textarea:not([disabled]), button.try-again, button.cancel-save-btn, a.library-link",
   );
   const active = document.activeElement;
   const inside = active instanceof Node && root.contains(active);

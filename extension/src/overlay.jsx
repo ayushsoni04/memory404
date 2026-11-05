@@ -1009,7 +1009,7 @@ function App({ onClose }) {
               <div className="error-panel-actions">
                 <button
                   type="button"
-                  className="save-btn"
+                  className="save-btn try-again"
                   onClick={() => {
                     setError("");
                     setPhase("pick");
