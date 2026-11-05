@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, LogOut, TrendingUp, User } from "lucide-react";
 import GlitchText from "@/components/GlitchText";
@@ -35,7 +35,7 @@ export function SettingsNav({
   const signOutRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef(false);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (signingOut || !returnFocusRef.current) return;
     returnFocusRef.current = false;
     signOutRef.current?.focus();

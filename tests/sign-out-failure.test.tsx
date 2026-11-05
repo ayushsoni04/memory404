@@ -86,7 +86,7 @@ describe("sign out", () => {
     rejectFetch(new TypeError("Failed to fetch"));
 
     expect(await screen.findByRole("alert")).toHaveTextContent(UNREACHABLE_MESSAGE);
-    expect(button).toHaveFocus();
+    await waitFor(() => expect(button).toHaveFocus());
     expect(button).toHaveAttribute("aria-describedby", "sign-out-error");
     expect(button).toBeEnabled();
   });
