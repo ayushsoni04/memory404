@@ -44,3 +44,22 @@ export function feedMoreView(
   if (!hasMoreLinks || loadMoreError) return "hidden";
   return loadingMore ? "loading" : "button";
 }
+
+export type LoadMoreFocus = "button" | "retry";
+
+/**
+ * After a next page finishes, keyboard focus belongs on the control that
+ * can continue: Load more, or Retry when that page failed.
+ * A load still running, or one that was not in progress, stays put.
+ */
+export function loadMoreFocusAfter(
+  wasLoading: boolean,
+  loadingMore: boolean,
+  loadMoreError: string | null,
+  hasMoreLinks: boolean,
+): LoadMoreFocus | null {
+  if (!wasLoading || loadingMore) return null;
+  if (loadMoreError) return "retry";
+  if (hasMoreLinks) return "button";
+  return null;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
 import MorphText from "@/components/MorphText";
@@ -10,7 +10,12 @@ import { isSessionExpiredMessage } from "@/lib/session-recovery";
 import type { LinkApiRow } from "@/lib/links";
 import FeedGrid from "./FeedGrid";
 import { scrollFeedToTop } from "./feed-scroll";
-import { feedMoreView, replaceFeedWithLoadError, showRefreshFailure } from "./feed-load";
+import {
+  feedMoreView,
+  loadMoreFocusAfter,
+  replaceFeedWithLoadError,
+  showRefreshFailure,
+} from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import { ShortcutButton } from "./ShortcutButton";
 import type { GridSize, GroupRow } from "./types";
@@ -81,9 +86,38 @@ export default function VaultFeed({
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
 
+  const loadMoreWasLoading = useRef(false);
+  const loadMoreButtonRef = useRef<HTMLButtonElement>(null);
+  const loadMoreRecoveryRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     scrollFeedToTop(scrollRootRef.current);
   }, [openedGroupId, scrollRootRef]);
+
+  useEffect(() => {
+    const next = loadMoreFocusAfter(
+      loadMoreWasLoading.current,
+      loadingMore,
+      loadMoreError,
+      hasMoreLinks,
+    );
+    loadMoreWasLoading.current = loadingMore;
+    if (!next) return;
+    const active = document.activeElement;
+    if (
+      active instanceof HTMLElement &&
+      active !== document.body &&
+      active !== document.documentElement
+    ) {
+      return;
+    }
+    if (next === "retry") {
+      const recovery = loadMoreRecoveryRef.current?.querySelector("button, a");
+      if (recovery instanceof HTMLElement) recovery.focus();
+      return;
+    }
+    loadMoreButtonRef.current?.focus();
+  }, [hasMoreLinks, loadMoreError, loadingMore]);
 
   const groupsLoadMessage = explainLoadError(groupsError);
   const groupsSessionEnded = isSessionExpiredMessage(groupsLoadMessage);
@@ -173,6 +207,7 @@ export default function VaultFeed({
       </FeedGrid>
       {loadMoreError ? (
         <div
+          ref={loadMoreRecoveryRef}
           className="mt-8 flex w-full flex-col items-center gap-3 pb-12 text-center"
           role="alert"
         >
@@ -199,6 +234,7 @@ export default function VaultFeed({
             </>
           ) : (
             <button
+              ref={loadMoreButtonRef}
               type="button"
               onClick={() => onLoadMore?.()}
               className="inline-flex h-11 items-center justify-center rounded-full bg-pill px-4 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-8 sm:px-3"
