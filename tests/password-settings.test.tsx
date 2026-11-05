@@ -166,6 +166,10 @@ describe("password settings", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Your session expired. Sign in again.",
     );
+    const signIn = screen.getByRole("link", { name: "Sign in" });
+    expect(signIn.className).toContain("min-h-11");
+    expect(signIn.className).toContain("focus-visible:ring-2");
+    await waitFor(() => expect(signIn).toHaveFocus());
     expect(screen.getByLabelText("Current password")).toHaveValue("OldPassword1");
   });
 
@@ -189,6 +193,9 @@ describe("password settings", () => {
     fireEvent.click(screen.getByRole("button", { name: "Update password" }));
 
     expect(await screen.findByRole("status")).toHaveTextContent("Password updated.");
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Update password" })).toHaveFocus();
+    });
     expect(screen.getByLabelText("Current password")).toHaveValue("");
     expect(screen.getByLabelText("New password")).toHaveValue("");
     await waitFor(() => {
@@ -299,6 +306,9 @@ describe("password settings", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Could not update your password.",
     );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Update password" })).toHaveFocus();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: "Update password" }));
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
