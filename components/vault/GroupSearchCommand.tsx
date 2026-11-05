@@ -70,7 +70,7 @@ export default function GroupSearchCommand({
             setOpen(false);
           }}
           placeholder={placeholder}
-          className="h-7 w-full rounded-full border border-border bg-surface ps-3 pe-8 text-[13px] text-foreground outline-none transition-[border-color,box-shadow] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)]"
+          className="h-11 w-full rounded-full border border-border bg-surface ps-3 pe-12 text-base text-foreground outline-none transition-[border-color,box-shadow] duration-[var(--duration-ui)] placeholder:text-subtle focus-visible:border-border-strong focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_35%,transparent)] sm:h-7 sm:pe-8 sm:text-[13px]"
         />
         {value ? (
           <button
@@ -78,7 +78,7 @@ export default function GroupSearchCommand({
             onMouseDown={(event) => event.preventDefault()}
             onClick={clearSearch}
             aria-label="Clear search"
-            className="absolute right-0.5 flex size-6 items-center justify-center rounded-full bg-pill text-muted transition-[transform,background-color,color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)]"
+            className="absolute right-0.5 top-1/2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-pill text-muted transition-[transform,background-color,color] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover hover:text-foreground active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] sm:size-6"
           >
             <X className="size-2.5" strokeWidth={3} />
           </button>
@@ -105,7 +105,7 @@ export default function GroupSearchCommand({
                     setOpen(false);
                     inputRef.current?.focus();
                   }}
-                  className="min-w-0 cursor-pointer rounded-lg px-2 py-1.5 text-[13px] text-foreground transition-[background-color] duration-[var(--duration-press)] data-[selected=true]:bg-pill-hover"
+                  className="min-h-11 min-w-0 cursor-pointer rounded-lg px-2 py-1.5 text-[13px] text-foreground transition-[background-color] duration-[var(--duration-press)] data-[selected=true]:bg-pill-hover sm:min-h-0"
                 >
                   <span className="block min-w-0 truncate">{g.name}</span>
                 </CommandItem>
@@ -118,7 +118,7 @@ export default function GroupSearchCommand({
                 type="button"
                 onMouseDown={(event) => event.preventDefault()}
                 onClick={clearSearch}
-                className="text-[12px] text-foreground underline-offset-2 hover:underline"
+                className="inline-flex min-h-11 items-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated sm:min-h-8"
               >
                 Clear search
               </button>
