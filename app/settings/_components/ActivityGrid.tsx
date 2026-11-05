@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import {
   activityDayLabel,
   nextActivityCell,
+  revealActivityCell,
   type ActivityCount,
 } from "@/lib/activity-grid";
 import { STATS_ACTIVITY_LABEL } from "@/lib/stats-scope";
@@ -24,7 +25,9 @@ export function ActivityGrid({ cells }: { cells: ActivityCount[] }) {
     const next = nextActivityCell(active, key, cells.length);
     if (next === null) return false;
     setActive(next);
-    buttons.current[next]?.focus();
+    const button = buttons.current[next];
+    button?.focus();
+    revealActivityCell(button);
     return true;
   };
 
@@ -52,7 +55,9 @@ export function ActivityGrid({ cells }: { cells: ActivityCount[] }) {
             aria-label={activityDayLabel(cell.date, cell.count)}
             onClick={() => {
               setActive(index);
-              buttons.current[index]?.focus();
+              const button = buttons.current[index];
+              button?.focus();
+              revealActivityCell(button);
             }}
             className="relative flex size-6 shrink-0 cursor-pointer items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-foreground focus-visible:ring-offset-2 focus-visible:ring-offset-surface"
           >

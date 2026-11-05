@@ -10,6 +10,7 @@ import {
   activityTimeZone,
   buildActivityCells,
   nextActivityCell,
+  revealActivityCell,
 } from "@/lib/activity-grid";
 
 afterEach(() => {
@@ -99,6 +100,15 @@ describe("activity calendar", () => {
     expect(nextActivityCell(4, "Enter", 182)).toBeNull();
   });
 
+  it("asks the browser to bring a day into view", () => {
+    const node = document.createElement("button");
+    const scroll = vi.fn();
+    node.scrollIntoView = scroll;
+    revealActivityCell(node);
+    expect(scroll).toHaveBeenCalledWith({ block: "nearest", inline: "nearest" });
+    revealActivityCell(null);
+  });
+
   it("shows the selected day in text and moves it with the arrow keys", () => {
     const cells = buildActivityCells(
       [{ date: "2026-10-14", count: 4 }],
@@ -112,8 +122,27 @@ describe("activity calendar", () => {
     expect(today.className).toContain("focus-visible:ring-2");
     expect(today.className).toContain("size-6");
 
+    const scrolls = new Map<HTMLElement, ReturnType<typeof vi.fn>>();
+    for (const button of screen.getAllByRole("button")) {
+      const scroll = vi.fn();
+      button.scrollIntoView = scroll;
+      scrolls.set(button, scroll);
+    }
     today.focus();
+    fireEvent.click(today);
+    expect(scrolls.get(today)).toHaveBeenCalledWith({
+      block: "nearest",
+      inline: "nearest",
+    });
+
     fireEvent.keyDown(today, { key: "ArrowUp" });
+    const focused = document.activeElement;
+    expect(focused).toBeInstanceOf(HTMLElement);
+    expect(focused).not.toBe(today);
+    expect(scrolls.get(focused as HTMLElement)).toHaveBeenCalledWith({
+      block: "nearest",
+      inline: "nearest",
+    });
 
     expect(today).not.toHaveFocus();
     expect(screen.getByRole("status").textContent).not.toMatch(/^4 links/);
