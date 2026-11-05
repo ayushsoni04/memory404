@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 /**
@@ -11,6 +11,12 @@ export function ExtensionErrorBanner() {
   const router = useRouter();
   const pathname = usePathname();
   const [message, setMessage] = useState<string | null>(null);
+  const dismissRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!message) return;
+    dismissRef.current?.focus();
+  }, [message]);
 
   useEffect(() => {
     const raw = searchParams.get("error");
@@ -45,9 +51,10 @@ export function ExtensionErrorBanner() {
           <p className="mt-0.5 break-words text-[13px] text-foreground">{message}</p>
         </div>
         <button
+          ref={dismissRef}
           type="button"
           onClick={() => setMessage(null)}
-          className="shrink-0 rounded-md px-2 py-1 text-[12px] text-muted transition-colors hover:bg-pill hover:text-foreground"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-colors hover:bg-pill-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:min-h-8"
         >
           Dismiss
         </button>
