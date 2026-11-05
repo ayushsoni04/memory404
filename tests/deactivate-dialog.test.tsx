@@ -116,4 +116,53 @@ describe("DeactivateModal", () => {
     expect(screen.getByRole("button", { name: "Delete account" })).toBeEnabled();
     expect(screen.getByText(/to delete this account/i)).toBeInTheDocument();
   });
+
+  it("returns to the confirmation when deletion fails", () => {
+    const props = {
+      open: true,
+      onClose: () => {},
+      deactivateInput: "deactivate",
+      setDeactivateInput: () => {},
+      deactivatedSuccess: false,
+      onSubmit: () => {},
+    };
+    const view = render(
+      <DeactivateModal {...props} isDeactivating error={null} />,
+    );
+    view.rerender(
+      <DeactivateModal
+        {...props}
+        isDeactivating={false}
+        error="Failed to delete account"
+      />,
+    );
+
+    expect(screen.getByRole("textbox")).toHaveFocus();
+    expect(screen.getByRole("button", { name: "Cancel" }).className).toContain("min-h-11");
+    expect(screen.getByRole("button", { name: "Delete account" }).className).toContain(
+      "sm:min-h-8",
+    );
+  });
+
+  it("returns to Sign in when the session is why deletion failed", () => {
+    render(
+      <DeactivateModal
+        open
+        onClose={() => {}}
+        deactivateInput="deactivate"
+        setDeactivateInput={() => {}}
+        isDeactivating={false}
+        deactivatedSuccess={false}
+        error="Your session expired. Sign in again."
+        onSubmit={() => {}}
+      />,
+    );
+
+    const signIn = screen.getByRole("link", { name: "Sign in" });
+    expect(signIn).toHaveFocus();
+    expect(signIn).toHaveAttribute("href", "/login?redirect=%2Fsettings");
+    expect(signIn.className).toContain("min-h-11");
+    expect(signIn.className).toContain("sm:min-h-8");
+    expect(signIn.className).toContain("focus-visible:ring-2");
+  });
 });

@@ -7,6 +7,7 @@ import { AppLoader } from "@/components/AppLoader";
 import { SessionSignInLink } from "@/components/LoadRecovery";
 import { isDeactivateConfirmation } from "@/lib/deactivate-confirm";
 import { useDialogContainment } from "@/lib/dialog-focus";
+import { isSessionExpiredMessage } from "@/lib/session-recovery";
 import { controlPress } from "@/components/vault/types";
 
 type DeactivateModalProps = {
@@ -33,8 +34,21 @@ export function DeactivateModal({
   const portalRef = useRef<HTMLDivElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const recoveryRef = useRef<HTMLDivElement>(null);
   const busy = isDeactivating || deactivatedSuccess;
   useDialogContainment(open, portalRef, dialogRef, inputRef);
+
+  useEffect(() => {
+    if (!open || !error || isDeactivating || deactivatedSuccess) return;
+    if (isSessionExpiredMessage(error)) {
+      const signIn = recoveryRef.current?.querySelector("a");
+      if (signIn instanceof HTMLElement) {
+        signIn.focus();
+        return;
+      }
+    }
+    inputRef.current?.focus();
+  }, [open, error, isDeactivating, deactivatedSuccess]);
 
   useEffect(() => {
     if (!open) return;
@@ -95,11 +109,15 @@ export function DeactivateModal({
         ) : (
           <form onSubmit={onSubmit} className="space-y-4">
             {error ? (
-              <div className="flex flex-col items-start gap-2">
+              <div ref={recoveryRef} className="flex flex-col items-start gap-2">
                 <p id="deactivate-error" className="text-xs text-danger" role="alert">
                   {error}
                 </p>
-                <SessionSignInLink message={error} returnPath="/settings" />
+                <SessionSignInLink
+                  message={error}
+                  returnPath="/settings"
+                  className="inline-flex min-h-11 items-center justify-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface sm:min-h-8"
+                />
               </div>
             ) : null}
             <label className="block space-y-1.5">
@@ -127,14 +145,14 @@ export function DeactivateModal({
                 type="button"
                 onClick={onClose}
                 disabled={isDeactivating}
-                className={`h-8 flex-1 cursor-pointer rounded-lg border border-border text-xs font-medium text-muted hover:bg-pill disabled:opacity-50 ${controlPress}`}
+                className={`inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg border border-border text-xs font-medium text-muted hover:bg-pill disabled:opacity-50 sm:min-h-8 ${controlPress}`}
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={!isDeactivateConfirmation(deactivateInput) || isDeactivating}
-                className={`flex h-8 flex-1 cursor-pointer items-center justify-center rounded-lg bg-danger text-xs font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 ${controlPress}`}
+                className={`inline-flex min-h-11 flex-1 cursor-pointer items-center justify-center rounded-lg bg-danger text-xs font-semibold text-white hover:opacity-90 disabled:pointer-events-none disabled:opacity-50 sm:min-h-8 ${controlPress}`}
               >
                 {isDeactivating ? (
                   <AppLoader compact progressive label="deleting account" />
