@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { Plus } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
@@ -245,19 +246,28 @@ export default function PastePrompt({
               }}
             >
               {variant === "empty" && emptyMode === "group" ? (
-                <div className="w-full min-w-0 space-y-1 text-center">
-                  <p
-                    className="max-w-full text-[13px] text-foreground [overflow-wrap:anywhere]"
-                    title={groupName}
+                <div className="flex w-full min-w-0 flex-col items-center gap-3 text-center">
+                  <div className="space-y-1">
+                    <p
+                      role="status"
+                      className="max-w-full text-[13px] text-foreground [overflow-wrap:anywhere]"
+                      title={groupName}
+                    >
+                      Nothing in {groupName} yet
+                    </p>
+                    <p className="text-[12px] text-muted">
+                      Paste a link to add it here. You can move it later.
+                    </p>
+                  </div>
+                  <Link
+                    href="/?group=all"
+                    className="inline-flex min-h-11 items-center justify-center rounded-full bg-pill px-3 text-[13px] font-medium text-foreground transition-[transform,opacity] duration-[var(--duration-press)] ease-[var(--ease-out)] hover:bg-pill-hover active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:min-h-8"
                   >
-                    Nothing in {groupName} yet
-                  </p>
-                  <p className="text-[12px] text-muted">
-                    Paste a link to add it here. You can move it later.
-                  </p>
+                    See all links
+                  </Link>
                 </div>
               ) : (
-                <p className="text-center text-[13px] text-muted">
+                <p className="text-center text-[13px] text-muted" role="status">
                   <span className="relative inline-block text-foreground">
                     Save webpages
                   </span>{" "}
@@ -287,7 +297,7 @@ export default function PastePrompt({
                 <button
                   type="submit"
                   disabled={!url.trim() || !groupId || Boolean(linkUrlDraftIssue(url))}
-                  className="flex size-[38px] min-w-[38px] items-center justify-center rounded-full bg-pill-active text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] disabled:opacity-50"
+                  className="flex size-11 min-w-11 items-center justify-center rounded-full bg-pill-active text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50 sm:size-[38px] sm:min-w-[38px]"
                   aria-label="Add link"
                 >
                   <Plus className="size-4" strokeWidth={2.5} />

@@ -126,7 +126,10 @@ export default function VaultFeed({
       (groupsLoadMessage !== groupsError || /load groups/i.test(groupsError)),
   );
   const feedBody = groupsFailedToLoad && !loadingLinks && sortedLinks.length === 0 ? (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface-elevated p-6">
+    <div
+      className="flex flex-col items-start gap-3 rounded-xl border border-border bg-surface-elevated p-6"
+      role="alert"
+    >
       <p className="text-sm text-foreground">
         {groupsSessionEnded ? groupsLoadMessage : "Groups could not be loaded."}
       </p>
@@ -162,7 +165,10 @@ export default function VaultFeed({
       })}
     </div>
   ) : replaceFeedWithLoadError(fetchError, sortedLinks.length) ? (
-    <div className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6">
+    <div
+      className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
+      role="alert"
+    >
       <p className="text-sm text-danger">{explainLoadError(fetchError)}</p>
       <p className="text-[13px] text-subtle">
         {isSessionExpiredMessage(explainLoadError(fetchError))
