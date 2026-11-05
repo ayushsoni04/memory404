@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import SidebarProfile from "@/components/vault/SidebarProfile";
 import { AVATAR_FILE_MAX_BYTES } from "@/lib/profile";
@@ -53,10 +53,11 @@ describe("sidebar profile photo", () => {
     fireEvent.change(input, { target: { files: [notes] } });
 
     const alert = await screen.findByRole("alert");
+    const photo = screen.getByRole("button", { name: "Add profile photo" });
     expect(alert).toHaveTextContent("Use a PNG, JPEG, WebP, or GIF.");
-    expect(screen.getByRole("button", { name: "Add profile photo" })).toHaveAccessibleDescription(
-      "Use a PNG, JPEG, WebP, or GIF.",
-    );
+    expect(photo).toHaveAccessibleDescription("Use a PNG, JPEG, WebP, or GIF.");
+    expect(photo.querySelector("input")).toBeNull();
+    expect(photo).toHaveFocus();
     expect(fetch).toHaveBeenCalledTimes(1);
   });
 
@@ -101,6 +102,9 @@ describe("sidebar profile photo", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Avatar image is too large (max 200KB)",
     );
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Add profile photo" })).toHaveFocus();
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       "/api/me",
       expect.objectContaining({ method: "PATCH" }),
