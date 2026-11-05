@@ -41,7 +41,7 @@ export function GridSizeControl({
               playUiSound("toggle");
               document.getElementById(`grid-size-${next}`)?.focus();
             }}
-            className={`inline-flex h-7 min-w-7 items-center justify-center rounded-full px-2 text-[12px] font-medium leading-none ${controlPress} ${
+            className={`inline-flex h-11 min-w-11 items-center justify-center rounded-full px-2 text-[12px] font-medium leading-none sm:h-7 sm:min-w-7 ${controlPress} ${
               active
                 ? "bg-pill-active text-pill-active-fg"
                 : "bg-pill text-muted hover:bg-pill-hover hover:text-foreground"
