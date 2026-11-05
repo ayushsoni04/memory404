@@ -134,7 +134,7 @@ export function DeactivateModal({
                 spellCheck={false}
                 aria-invalid={error ? true : undefined}
                 aria-describedby={error ? "deactivate-error" : undefined}
-                className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 font-mono text-xs text-foreground outline-none focus-visible:border-danger/50 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)]"
+                className="w-full rounded-lg border border-border bg-surface-elevated px-3 py-2 font-mono text-base text-foreground outline-none focus-visible:border-danger/50 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] sm:text-xs"
                 required
                 disabled={isDeactivating}
               />
