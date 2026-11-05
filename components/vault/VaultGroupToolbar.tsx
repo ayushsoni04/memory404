@@ -174,7 +174,7 @@ export function SortPill({
           event.preventDefault();
           setOpen(true);
         }}
-        className={`inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-border bg-pill ps-3 pe-2.5 text-[13px] font-medium leading-none text-muted hover:bg-pill-hover hover:text-foreground cursor-pointer ${controlPress}`}
+        className={`inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full border border-border bg-pill ps-3 pe-2.5 text-[13px] font-medium leading-none text-muted hover:bg-pill-hover hover:text-foreground cursor-pointer sm:h-7 ${controlPress}`}
       >
         <span>{label}</span>
         <ChevronDown
@@ -217,7 +217,7 @@ export function SortPill({
                   buttonRef.current?.focus();
                   playUiSound("tick");
                 }}
-                className={`flex w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-[13px] outline-none transition-[background-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] focus-visible:bg-pill-hover focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] ${
+                className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-[13px] outline-none transition-[background-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] focus-visible:bg-pill-hover focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] sm:min-h-0 ${
                   opt.value === sortBy
                     ? "text-foreground"
                     : "text-muted hover:bg-pill hover:text-foreground"
@@ -388,7 +388,7 @@ export default function VaultGroupToolbar({
           {isDragging && (
             <div className="absolute inset-0 flex items-center pointer-events-none z-0 ps-0.5">
               {generalGroup ? (
-                <div className="invisible shrink-0 px-4 text-[13px] h-7">
+                <div className="invisible h-11 shrink-0 px-4 text-[13px] sm:h-7">
                   All
                 </div>
               ) : null}
@@ -402,7 +402,7 @@ export default function VaultGroupToolbar({
                 {filteredFolders.map((g) => (
                   <div
                     key={`bg-${g.id}`}
-                    className="group-pill-drop-slot inline-flex h-7 max-w-48 shrink-0 items-center truncate rounded-full px-4 text-[13px] leading-none text-transparent select-none"
+                    className="group-pill-drop-slot inline-flex h-11 max-w-48 shrink-0 items-center truncate rounded-full px-4 text-[13px] leading-none text-transparent select-none sm:h-7"
                   >
                     {g.name}
                   </div>
@@ -429,7 +429,7 @@ export default function VaultGroupToolbar({
                   playUiSound("tick");
                 }}
                 onKeyDown={(event) => onPillKeyDown(event, "all")}
-                className="h-7 bg-transparent px-4 -mx-4 outline-none"
+                className="h-11 bg-transparent px-4 -mx-4 outline-none sm:h-7"
               >
                 All
               </button>
@@ -504,7 +504,7 @@ export default function VaultGroupToolbar({
                     }}
                     onKeyDown={(event) => onPillKeyDown(event, g.id)}
                     title={g.name}
-                    className="max-w-48 truncate bg-transparent text-left outline-none"
+                    className="flex max-w-48 items-center self-stretch truncate bg-transparent text-left outline-none"
                   >
                     {g.name}
                   </button>
@@ -517,7 +517,7 @@ export default function VaultGroupToolbar({
                         e.stopPropagation();
                         void handleDeleteGroup(g.id);
                       }}
-                      className="group-pill-delete ms-1 inline-flex size-6 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer outline-none"
+                      className="group-pill-delete ms-1 inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-full hover:bg-red-500/20 hover:text-red-400 focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-danger/50 cursor-pointer outline-none sm:size-6"
                     >
                       <X className="size-3" aria-hidden />
                     </button>
@@ -567,7 +567,7 @@ export default function VaultGroupToolbar({
             <span
               ref={groupSizerRef}
               aria-hidden
-              className="pointer-events-none invisible absolute whitespace-pre px-4 text-[13px] leading-none"
+              className="pointer-events-none invisible absolute whitespace-pre px-4 text-base leading-none sm:text-[13px]"
             >
               {createGroupName || "Group"}
             </span>
@@ -593,7 +593,7 @@ export default function VaultGroupToolbar({
               placeholder="Group"
               disabled={creatingGroup}
               style={{ width: Math.min(groupInputWidth, 192) }}
-              className="h-7 w-full min-w-0 max-w-48 rounded-full border border-dashed border-foreground/40 bg-surface px-4 text-[13px] leading-none text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+              className="h-11 w-full min-w-0 max-w-48 rounded-full border border-dashed border-foreground/40 bg-surface px-4 text-base leading-none text-foreground outline-none placeholder:text-subtle focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-7 sm:text-[13px]"
             />
             {creatingGroup ? (
               <span className="absolute inset-0 flex items-center justify-center rounded-full bg-surface/80">
@@ -611,7 +611,7 @@ export default function VaultGroupToolbar({
             }}
             aria-label="Add group"
             title="Add group"
-            className={`inline-flex size-7 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong bg-transparent text-muted hover:border-foreground/40 hover:text-foreground ${controlPress}`}
+            className={`inline-flex size-11 shrink-0 items-center justify-center rounded-full border border-dashed border-border-strong bg-transparent text-muted hover:border-foreground/40 hover:text-foreground sm:size-7 ${controlPress}`}
           >
             <Plus className="size-3.5" strokeWidth={2} aria-hidden />
           </button>
@@ -648,7 +648,7 @@ export default function VaultGroupToolbar({
           aria-busy={refreshing || undefined}
           aria-label="Refresh"
           title="Refresh"
-          className={`${pillIdle} justify-center px-2.5 disabled:opacity-60`}
+          className={`${pillIdle} min-w-11 justify-center px-2.5 disabled:opacity-60 sm:min-w-0`}
         >
           <RotateCw
             className={`size-3.5 -scale-x-100 transition-transform duration-500 ease-out motion-reduce:animate-none ${

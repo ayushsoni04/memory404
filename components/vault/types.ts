@@ -45,7 +45,7 @@ export const FIELD_CLASS =
 export const controlPress =
   "transition-[transform,background-color,border-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background";
 
-const pillBase = `inline-flex h-7 shrink-0 items-center rounded-full border border-transparent px-4 text-[13px] leading-none select-none cursor-pointer ${controlPress}`;
+const pillBase = `inline-flex h-11 shrink-0 items-center rounded-full border border-transparent px-4 text-[13px] leading-none select-none cursor-pointer sm:h-7 ${controlPress}`;
 
 export const pillActive = `${pillBase} bg-pill-active text-pill-active-fg`;
 export const pillIdle = `${pillBase} bg-pill text-muted hover:bg-pill-hover hover:text-foreground`;
