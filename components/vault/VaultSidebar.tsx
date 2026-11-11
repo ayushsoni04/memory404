@@ -191,7 +191,7 @@ export default function VaultSidebar({
                       onClick={() => void saveSidebarNote()}
                       disabled={savingNote || Boolean(noteProblem)}
                       aria-busy={savingNote || undefined}
-                      className={`inline-flex h-8 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer disabled:opacity-50 ${controlPress}`}
+                      className={`inline-flex h-11 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg cursor-pointer disabled:opacity-50 sm:h-8 ${controlPress}`}
                     >
                       <MorphText duration={220}>
                         {savingNote
@@ -340,7 +340,7 @@ export default function VaultSidebar({
                           setNewGroupNameDraft("");
                         }}
                         disabled={saving}
-                        className={`inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill px-3 text-sm text-muted hover:bg-pill-hover hover:text-foreground disabled:opacity-50 cursor-pointer ${controlPress}`}
+                        className={`inline-flex h-11 flex-1 items-center justify-center rounded-lg bg-pill px-3 text-sm text-muted hover:bg-pill-hover hover:text-foreground disabled:opacity-50 cursor-pointer sm:h-[38px] ${controlPress}`}
                       >
                         Back
                       </button>
@@ -353,7 +353,7 @@ export default function VaultSidebar({
                               Boolean(groupNameDraftIssue(newGroupNameDraft, groups))
                             : !placeGroupId)
                         }
-                        className={`inline-flex h-[38px] flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 cursor-pointer ${controlPress}`}
+                        className={`inline-flex h-11 flex-1 items-center justify-center rounded-lg bg-pill-active px-3 text-sm font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 cursor-pointer sm:h-[38px] ${controlPress}`}
                       >
                         Save
                       </button>
@@ -376,7 +376,7 @@ export default function VaultSidebar({
                 <button
                   type="button"
                   onClick={() => void loadGroups()}
-                  className="underline hover:text-foreground"
+                  className={`inline-flex min-h-11 items-center underline sm:min-h-8 ${controlPress}`}
                 >
                   Retry
                 </button>
@@ -407,7 +407,7 @@ export default function VaultSidebar({
               <a
                 href={EXTENSION_ZIP_HREF}
                 download={EXTENSION_ZIP_FILENAME}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="inline-flex h-11 w-full items-center justify-center gap-1.5 rounded-lg bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:h-8"
               >
                 <Download className="size-3.5" aria-hidden />
                 Download extension
