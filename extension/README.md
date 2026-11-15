@@ -20,7 +20,7 @@ npm install
 npm run build
 ```
 
-Produces `extension/dist/` and copies a downloadable zip to `public/downloads/memory404-extension.zip` for the web app.
+Produces `extension/dist/` and zips that `dist/` folder into a download to `public/downloads/memory404-extension.zip` for the web app.
 
 For watch mode during development:
 
@@ -31,14 +31,14 @@ npm run dev
 
 ## Download from the app
 
-New users can download the packaged zip from **Settings → Chrome extension** (or the empty vault CTA), unzip it, Load unpacked in Chrome, and set **App URL** to this site or their own memory404 server.
+New users can download the packaged zip from **Settings → Chrome extension** (or the empty vault CTA), unzip it to get a `dist/` folder, Load unpacked that folder in Chrome, and set **App URL** to this site or their own memory404 server.
 
 ## Load in Chrome
 
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
-4. Select the unzipped download folder (or `extension/dist` after a local build)
+4. Select the unzipped `dist` folder (or `extension/dist` after a local build)
 5. Reload the extension after rebuilding
 
 ## Notes

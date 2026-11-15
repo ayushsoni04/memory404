@@ -84,7 +84,7 @@ export function ExtensionInstallCard({
               Download package
             </p>
             <p className="font-mono text-[10px] text-subtle">
-              Unzip, then Load unpacked in chrome://extensions
+              Unzip, then Load unpacked the dist folder
             </p>
           </div>
           <a
@@ -98,10 +98,10 @@ export function ExtensionInstallCard({
         </div>
 
         <ol className="list-decimal space-y-1.5 ps-4 text-[11px] leading-relaxed text-subtle">
-          <li>Unzip the download so you see a folder with manifest.json.</li>
+          <li>Unzip the download to get a dist folder with manifest.json inside.</li>
           <li>
             Open <span className="font-mono text-muted">chrome://extensions</span>,
-            enable Developer mode, then Load unpacked and select that folder.
+            enable Developer mode, then Load unpacked and select the dist folder.
           </li>
           <li>
             In the extension settings, set App URL to this instance or your own

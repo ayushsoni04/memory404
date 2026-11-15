@@ -14,6 +14,7 @@ const PUBLIC_PATHS = [
 function isPublicPath(pathname: string): boolean {
   return (
     pathname.startsWith("/api/") ||
+    pathname.startsWith("/downloads/") ||
     PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))
   );
 }
@@ -44,7 +45,7 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Skip static assets and image-proxy so CDN-cached image GETs never hit auth checks.
-    "/((?!_next/static|_next/image|api/image-proxy|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
+    // Skip static assets, downloads, and image-proxy so CDN-cached image GETs and file downloads never hit auth checks.
+    "/((?!_next/static|_next/image|api/image-proxy|downloads/|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|zip|ico)$).*)",
   ],
 };
