@@ -4,6 +4,8 @@ import { ThinkingOrb } from "thinking-orbs";
 import { groupNameMatches, groupNamesMatchExactly } from "./group-query";
 import { loginEmailIssue } from "./login-email";
 import { classifyLinkSave, saveHeadline } from "./save-outcome";
+import AuthDitherBackground from "./AuthDitherBackground";
+import GoogleMark from "./GoogleMark";
 import "./styles.css";
 
 const DEFAULT_API_BASE = "http://localhost:3000";
@@ -234,6 +236,7 @@ function App() {
   const [loginPassword, setLoginPassword] = useState("");
   const [loginError, setLoginError] = useState("");
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const [saveNotice, setSaveNotice] = useState(null);
   const inputRef = useRef(null);
   const isSignedIn = Boolean(authToken);
@@ -634,6 +637,48 @@ function App() {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    if (isLoggingIn || googlePending) return;
+    setLoginError("");
+    setGooglePending(true);
+    try {
+      const res = await new Promise((resolve) => {
+        chrome.runtime.sendMessage({ type: "SIGN_IN_GOOGLE" }, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve({ ok: false, error: chrome.runtime.lastError.message });
+            return;
+          }
+          resolve(response ?? { ok: false, error: "No response" });
+        });
+      });
+      if (!res?.ok) {
+        setLoginError(res?.error || "Failed to sign in with Google");
+        return;
+      }
+      const stored = await chrome.storage.local.get(["authToken", "authEmail"]);
+      if (typeof stored.authToken === "string" && stored.authToken.trim()) {
+        setAuthToken(stored.authToken.trim());
+      }
+      if (typeof stored.authEmail === "string" && stored.authEmail.trim()) {
+        setAuthEmail(stored.authEmail.trim());
+        setLoginEmail(stored.authEmail.trim());
+      }
+      setLoginPassword("");
+      setShowSettings(false);
+      setPhase("pick");
+      setError("");
+    } catch (err) {
+      setLoginError(err instanceof Error ? err.message : "Failed to sign in with Google");
+    } finally {
+      setGooglePending(false);
+    }
+  };
+
+  const openForgotPassword = () => {
+    const base = (apiBase.trim() || DEFAULT_API_BASE).replace(/\/$/, "");
+    chrome.tabs.create({ url: `${base}/forgot-password` });
+  };
+
   const handleLogout = async () => {
     await clearStoredAuth();
     setAuthToken(null);
@@ -641,6 +686,67 @@ function App() {
     setGroups([]);
     setPhase("pick");
   };
+
+  const renderSignInForm = (extraClass = "") => (
+    <form className={`auth-form auth-sign-in ${extraClass}`.trim()} onSubmit={handleLogin}>
+      <AuthDitherBackground />
+      <div className="auth-sign-in-body">
+        <button
+          type="button"
+          className="google-btn"
+          disabled={isLoggingIn || googlePending}
+          onClick={() => void handleGoogleLogin()}
+        >
+          <GoogleMark />
+          <span>{googlePending ? "Opening Google…" : "Continue with Google"}</span>
+        </button>
+        <div className="auth-divider" aria-hidden="true">
+          <span>or</span>
+        </div>
+        <label className="field-label">App URL</label>
+        <input
+          value={apiBase}
+          onChange={(e) => setApiBase(e.target.value)}
+          placeholder="http://localhost:3000"
+        />
+        <label className="field-label">Email</label>
+        <input
+          type="email"
+          value={loginEmail}
+          onChange={(e) => setLoginEmail(e.target.value)}
+          autoComplete="username"
+          required
+        />
+        <label className="field-label">Password</label>
+        <input
+          type="password"
+          value={loginPassword}
+          onChange={(e) => setLoginPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
+        <button
+          type="button"
+          className="auth-quiet-link"
+          onClick={openForgotPassword}
+        >
+          Forgot password?
+        </button>
+        {loginError ? (
+          <p className="error-panel-message" role="alert">
+            {loginError}
+          </p>
+        ) : null}
+        <button
+          type="submit"
+          className="save-btn"
+          disabled={isLoggingIn || googlePending}
+        >
+          {isLoggingIn ? "Signing in…" : "Sign in"}
+        </button>
+      </div>
+    </form>
+  );
 
   if (showSettings) {
     return (
@@ -668,32 +774,7 @@ function App() {
                 </button>
               </>
             ) : (
-              <form className="auth-form" onSubmit={handleLogin}>
-                <label className="field-label">Email</label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  autoComplete="username"
-                  required
-                />
-                <label className="field-label">Password</label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  autoComplete="current-password"
-                  required
-                />
-                {loginError ? (
-                  <p className="error-panel-message" role="alert">
-                    {loginError}
-                  </p>
-                ) : null}
-                <button type="submit" className="save-btn" disabled={isLoggingIn}>
-                  {isLoggingIn ? "Signing in…" : "Sign in"}
-                </button>
-              </form>
+              renderSignInForm()
             )}
           </div>
         </div>
@@ -709,38 +790,7 @@ function App() {
             <ThinkingOrb state="listening" size={64} speed={0.95} theme="dark" />
             <span className="orb-status-text">Sign in to save links</span>
           </div>
-          <form className="auth-form auth-form--main" onSubmit={handleLogin}>
-            <label className="field-label">App URL</label>
-            <input
-              value={apiBase}
-              onChange={(e) => setApiBase(e.target.value)}
-              placeholder="http://localhost:3000"
-            />
-            <label className="field-label">Email</label>
-            <input
-              type="email"
-              value={loginEmail}
-              onChange={(e) => setLoginEmail(e.target.value)}
-              autoComplete="username"
-              required
-            />
-            <label className="field-label">Password</label>
-            <input
-              type="password"
-              value={loginPassword}
-              onChange={(e) => setLoginPassword(e.target.value)}
-              autoComplete="current-password"
-              required
-            />
-            {loginError ? (
-              <p className="error-panel-message" role="alert">
-                {loginError}
-              </p>
-            ) : null}
-            <button type="submit" className="save-btn" disabled={isLoggingIn}>
-              {isLoggingIn ? "Signing in…" : "Sign in"}
-            </button>
-          </form>
+          {renderSignInForm("auth-form--main")}
         </div>
       </div>
     );

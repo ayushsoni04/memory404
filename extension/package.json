@@ -8,6 +8,7 @@
     "build": "webpack --config webpack.prod.js && rm -f memory404-extension.zip && zip -r -9 -X memory404-extension.zip dist -x '*.DS_Store' && mkdir -p ../public/downloads && cp -f memory404-extension.zip ../public/downloads/memory404-extension.zip"
   },
   "dependencies": {
+    "@paper-design/shaders-react": "^0.0.78",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "thinking-orbs": "^0.1.1"

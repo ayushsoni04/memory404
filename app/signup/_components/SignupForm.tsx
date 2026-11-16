@@ -14,6 +14,10 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import {
+  AuthDivider,
+  GoogleAuthButton,
+} from "@/components/auth/GoogleAuthButton";
 import { emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
@@ -139,6 +143,9 @@ export function SignupForm() {
           Start archiving links in high-fidelity.
         </p>
       </div>
+
+      <GoogleAuthButton label="Continue with Google" />
+      <AuthDivider />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block space-y-1.5">

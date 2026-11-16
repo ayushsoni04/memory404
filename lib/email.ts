@@ -13,6 +13,16 @@ function getResendClient(): Resend | null {
   return new Resend(apiKey);
 }
 
+/**
+ * Outside production, print the reset link to the server log whenever the
+ * email could not be sent, so the flow stays testable without a verified
+ * Resend domain.
+ */
+function logResetLinkForDev(email: string, resetUrl: string): void {
+  if (process.env.NODE_ENV === "production") return;
+  console.info(`[dev] Password reset link for ${email}: ${resetUrl}`);
+}
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, "&amp;")
@@ -30,6 +40,7 @@ export async function sendPasswordResetEmail(
     console.warn(
       "sendPasswordResetEmail: RESEND_API_KEY is not configured — email not sent.",
     );
+    logResetLinkForDev(email, resetUrl);
     return;
   }
 
@@ -46,6 +57,12 @@ export async function sendPasswordResetEmail(
   });
 
   if (error) {
-    console.error("sendPasswordResetEmail:", error);
+    console.error(
+      `sendPasswordResetEmail: Resend rejected the email (from "${getFromAddress()}"). ` +
+        "The sender must use a domain verified at resend.com/domains — " +
+        "onboarding@resend.dev can only send to the Resend account owner.",
+      error,
+    );
+    logResetLinkForDev(email, resetUrl);
   }
 }

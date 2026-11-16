@@ -60,6 +60,43 @@ export async function createUserWithPassword(input: {
   return userDocumentToRow(document);
 }
 
+/** Google (and future OAuth) sign-up — no password until the user sets one. */
+export async function createOAuthUser(input: {
+  email: string;
+  name?: string | null;
+  avatarUrl?: string | null;
+  leadSource?: string | null;
+  utm?: UserUtm | null;
+}): Promise<UserRow> {
+  const { users } = await getCollections();
+  const document: UserDocument = {
+    _id: randomUUID(),
+    email: input.email,
+    name: input.name?.trim() || null,
+    username: null,
+    avatarUrl: input.avatarUrl?.trim() || null,
+    bannerStyle: "midnight",
+    plan: "free",
+    passwordHash: null,
+    resetToken: null,
+    resetTokenExpiresAt: null,
+    sessionVersion: 0,
+    leadSource: input.leadSource ?? null,
+    utm: input.utm ?? null,
+    createdAt: new Date(),
+  };
+  try {
+    await users.insertOne(document);
+    return userDocumentToRow(document);
+  } catch (e) {
+    if (isDuplicateKeyError(e)) {
+      const byEmail = await findUserByEmail(input.email);
+      if (byEmail) return byEmail;
+    }
+    throw e;
+  }
+}
+
 export async function findUserByEmail(email: string): Promise<UserRow | null> {
   const { users } = await getCollections();
   const document = await users.findOne({ email });

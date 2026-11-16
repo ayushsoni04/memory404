@@ -7,6 +7,7 @@ const PUBLIC_PATHS = [
   "/signup",
   "/forgot-password",
   "/reset-password",
+  "/auth/extension",
   "/brand",
   "/sidebar", // redirects to /brand
 ];
@@ -25,6 +26,12 @@ export async function proxy(request: NextRequest) {
     process.env.NODE_ENV !== "production" &&
     process.env.AUTH_BYPASS === "1"
   ) {
+    // Skip the sign-in pages, but keep password recovery reachable so reset
+    // links from email still open the form.
+    const { pathname } = request.nextUrl;
+    if (pathname === "/login" || pathname === "/signup") {
+      return NextResponse.redirect(new URL("/", request.url));
+    }
     return NextResponse.next();
   }
 

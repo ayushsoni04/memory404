@@ -14,10 +14,27 @@ import {
   authRevealClass,
   authSubmitClass,
 } from "@/components/auth/auth-field";
+import {
+  AuthDivider,
+  GoogleAuthButton,
+} from "@/components/auth/GoogleAuthButton";
 import { EMAIL_INVALID, emailIssue, normalizeEmail } from "@/lib/auth-email";
 import { withAuthRedirect } from "@/lib/auth-redirect";
 import { authFailureMessage } from "@/lib/auth-form-error";
 import { safeRedirectPath } from "@/lib/safe-redirect";
+
+function googleLoginError(code: string | null): string | null {
+  if (code === "google_not_configured") {
+    return "Google sign-in is not configured on this server yet.";
+  }
+  if (code === "google_cancelled") {
+    return "Google sign-in was cancelled.";
+  }
+  if (code === "google_failed") {
+    return "Google sign-in failed. Try again.";
+  }
+  return null;
+}
 
 export function LoginForm() {
   const searchParams = useSearchParams();
@@ -30,7 +47,9 @@ export function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [passwordFocused, setPasswordFocused] = useState(false);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(() =>
+    googleLoginError(searchParams.get("error")),
+  );
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSkipping, setIsSkipping] = useState(false);
   const submitLock = useRef(false);
@@ -102,6 +121,9 @@ export function LoginForm() {
           Welcome back — pick up where you left off.
         </p>
       </div>
+
+      <GoogleAuthButton />
+      <AuthDivider />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

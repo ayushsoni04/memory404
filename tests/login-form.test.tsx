@@ -62,6 +62,10 @@ describe("LoginForm", () => {
 
     render(<LoginForm />);
     expect(screen.getByRole("heading", { name: "Sign in" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Continue with Google" })).toHaveAttribute(
+      "href",
+      "/api/auth/google",
+    );
     expect(screen.getByRole("link", { name: "Forgot password?" })).toHaveAttribute(
       "href",
       "/forgot-password",

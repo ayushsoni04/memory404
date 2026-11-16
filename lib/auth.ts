@@ -1,6 +1,7 @@
 import { headers } from "next/headers";
-import { findUserById } from "@/lib/db/repositories";
+import { findUserById, ensureDemoUser } from "@/lib/db/repositories";
 import { decryptSession, getSession } from "@/lib/session";
+import { DEV_USER_EMAIL, DEV_USER_ID } from "@/lib/dev-user";
 
 export type AuthUser = {
   id: string;
@@ -52,6 +53,26 @@ export async function getAuthUser(): Promise<AuthUser | null> {
       if (payload) {
         const fromBearer = await userFromSession(payload);
         if (fromBearer) return fromBearer;
+      }
+    }
+
+    if (
+      process.env.NODE_ENV !== "production" &&
+      process.env.AUTH_BYPASS === "1"
+    ) {
+      try {
+        const devUser = await ensureDemoUser(DEV_USER_ID, DEV_USER_EMAIL);
+        return {
+          id: devUser.id,
+          email: devUser.email,
+          plan: (devUser.plan as AuthUser["plan"]) || "free",
+        };
+      } catch {
+        return {
+          id: DEV_USER_ID,
+          email: DEV_USER_EMAIL,
+          plan: "free",
+        };
       }
     }
 

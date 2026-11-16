@@ -21,6 +21,106 @@ async function clearAuthToken() {
   await storageRemove(["authToken", "authEmail"]);
 }
 
+function extensionAuthBridgeUrl(apiBase) {
+  try {
+    return new URL("/auth/extension", apiBase).href;
+  } catch {
+    return `${String(apiBase || "").replace(/\/$/, "")}/auth/extension`;
+  }
+}
+
+/**
+ * Opens Google OAuth in a tab, waits for /auth/extension?code=, exchanges
+ * the one-time code for a Bearer session token, then closes the tab.
+ */
+async function signInWithGoogle() {
+  const apiBase = await getApiBase();
+  const startUrl = `${apiBase.replace(/\/$/, "")}/api/auth/google?client=extension`;
+  const bridgePrefix = extensionAuthBridgeUrl(apiBase);
+
+  const tab = await chrome.tabs.create({ url: startUrl, active: true });
+  const tabId = tab.id;
+  if (typeof tabId !== "number") {
+    return { ok: false, error: "Could not open Google sign-in" };
+  }
+
+  const code = await new Promise((resolve, reject) => {
+    const timeoutId = setTimeout(() => {
+      cleanup();
+      reject(new Error("Google sign-in timed out. Try again."));
+    }, 5 * 60 * 1000);
+
+    function cleanup() {
+      clearTimeout(timeoutId);
+      chrome.tabs.onUpdated.removeListener(onUpdated);
+      chrome.tabs.onRemoved.removeListener(onRemoved);
+    }
+
+    function onRemoved(removedId) {
+      if (removedId !== tabId) return;
+      cleanup();
+      reject(new Error("Google sign-in was cancelled."));
+    }
+
+    function onUpdated(updatedId, info, updatedTab) {
+      if (updatedId !== tabId) return;
+      const url = typeof updatedTab?.url === "string" ? updatedTab.url : "";
+      if (!url.startsWith(bridgePrefix)) return;
+      let parsed;
+      try {
+        parsed = new URL(url);
+      } catch {
+        return;
+      }
+      const value = parsed.searchParams.get("code");
+      if (!value) return;
+      cleanup();
+      resolve(value);
+    }
+
+    chrome.tabs.onUpdated.addListener(onUpdated);
+    chrome.tabs.onRemoved.addListener(onRemoved);
+  });
+
+  try {
+    const res = await fetchWithTimeout(`${apiBase.replace(/\/$/, "")}/api/auth/extension-exchange`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code }),
+    });
+    const data = await withTimeout(
+      res.json().catch(() => ({})),
+      5_000,
+      "Google sign-in response",
+    );
+    if (!res.ok) {
+      return { ok: false, error: data?.error || "Failed to sign in with Google" };
+    }
+    if (typeof data.token !== "string" || !data.token) {
+      return { ok: false, error: "Server did not return an auth token" };
+    }
+    const email =
+      typeof data.user?.email === "string" ? data.user.email : "";
+    await storageSet({
+      authToken: data.token,
+      authEmail: email,
+    });
+    try {
+      await chrome.tabs.remove(tabId);
+    } catch {
+      // Tab may already be closed.
+    }
+    return { ok: true, email };
+  } catch (e) {
+    try {
+      await chrome.tabs.remove(tabId);
+    } catch {
+      // ignore
+    }
+    throw e;
+  }
+}
+
 async function authHeaders(extra = {}) {
   const token = await getAuthToken();
   const headers = { ...extra };
@@ -1155,6 +1255,43 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         sendResponse({
           ok: false,
           error: explainSaveFailure(e instanceof Error ? e.message : "Failed to sign in"),
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "SIGN_IN_GOOGLE") {
+    void (async () => {
+      try {
+        const result = await signInWithGoogle();
+        sendResponse(result);
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: explainSaveFailure(
+            e instanceof Error ? e.message : "Failed to sign in with Google",
+          ),
+        });
+      }
+    })();
+    return true;
+  }
+
+  if (message.type === "OPEN_APP_PATH") {
+    void (async () => {
+      try {
+        const apiBase = await getApiBase();
+        const path =
+          typeof message.path === "string" && message.path.startsWith("/")
+            ? message.path
+            : "/";
+        await chrome.tabs.create({ url: `${apiBase.replace(/\/$/, "")}${path}` });
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({
+          ok: false,
+          error: e instanceof Error ? e.message : "Failed to open page",
         });
       }
     })();

@@ -16,7 +16,7 @@ export type UserDocument = {
   /** Settings banner gradient id (e.g. "midnight"). */
   bannerStyle: string | null;
   plan: string;
-  /** scrypt salt+hash, e.g. "<salt>:<hash>". Null reserved for future OAuth-only accounts. */
+  /** scrypt salt+hash, e.g. "<salt>:<hash>". Null for OAuth-only / demo accounts. */
   passwordHash: string | null;
   resetToken: string | null;
   resetTokenExpiresAt: Date | null;

@@ -19,12 +19,23 @@ memory404 authenticates users entirely on its own — passwords hashed and store
 ## Environment variables
 
 ```bash
-SESSION_SECRET=   # openssl rand -base64 32 — server-only, never NEXT_PUBLIC_
-RESEND_API_KEY=   # from resend.com — server-only
-EMAIL_FROM=       # optional; production verified sender, e.g. memory404 <noreply@yourdomain.com>
+SESSION_SECRET=         # openssl rand -base64 32 — server-only, never NEXT_PUBLIC_
+APP_URL=                # optional public origin for OAuth + emails (falls back to request host)
+GOOGLE_CLIENT_ID=       # Google Cloud OAuth client — server-only
+GOOGLE_CLIENT_SECRET=   # Google Cloud OAuth secret — server-only
+RESEND_API_KEY=         # from resend.com — server-only
+EMAIL_FROM=             # optional; production verified sender, e.g. memory404 <noreply@yourdomain.com>
 ```
 
 Set these in `.env.local` for development and in Vercel for production. Rotating `SESSION_SECRET` invalidates every existing session and extension token.
+
+### Google OAuth
+
+1. Create an OAuth 2.0 **Web application** client in [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
+2. Add authorized redirect URI: `{APP_URL}/api/auth/google/callback` (e.g. `http://localhost:3000/api/auth/google/callback`).
+3. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
+4. Web **Continue with Google** hits `GET /api/auth/google` (PKCE via [arctic](https://arcticjs.dev)). The callback sets the session cookie.
+5. The Chrome extension opens the same flow with `?client=extension`, lands on `/auth/extension?code=…`, and exchanges the short-lived code at `POST /api/auth/extension-exchange` for a Bearer token.
 
 `AUTH_BYPASS=1` skips the page login gate in **development only**. It is ignored when `NODE_ENV=production`. Do not set it on production hosts.
 
@@ -54,8 +65,9 @@ Login, signup, forgot-password, and reset-password are rate-limited per IP (in-m
 ## Chrome extension
 
 1. Set **App URL** to your memory404 origin.
-2. Sign in with email/password in the popup (stores Bearer token in `chrome.storage.local`).
-3. Saves and group fetches send `Authorization: Bearer …` so data lands in that user's vault.
+2. Sign in with email/password, or **Continue with Google** (opens a browser tab, then stores the Bearer token in `chrome.storage.local`).
+3. **Forgot password?** opens the website reset flow.
+4. Saves and group fetches send `Authorization: Bearer …` so data lands in that user's vault.
 
 ## Express backend
 
@@ -63,6 +75,6 @@ When using the standalone Express API, send the same Bearer token. Unauthenticat
 
 ## What's not built yet
 
-OAuth (Google/GitHub/X) is deferred — plan is [`arctic`](https://arcticjs.dev). Until then, email/password is the only sign-in method. Public profile pages and billing are also out of scope for the current private-vault multi-user release.
+GitHub/X OAuth, public profile pages, and billing are out of scope for the current private-vault multi-user release. Google sign-in is supported (web + extension).
 
 See [Database schema](/database/schema) for the MongoDB `users` collection shape and [Environment variables](/deployment/environment-variables) for the full configuration reference.

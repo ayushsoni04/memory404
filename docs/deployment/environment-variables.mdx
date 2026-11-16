@@ -25,6 +25,9 @@ Use a dedicated Atlas database user with only the permissions the app needs. Nev
 | Variable | Where | Description |
 |----------|-------|-------------|
 | `SESSION_SECRET` | Vercel (+ Express if used) | Signs session cookies and Bearer tokens; `openssl rand -base64 32`. Rotating it signs everyone out |
+| `APP_URL` | Vercel | Optional public origin for OAuth redirects and emails (falls back to the request host) |
+| `GOOGLE_CLIENT_ID` | Vercel | Google OAuth web client ID for Continue with Google |
+| `GOOGLE_CLIENT_SECRET` | Vercel | Google OAuth web client secret |
 | `RESEND_API_KEY` | Vercel | Sends password-reset emails via [Resend](https://resend.com) |
 | `EMAIL_FROM` | Vercel | Optional verified sender, e.g. `memory404 <noreply@yourdomain.com>`. Defaults to Resend sandbox |
 
@@ -40,12 +43,15 @@ See [Auth](/deployment/auth) for how these are used. `AUTH_BYPASS=1` is **dev-on
 
 ```bash
 NEXT_PUBLIC_API_URL=https://memory404-api.onrender.com
+APP_URL=https://your-app.vercel.app
 SESSION_SECRET=<generated-secret>
+GOOGLE_CLIENT_ID=<google-oauth-client-id>
+GOOGLE_CLIENT_SECRET=<google-oauth-client-secret>
 RESEND_API_KEY=<resend-api-key>
 EMAIL_FROM=memory404 <noreply@yourdomain.com>
 ```
 
-Auth is self-contained (MongoDB + signed JWTs as cookies or Bearer tokens) — no third-party identity provider is involved. Application records and user accounts both live in MongoDB Atlas. Each user only sees their own links and groups.
+Auth stores passwords and sessions in MongoDB (signed JWTs as cookies or Bearer tokens). Google OAuth is optional via `GOOGLE_CLIENT_*`. Each user only sees their own links and groups.
 
 ## Backend (Express)
 

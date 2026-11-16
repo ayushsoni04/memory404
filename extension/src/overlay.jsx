@@ -37,6 +37,8 @@ import {
   signInFailureMessage,
 } from "./login-email";
 import PasswordField from "./PasswordField";
+import AuthDitherBackground from "./AuthDitherBackground";
+import GoogleMark from "./GoogleMark";
 import { CreateGroupOption, CurrentGroupLine, GroupOptionName } from "./GroupName";
 import SaveTaskRows from "./SaveTaskRows";
 import overlayCss from "./overlay-styles.css";
@@ -215,6 +217,7 @@ function App({ onClose }) {
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [loginPending, setLoginPending] = useState(false);
+  const [googlePending, setGooglePending] = useState(false);
   const [saveProgress, setSaveProgress] = useState({
     done: 0,
     total: 0,
@@ -745,6 +748,14 @@ function App({ onClose }) {
 
   const needsSignIn = keepSignInForm(error);
 
+  const afterSignIn = () => {
+    setLoginPassword("");
+    setError("");
+    setPhase("pick");
+    setGroupsLoading(true);
+    setBootToken((n) => n + 1);
+  };
+
   const submitSignIn = async () => {
     if (loginLock.current) return;
     const emailProblem = loginEmailIssue(loginEmail);
@@ -767,15 +778,36 @@ function App({ onClose }) {
         window.setTimeout(() => passwordRef.current?.focus(), 0);
         return;
       }
-      setLoginPassword("");
-      setError("");
-      setPhase("pick");
-      setGroupsLoading(true);
-      setBootToken((n) => n + 1);
+      afterSignIn();
     } finally {
       loginLock.current = false;
       setLoginPending(false);
     }
+  };
+
+  const submitGoogleSignIn = async () => {
+    if (loginLock.current || googlePending) return;
+    loginLock.current = true;
+    setGooglePending(true);
+    setError("");
+    try {
+      const res = await sendMessage({ type: "SIGN_IN_GOOGLE" });
+      if (!res?.ok) {
+        setError(signInFailureMessage(res?.error || "Failed to sign in with Google"));
+        return;
+      }
+      if (typeof res.email === "string" && res.email.trim()) {
+        setLoginEmail(res.email.trim());
+      }
+      afterSignIn();
+    } finally {
+      loginLock.current = false;
+      setGooglePending(false);
+    }
+  };
+
+  const openAppPath = (path) => {
+    void sendMessage({ type: "OPEN_APP_PATH", path });
   };
 
   const rejectApiBase = (message) => {
@@ -935,8 +967,13 @@ function App({ onClose }) {
         ) : null}
 
         {phase === "error" ? (
-          <div className="error-panel" role="alert">
-            <p className="error-panel-title">
+          <div
+            className={`error-panel${needsSignIn ? " error-panel--sign-in" : ""}`}
+            role="alert"
+          >
+            {needsSignIn ? <AuthDitherBackground /> : null}
+            <div className={needsSignIn ? "auth-sign-in-body" : undefined}>
+            <p className={`error-panel-title${needsSignIn ? " error-panel-title--sign-in" : ""}`}>
               {needsSignIn ? "Sign in" : "Something went wrong"}
             </p>
             <p id="m404-overlay-error" className="error-panel-message">
@@ -959,51 +996,76 @@ function App({ onClose }) {
                   void submitSignIn();
                 }}
               >
-                <label className="field-label" htmlFor="m404-email">
-                  Email
-                </label>
-                <input
-                  id="m404-email"
-                  ref={emailRef}
-                  className="settings-input"
-                  type="email"
-                  autoComplete="email"
-                  value={loginEmail}
-                  onChange={(event) => {
-                    const next = event.target.value;
-                    setLoginEmail(next);
-                    setError(signInErrorAfterEmailEdit(error, next));
-                  }}
-                  aria-invalid={error === EMAIL_INVALID ? true : undefined}
-                  aria-describedby={
-                    error === EMAIL_INVALID ? "m404-overlay-error" : undefined
-                  }
-                  required
-                />
-                <label className="field-label" htmlFor="m404-password">
-                  Password
-                </label>
-                <PasswordField
-                  id="m404-password"
-                  inputRef={passwordRef}
-                  value={loginPassword}
-                  invalid={passwordFieldInvalid(error)}
-                  describedBy={passwordFieldInvalid(error) ? "m404-overlay-error" : undefined}
-                  onChange={(event) => {
-                    setLoginPassword(event.target.value);
-                    setError(signInErrorAfterPasswordEdit(error));
-                  }}
-                />
-                <button type="submit" className="save-btn" disabled={loginPending}>
-                  {loginPending ? "Signing in…" : "Sign in"}
-                </button>
-                <button
-                  type="button"
-                  className="ghost-btn error-settings-link"
-                  onClick={() => setShowSettings(true)}
-                >
-                  Check App URL
-                </button>
+                  <button
+                    type="button"
+                    className="google-btn"
+                    disabled={loginPending || googlePending}
+                    onClick={() => void submitGoogleSignIn()}
+                  >
+                    <GoogleMark />
+                    <span>
+                      {googlePending ? "Opening Google…" : "Continue with Google"}
+                    </span>
+                  </button>
+                  <div className="auth-divider" aria-hidden="true">
+                    <span>or</span>
+                  </div>
+                  <label className="field-label" htmlFor="m404-email">
+                    Email
+                  </label>
+                  <input
+                    id="m404-email"
+                    ref={emailRef}
+                    className="settings-input"
+                    type="email"
+                    autoComplete="email"
+                    value={loginEmail}
+                    onChange={(event) => {
+                      const next = event.target.value;
+                      setLoginEmail(next);
+                      setError(signInErrorAfterEmailEdit(error, next));
+                    }}
+                    aria-invalid={error === EMAIL_INVALID ? true : undefined}
+                    aria-describedby={
+                      error === EMAIL_INVALID ? "m404-overlay-error" : undefined
+                    }
+                    required
+                  />
+                  <label className="field-label" htmlFor="m404-password">
+                    Password
+                  </label>
+                  <PasswordField
+                    id="m404-password"
+                    inputRef={passwordRef}
+                    value={loginPassword}
+                    invalid={passwordFieldInvalid(error)}
+                    describedBy={passwordFieldInvalid(error) ? "m404-overlay-error" : undefined}
+                    onChange={(event) => {
+                      setLoginPassword(event.target.value);
+                      setError(signInErrorAfterPasswordEdit(error));
+                    }}
+                  />
+                  <button
+                    type="button"
+                    className="auth-quiet-link"
+                    onClick={() => openAppPath("/forgot-password")}
+                  >
+                    Forgot password?
+                  </button>
+                  <button
+                    type="submit"
+                    className="save-btn"
+                    disabled={loginPending || googlePending}
+                  >
+                    {loginPending ? "Signing in…" : "Sign in"}
+                  </button>
+                  <button
+                    type="button"
+                    className="ghost-btn error-settings-link"
+                    onClick={() => setShowSettings(true)}
+                  >
+                    Check App URL
+                  </button>
               </form>
             ) : (
               <div className="error-panel-actions">
@@ -1028,6 +1090,7 @@ function App({ onClose }) {
                 </button>
               </div>
             )}
+            </div>
           </div>
         ) : null}
 
