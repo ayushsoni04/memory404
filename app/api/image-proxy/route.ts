@@ -20,6 +20,9 @@ export async function GET(req: NextRequest) {
       "Content-Type": result.contentType,
       "Cache-Control": "public, max-age=86400, s-maxage=86400",
       "X-Content-Type-Options": "nosniff",
+      // SVGs are allowed through; never let a proxied file run script or load
+      // anything on this origin if someone opens the proxy URL directly.
+      "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; sandbox",
     },
   });
 }

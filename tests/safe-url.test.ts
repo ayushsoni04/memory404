@@ -99,3 +99,12 @@ describe("fetchPublicImage", () => {
     expect(fetchMock).not.toHaveBeenCalled();
   });
 });
+
+describe("isBlockedAddress 192.0.x.x", () => {
+  it("blocks the reserved /24s but allows public 192.0 hosts", async () => {
+    const { isBlockedAddress } = await import("@/lib/safe-url");
+    expect(isBlockedAddress("192.0.0.8")).toBe(true);
+    expect(isBlockedAddress("192.0.2.10")).toBe(true);
+    expect(isBlockedAddress("192.0.78.9")).toBe(false);
+  });
+});

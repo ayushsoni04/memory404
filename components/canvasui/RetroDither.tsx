@@ -246,15 +246,38 @@ void main () {
   outColor = vec4(col, alpha);
 }`;
 
+let htmlInCanvasSupport: boolean | undefined;
+
+/**
+ * True only when the browser both exposes the HTML-in-canvas API *and* lays
+ * out children of a `layoutsubtree` canvas. Chrome 157 ships
+ * `drawElementImage`/`requestPaint` but no longer lays out canvas children via
+ * the `layoutsubtree` attribute, so they collapse to 0x0 and every card paints
+ * blank. Checking the methods alone isn't enough.
+ */
 export function supportsHtmlInCanvas(): boolean {
-  if (typeof document === "undefined") return false;
+  if (typeof document === "undefined" || !document.body) return false;
+  if (htmlInCanvasSupport !== undefined) return htmlInCanvasSupport;
   const probe = document.createElement("canvas") as PaintableCanvas;
   const ctx = probe.getContext("2d") as ElementImageContext | null;
-  return Boolean(
-    ctx &&
-    typeof ctx.drawElementImage === "function" &&
-    typeof probe.requestPaint === "function",
-  );
+  if (
+    !ctx ||
+    typeof ctx.drawElementImage !== "function" ||
+    typeof probe.requestPaint !== "function"
+  ) {
+    htmlInCanvasSupport = false;
+    return false;
+  }
+  probe.setAttribute("layoutsubtree", "true");
+  probe.style.cssText =
+    "position:absolute;left:-9999px;top:0;width:16px;height:16px;visibility:hidden";
+  const child = document.createElement("div");
+  child.style.cssText = "width:8px;height:8px";
+  probe.appendChild(child);
+  document.body.appendChild(probe);
+  htmlInCanvasSupport = child.offsetWidth > 0 && child.offsetHeight > 0;
+  probe.remove();
+  return htmlInCanvasSupport;
 }
 
 export function createRetroDither(
@@ -277,6 +300,7 @@ export function createRetroDither(
   const paintable = source as PaintableCanvas;
   const htmlInCanvas = Boolean(
     sourceCtx &&
+    supportsHtmlInCanvas() &&
     typeof sourceCtx.drawElementImage === "function" &&
     typeof paintable.requestPaint === "function",
   );

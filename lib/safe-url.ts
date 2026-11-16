@@ -17,6 +17,11 @@ const ALLOWED_IMAGE_TYPES = new Set([
   "image/gif",
   "image/webp",
   "image/avif",
+  "image/svg+xml",
+  "image/x-icon",
+  "image/vnd.microsoft.icon",
+  "image/ico",
+  "image/icon",
 ]);
 
 export class SafeUrlError extends Error {
@@ -35,13 +40,15 @@ function isBlockedIpv4(address: string): boolean {
   if (parts.length !== 4 || parts.some((n) => !Number.isInteger(n) || n < 0 || n > 255)) {
     return true;
   }
-  const [a, b] = parts;
+  const [a, b, c] = parts;
   if (a === 0 || a === 10 || a === 127) return true;
   if (a === 169 && b === 254) return true;
   if (a === 172 && b >= 16 && b <= 31) return true;
   if (a === 192 && b === 168) return true;
   if (a === 100 && b >= 64 && b <= 127) return true;
-  if (a === 192 && b === 0) return true;
+  // 192.0.0.0/24 (IETF protocol assignments) and 192.0.2.0/24 (TEST-NET-1).
+  // The rest of 192.0.x.x is public (e.g. WordPress.com on 192.0.78.x).
+  if (a === 192 && b === 0 && (c === 0 || c === 2)) return true;
   if (a === 198 && (b === 18 || b === 19)) return true;
   if (a >= 224) return true;
   return false;
