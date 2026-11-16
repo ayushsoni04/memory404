@@ -1,0 +1,92 @@
+/* Faint spec-sheet readouts across the sidebar (SidebarReadoutField). Desktop only. */
+.sidebar-readouts {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  .sidebar-readouts {
+    position: absolute;
+    inset: 330px var(--layout-pad) 290px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-evenly;
+    font-family: var(--font-departure), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: rgb(255 255 255 / 0.16);
+    -webkit-font-smoothing: none;
+  }
+
+  .sidebar-readout-block {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .sidebar-readouts .sig-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    white-space: nowrap;
+  }
+
+  .sidebar-readout-vertical {
+    position: absolute;
+    right: 0;
+    top: 38%;
+    writing-mode: vertical-rl;
+  }
+
+  .sidebar-readout-vertical .sig-meta-row {
+    gap: 14px;
+  }
+}
+
+/* The same lines in the bottom-right corner under the feed (FeedEndReadouts). */
+.feed-end-readouts {
+  display: none;
+}
+
+/* Only where the closing line leaves the corner free. */
+@media (min-width: 80rem) {
+  .feed-end-readouts {
+    position: absolute;
+    right: 0;
+    /* Level with the last row of the closing line. */
+    bottom: 6vh;
+    width: 232px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 34px;
+    font-family: var(--font-departure), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    color: rgb(255 255 255 / 0.16);
+    pointer-events: none;
+    -webkit-font-smoothing: none;
+  }
+
+  .feed-end-readouts .sig-meta-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    white-space: nowrap;
+  }
+}
+
+/* Short windows: fewer blocks so rows never collide. */
+@media (min-width: 64rem) and (max-height: 1000px) {
+  .sidebar-readout-block:nth-child(n + 4),
+  .sidebar-readout-vertical {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) and (max-height: 820px) {
+  .sidebar-readout-block:nth-child(n + 3) {
+    display: none;
+  }
+}

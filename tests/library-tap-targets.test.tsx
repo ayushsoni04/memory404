@@ -50,8 +50,6 @@ describe("library toolbar tap targets", () => {
         groupInputWidth={96}
         sortBy="newest"
         setSortByAndPersist={() => {}}
-        loadGroups={async () => undefined}
-        onOpenSearch={() => {}}
         onDropLink={() => {}}
       />,
     );
@@ -62,13 +60,7 @@ describe("library toolbar tap targets", () => {
     };
 
     expectPhoneTarget(screen.getByRole("button", { name: "All" }), "sm:h-7");
-    expectPhoneTarget(screen.getByRole("button", { name: /Search/ }), "sm:h-7");
     expectPhoneTarget(screen.getByRole("button", { name: /Sort links/ }), "sm:h-7");
-    const refresh = screen.getByRole("button", { name: "Refresh" });
-    expectPhoneTarget(refresh, "sm:h-7");
-    expect(refresh.className).toContain("min-w-11");
-    expect(refresh.className).toContain("sm:min-w-0");
-
     const add = screen.getByRole("button", { name: "Add group" });
     expect(add.className).toContain("size-11");
     expect(add.className).toContain("sm:size-7");

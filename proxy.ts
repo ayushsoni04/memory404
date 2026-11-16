@@ -26,12 +26,8 @@ export async function proxy(request: NextRequest) {
     process.env.NODE_ENV !== "production" &&
     process.env.AUTH_BYPASS === "1"
   ) {
-    // Skip the sign-in pages, but keep password recovery reachable so reset
-    // links from email still open the form.
-    const { pathname } = request.nextUrl;
-    if (pathname === "/login" || pathname === "/signup") {
-      return NextResponse.redirect(new URL("/", request.url));
-    }
+    // Every page stays reachable, including /login, so you can still sign in
+    // to a real account. With no session the API falls back to the dev user.
     return NextResponse.next();
   }
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import VaultSidebar from "@/components/vault/VaultSidebar";
@@ -92,8 +92,8 @@ function SearchSidebar() {
   );
 }
 
-describe("sidebar group search", () => {
-  it("jumps to All when that is what was typed", () => {
+describe("sidebar shortcuts", () => {
+  it("drops group search and puts Download and Trash on the grid dial", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -103,16 +103,12 @@ describe("sidebar group search", () => {
         }),
       }),
     );
-    selectGroup.mockClear();
     vi.stubGlobal("ResizeObserver", ResizeObserverStub);
     render(<SearchSidebar />);
 
-    const input = screen.getByRole("combobox", { name: "Search groups" });
-    fireEvent.focus(input);
-    fireEvent.change(input, { target: { value: "all" } });
-
-    const all = screen.getByRole("option", { name: "All" });
-    fireEvent.click(all);
-    expect(selectGroup).toHaveBeenCalledWith("all");
+    expect(screen.queryByRole("combobox", { name: "Search groups" })).not.toBeInTheDocument();
+    const dial = document.querySelector(".grid-dial-wrap")!;
+    expect(dial.querySelector('a[href="/trash"]')).toHaveAccessibleName("Trash");
+    expect(dial.querySelector("a[download]")).toHaveAccessibleName(/Download extension/);
   });
 });

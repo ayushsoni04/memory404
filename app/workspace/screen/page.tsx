@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ScreenWorkspacePage() {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-background">
+    <div className="art-clear flex min-h-full flex-1 flex-col bg-background">
       <ScreenWorkspace />
     </div>
   );

@@ -27,10 +27,16 @@ import type { GoogleOAuthClient } from "@/lib/google-oauth-url";
 export type { GoogleOAuthClient } from "@/lib/google-oauth-url";
 export { googleAuthStartUrl } from "@/lib/google-oauth-url";
 
+/** Template values such as `xxxxxxxx.apps.googleusercontent.com` don't count. */
+function isRealCredential(value: string | undefined): boolean {
+  const v = value?.trim() ?? "";
+  return v.length > 0 && !/x{6,}|your[_-]|changeme/i.test(v);
+}
+
 export function googleOAuthConfigured(): boolean {
-  return Boolean(
-    process.env.GOOGLE_CLIENT_ID?.trim() &&
-      process.env.GOOGLE_CLIENT_SECRET?.trim(),
+  return (
+    isRealCredential(process.env.GOOGLE_CLIENT_ID) &&
+    isRealCredential(process.env.GOOGLE_CLIENT_SECRET)
   );
 }
 

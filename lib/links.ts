@@ -86,12 +86,31 @@ export function requiresLoginPlaceholder(urlStr: string): boolean {
   }
 }
 
+/**
+ * Dithered stand-in images for links whose page can't be screenshotted.
+ * Drawn by scripts/generate-dither-placeholders.mjs into public/placeholders.
+ */
+const PLACEHOLDER_COUNT = 10;
+
+/**
+ * One of the stand-in images, picked from the link's URL so the same link
+ * always shows the same one and neighbouring cards usually differ.
+ */
+export function placeholderImageFor(seed: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < seed.length; i++) {
+    h ^= seed.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return `/placeholders/dither-${((h >>> 0) % PLACEHOLDER_COUNT) + 1}.png`;
+}
+
 export function effectivePreviewImageUrl(link: {
   imageUrl: string | null;
   url: string;
 }): string {
   if (requiresLoginPlaceholder(link.url)) {
-    return "/placeholder-unicorn.jpg";
+    return placeholderImageFor(link.url);
   }
   // thum.io / mShots are slow or placeholder-heavy — never surface those live.
   const stored = isUnreliableScreenshotUrl(link.imageUrl)

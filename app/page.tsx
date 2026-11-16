@@ -66,7 +66,7 @@ export default async function Home() {
   ]);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-background">
+    <div className="art-clear flex min-h-full flex-1 flex-col bg-background">
       <Suspense fallback={<VaultFallback />}>
         <VaultInbox initialData={initialData} isOwner={isOwner} />
         <ShortcutHelp />

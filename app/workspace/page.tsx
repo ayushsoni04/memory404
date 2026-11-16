@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 
 export default function WorkspacePage() {
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-background">
+    <div className="art-clear flex min-h-full flex-1 flex-col bg-background">
       <WorkspaceChrome>
         <WorkspaceIndex />
       </WorkspaceChrome>

@@ -109,7 +109,7 @@ describe("library sidebar", () => {
     const download = screen.getByRole("link", { name: /download extension/i });
     expect(download).toHaveAttribute("href", EXTENSION_ZIP_HREF);
     expect(download).toHaveAttribute("download", EXTENSION_ZIP_FILENAME);
-    expect(download).toHaveTextContent(EXTENSION_VERSION);
+    expect(download).toHaveAccessibleName(`Download extension ${EXTENSION_VERSION}`);
     expect(download.className).not.toMatch(/(?:^|\s)hidden(?:\s|$)/);
     expect(download.className).not.toMatch(/lg:hidden/);
     expect(screen.queryByRole("button", { name: /shortcuts/i })).not.toBeInTheDocument();

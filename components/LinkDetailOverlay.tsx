@@ -20,6 +20,7 @@ import {
   formatSavedDate,
   googleFaviconUrl,
   linkHostname,
+  placeholderImageFor,
   requiresLoginPlaceholder,
 } from "@/lib/links";
 import { nextCardPreview } from "@/components/vault/preview-fallback";
@@ -29,6 +30,7 @@ import { apiUrl } from "@/lib/api-base";
 import { explainLoadError } from "@/lib/load-error";
 import LinkTitleEditor from "@/components/vault/LinkTitleEditor";
 import MindCardActions from "@/components/vault/MindCardActions";
+import DetailActionBar from "@/components/vault/DetailActionBar";
 import { isTextEntryTarget } from "@/components/vault/feed-keyboard";
 
 const overlayFocus =
@@ -63,6 +65,8 @@ type Rect = {
 /** Shared-element morph timing — ease-in-out at 1.25× speed. */
 const MORPH_SPEED = 1.25;
 const MORPH_EASE = "power2.inOut";
+/** Things leaving use an In curve (easing.dev: In Cubic = GSAP power2.in). */
+const EXIT_EASE = "power2.in";
 const morphDuration = (seconds: number) => seconds / MORPH_SPEED;
 
 function isJunkFavicon(url: string | null | undefined): boolean {
@@ -282,10 +286,14 @@ export default function LinkDetailOverlay({
   }, [originRect]);
 
   const loginGated = requiresLoginPlaceholder(link.url);
+  const fallbackFavicon = !isJunkFavicon(link.faviconUrl)
+    ? link.faviconUrl
+    : (googleFaviconUrl(link.url, 128) ?? undefined);
+  const targetImage = link.imageUrl || fallbackFavicon;
   const storedPreview = loginGated
-    ? "/placeholder-unicorn.jpg"
-    : (getFeedImageUrl(link.imageUrl, 960) ??
-      getProxiedImageUrl(link.imageUrl));
+    ? placeholderImageFor(link.url)
+    : (getFeedImageUrl(targetImage, 960) ??
+      getProxiedImageUrl(targetImage));
   const previewSrc = previewOverride ?? storedPreview;
   const invertClass =
     !loginGated && brandThumbnailInvertInDark(link.url) ? "invert" : "";
@@ -352,11 +360,12 @@ export default function LinkDetailOverlay({
           opacity: 0,
           filter: "blur(6px)",
           duration: morphDuration(0.18),
+          ease: EXIT_EASE,
         },
         0,
       );
       if (chrome) {
-        tl.to(chrome, { opacity: 0, duration: morphDuration(0.16) }, 0);
+        tl.to(chrome, { opacity: 0, duration: morphDuration(0.16), ease: EXIT_EASE }, 0);
       }
 
       if (fly && origin) {
@@ -396,7 +405,7 @@ export default function LinkDetailOverlay({
       } else {
         tl.to(
           stage,
-          { opacity: 0, scale: 0.97, duration: morphDuration(0.22) },
+          { opacity: 0, scale: 0.97, duration: morphDuration(0.22), ease: EXIT_EASE },
           0,
         ).to(
           backdrop,
@@ -870,41 +879,17 @@ export default function LinkDetailOverlay({
                   </dl>
                 ) : null}
               </div>
-
-              <div className="flex w-full shrink-0 flex-col gap-2 md:w-[200px]">
-                <label className="flex flex-col gap-1 text-[11px] font-medium text-subtle">
-                  Move to group
-                  <select
-                    value={link.groupId}
-                    onChange={(e) => {
-                      const nextGroupId = e.target.value;
-                      if (nextGroupId === link.groupId) return;
-                      leave(() => onMove(link, nextGroupId));
-                    }}
-                    className={`rounded-[4px] border border-white/12 bg-black/25 px-2 py-2 text-sm text-foreground backdrop-blur-sm ${overlayFocus}`}
-                  >
-                    {groups.map((g) => (
-                      <option key={g.id} value={g.id}>
-                        {g.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <button
-                  ref={trashButtonRef}
-                  type="button"
-                  onClick={moveToTrash}
-                  disabled={trashing}
-                  aria-busy={trashing}
-                  className={`inline-flex min-h-11 items-center justify-center rounded-[4px] border border-danger/30 bg-danger/5 px-3 py-2 text-sm font-medium text-danger hover:bg-danger/10 disabled:opacity-50 sm:min-h-9 ${overlayFocus}`}
-                >
-                  {trashing ? "Moving…" : "Move to Trash"}
-                </button>
-                <p className="text-[11px] leading-snug text-subtle">
-                  You can restore it from Trash for 30 days.
-                </p>
-              </div>
             </div>
+            <DetailActionBar
+              ref={trashButtonRef}
+              groups={groups}
+              currentGroupId={link.groupId}
+              currentGroupName={groupName}
+              onMove={(groupId) => leave(() => onMove(link, groupId))}
+              onTrash={moveToTrash}
+              trashing={trashing}
+              focusClass={overlayFocus}
+            />
           </div>
         </div>
       </div>

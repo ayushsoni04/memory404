@@ -1,10 +1,8 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
 import type { ReactNode } from "react";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import ShortcutHelp from "@/components/vault/ShortcutHelp";
-import { ShortcutButton } from "@/components/vault/ShortcutButton";
 import VaultFeed from "@/components/vault/VaultFeed";
 
 vi.mock("@/components/MorphText", () => ({
@@ -27,33 +25,8 @@ afterEach(() => {
   cleanup();
 });
 
-describe("shortcut discovery", () => {
-  it("opens the shortcut list from a labeled control and returns focus", () => {
-    render(
-      <>
-        <ShortcutButton />
-        <ShortcutHelp />
-      </>,
-    );
-
-    const button = screen.getByRole("button", { name: "Keyboard shortcuts" });
-    expect(button.className).toContain("h-11");
-    expect(button.className).toContain("sm:h-8");
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-
-    button.focus();
-    fireEvent.click(button);
-    expect(
-      screen.getByRole("dialog", { name: "Keyboard shortcuts" }),
-    ).toBeInTheDocument();
-    expect(screen.getByText("Show these shortcuts")).toBeInTheDocument();
-
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
-    expect(button).toHaveFocus();
-  });
-
-  it("sits in the library header next to the link count", () => {
+describe("library header counter", () => {
+  it("shows the link count as a rolling counter instead of Search and Signal", () => {
     render(
       <VaultFeed
         groupToolbar={<div>Toolbar</div>}
@@ -82,10 +55,41 @@ describe("shortcut discovery", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "All Links" })).toBeInTheDocument();
-    expect(screen.getByText("3 links")).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: "Keyboard shortcuts" }),
-    ).toBeInTheDocument();
+    const header = screen.getByRole("heading", { name: "All Links" }).closest("header")!;
+    expect(header).toHaveTextContent("3 links");
+    expect(screen.queryByRole("button", { name: /Search/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: /Signal/ })).not.toBeInTheDocument();
+  });
+
+  it("counts only the open group's links", () => {
+    render(
+      <VaultFeed
+        groupToolbar={<div>Toolbar</div>}
+        openedGroupId="research"
+        openedGroup={{ id: "research", name: "Research", createdAt: "2026-01-01T00:00:00.000Z", linksCount: 12, previewTitles: [] }}
+        allLinksCount={3}
+        groupsError={null}
+        missingGroupNotice={null}
+        loadGroups={async () => undefined}
+        loadingLinks={false}
+        fetchError={null}
+        loadMoreError={null}
+        retryLoadMore={async () => undefined}
+        loadLinks={async () => undefined}
+        gridSize="default"
+        generalGroup={null}
+        saveLink={async () => ({ ok: false, error: "unused" })}
+        onLinkSaved={() => {}}
+        enteringLinkId={null}
+        sortedLinks={[]}
+        openLinkDetail={() => {}}
+        feedImageSizes="50vw"
+        hasMoreLinks={false}
+        sentinelRef={{ current: null }}
+        scrollRootRef={{ current: null }}
+      />,
+    );
+
+    expect(screen.getByText("12 links")).toBeInTheDocument();
   });
 });

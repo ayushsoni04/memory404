@@ -63,7 +63,6 @@ function renderPills(openedGroupId: string | null = "all") {
       groupInputWidth={96}
       sortBy="newest"
       setSortByAndPersist={() => {}}
-      loadGroups={async () => undefined}
       onDropLink={() => {}}
     />,
   );

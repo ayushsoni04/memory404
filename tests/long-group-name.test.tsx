@@ -76,7 +76,6 @@ describe("long group names", () => {
         groupInputWidth={96}
         sortBy="newest"
         setSortByAndPersist={() => {}}
-        loadGroups={async () => undefined}
       />,
     );
 
@@ -112,7 +111,6 @@ describe("long group names", () => {
         groupInputWidth={480}
         sortBy="newest"
         setSortByAndPersist={() => {}}
-        loadGroups={async () => undefined}
       />,
     );
 
@@ -125,7 +123,7 @@ describe("long group names", () => {
     expect(field.parentElement?.className).not.toContain("shrink-0");
   });
 
-  it("lets the library heading wrap instead of pushing the count off", () => {
+  it("lets the library heading wrap instead of pushing the counter off", () => {
     render(
       <VaultFeed
         groupToolbar={null}

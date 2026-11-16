@@ -62,6 +62,8 @@ type ProfileTabProps = {
   onRetryLoad?: () => void;
   onSaveProfile: (e: React.FormEvent) => void;
   onOpenDeactivateModal: () => void;
+  hasPassword?: boolean;
+  onPasswordSet?: () => void;
 };
 
 export function ProfileTab({
@@ -82,6 +84,8 @@ export function ProfileTab({
   onRetryLoad,
   onSaveProfile,
   onOpenDeactivateModal,
+  hasPassword = true,
+  onPasswordSet,
 }: ProfileTabProps) {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
@@ -454,7 +458,7 @@ export function ProfileTab({
       </div>
     </form>
 
-      <PasswordSection />
+      <PasswordSection hasPassword={hasPassword} onPasswordSet={onPasswordSet} />
 
       <ExtensionInstallCard variant="settings" />
 

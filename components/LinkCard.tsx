@@ -5,10 +5,12 @@ import { AppLoader } from "@/components/AppLoader";
 import DitheredPreview from "@/components/vault/DitheredPreview";
 import { FaviconImage } from "@/components/vault/FaviconImage";
 import MindCardActions from "@/components/vault/MindCardActions";
+import { CardStar } from "@/components/vault/CardStar";
 import { nextCardPreview } from "@/components/vault/preview-fallback";
 import {
   googleFaviconUrl,
   linkHostname,
+  placeholderImageFor,
   requiresLoginPlaceholder,
   type LinkApiRow,
 } from "@/lib/links";
@@ -53,7 +55,7 @@ function LinkCard({
   // Prefer placeholder for auth/LMS hosts even if a stale cache still has a
   // Cloudinary screenshot of a "please wait" interstitial.
   const resolvedImageUrl = loginGated
-    ? "/placeholder-unicorn.jpg"
+    ? placeholderImageFor(link.url)
     : (fallbackUrl ?? link.imageUrl);
   const feedSrc = getFeedImageUrl(resolvedImageUrl);
   const feedSrcSet = loginGated ? undefined : getFeedImageSrcSet(resolvedImageUrl);
@@ -98,7 +100,7 @@ function LinkCard({
           data-feed-card=""
           aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown Home End"
           aria-label={`Open details for ${link.displayTitle}`}
-          className="relative z-[1] block w-full cursor-pointer overflow-hidden rounded-[4px] text-left outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          className="relative z-[1] block w-full cursor-pointer overflow-hidden rounded-[var(--mind-card-radius)] text-left outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={(e) => {
             e.stopPropagation();
             openDetails();
@@ -165,15 +167,22 @@ function LinkCard({
               </DitheredPreview>
             )}
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
-            {faviconSrc ? (
-              <FaviconImage
-                key={faviconSrc}
-                src={faviconSrc}
-                size={28}
-                loading={priority ? "eager" : "lazy"}
-                className="pointer-events-none absolute bottom-3 left-3 z-[1] size-7 rounded-full object-cover shadow-[0_2px_6px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.08)]"
-              />
-            ) : null}
+            {/* Source pill: site icon + domain on a dark glass chip. The
+                letter placeholder already names the site, so skip it there. */}
+            {showMark ? null : (
+            <span className="card-source pointer-events-none absolute bottom-3 left-3 z-[1]">
+              {faviconSrc ? (
+                <FaviconImage
+                  key={faviconSrc}
+                  src={faviconSrc}
+                  size={20}
+                  loading={priority ? "eager" : "lazy"}
+                  className="size-5 shrink-0 rounded-full object-cover"
+                />
+              ) : null}
+              <span className="truncate">{host}</span>
+            </span>
+            )}
             {showLoader ? (
               <span className="absolute inset-0 flex items-center justify-center bg-black/30">
                 <AppLoader compact progressive label="capturing" />
@@ -181,6 +190,7 @@ function LinkCard({
             ) : null}
           </span>
         </div>
+        <CardStar linkId={link.id} title={link.displayTitle} />
         <MindCardActions url={link.url} host={host} />
       </div>
       <div className="mind-card-caption">

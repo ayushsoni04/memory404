@@ -26,6 +26,26 @@ export const WORKSPACE_LABS: WorkspaceLab[] = [
       "Preview VaultGroupToolbar on every screen, tweak values, copy a change prompt.",
     status: "ready",
   },
+  {
+    slug: "group-heading",
+    title: "Group heading",
+    description:
+      "Four ways to show the open group's name at the top of the library, side by side.",
+    status: "beta",
+  },
+  {
+    slug: "nixie",
+    title: "Nixie counter",
+    description:
+      "Your link count on three.js nixie tubes. Try how the digits change: slot, cascade, afterglow.",
+    status: "beta",
+  },
+  {
+    slug: "wordmark",
+    title: "Wordmark",
+    description: "memory 404 spray-painted in red over a justified serif paragraph.",
+    status: "beta",
+  },
 ];
 
 export function getLab(slug: string): WorkspaceLab | undefined {

@@ -314,3 +314,25 @@ describe("password settings", () => {
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
   });
 });
+
+describe("setting a first password", () => {
+  it("skips the current password for a Google-only account", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({ ok: true, json: async () => ({ ok: true }) });
+    vi.stubGlobal("fetch", fetchMock);
+    const onPasswordSet = vi.fn();
+    render(<PasswordSection hasPassword={false} onPasswordSet={onPasswordSet} />);
+
+    expect(screen.queryByLabelText("Current password")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("New password"), {
+      target: { value: "Brand-new-Pass1" },
+    });
+    fireEvent.change(screen.getByLabelText("Confirm new password"), {
+      target: { value: "Brand-new-Pass1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Set password" }));
+
+    await waitFor(() => expect(onPasswordSet).toHaveBeenCalled());
+    const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(body).toEqual({ currentPassword: "", newPassword: "Brand-new-Pass1" });
+  });
+});

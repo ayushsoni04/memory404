@@ -243,9 +243,8 @@ describe("leaving a link keeps the note", () => {
     fireEvent.change(screen.getByLabelText("Note"), {
       target: { value: "Take this to Reading" },
     });
-    fireEvent.change(screen.getByLabelText("Move to group"), {
-      target: { value: "reading" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Change group/ }));
+    fireEvent.click(screen.getByRole("menuitemradio", { name: "Reading" }));
 
     expect(onMove).not.toHaveBeenCalled();
     await waitFor(() =>

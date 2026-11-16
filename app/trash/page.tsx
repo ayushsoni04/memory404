@@ -180,7 +180,7 @@ export default function TrashPage() {
   const links = items.filter((i): i is TrashLinkItem => i.type === "link");
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="art-clear min-h-screen bg-background text-foreground">
       {/* Header */}
       <div className="border-b border-border bg-background/95 backdrop-blur-sm sticky top-0 z-10">
         <div className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-x-4 gap-y-3 px-6 py-4">

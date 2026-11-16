@@ -29,40 +29,30 @@ describe("nextGridSize", () => {
 });
 
 describe("GridSizeControl", () => {
-  it("uses one tab stop and arrow keys to change the layout", () => {
+  it("is one dial that turns between S, M and L with the arrow keys", () => {
     const setGridSizeAndPersist = vi.fn();
     const { rerender } = render(
       <GridSizeControl gridSize="default" setGridSizeAndPersist={setGridSizeAndPersist} />,
     );
 
-    const compact = screen.getByRole("radio", { name: "Compact grid" });
-    const medium = screen.getByRole("radio", { name: "Default grid" });
-    const large = screen.getByRole("radio", { name: "Large grid" });
-    expect(screen.getByRole("radiogroup", { name: "Grid layout" })).toBeInTheDocument();
-    expect(medium).toHaveAttribute("aria-checked", "true");
-    expect(medium).toHaveAttribute("tabindex", "0");
-    expect(compact).toHaveAttribute("tabindex", "-1");
-    expect(large).toHaveAttribute("tabindex", "-1");
-    expect(medium.className).toContain("focus-visible:ring-2");
-    expect(medium.className).toContain("h-11");
-    expect(medium.className).toContain("min-w-11");
-    expect(medium.className).toContain("sm:h-7");
-    expect(medium.className).toContain("sm:min-w-7");
+    const slider = screen.getByRole("slider", { name: "Grid size" });
+    expect(slider).toHaveAttribute("tabindex", "0");
+    expect(slider).toHaveAttribute("aria-valuemin", "0");
+    expect(slider).toHaveAttribute("aria-valuemax", "2");
+    expect(slider).toHaveAttribute("aria-valuenow", "1");
+    expect(slider).toHaveAttribute("aria-valuetext", "Default grid");
 
-    fireEvent.keyDown(medium, { key: "ArrowRight" });
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
     expect(setGridSizeAndPersist).toHaveBeenCalledWith("large");
-    expect(large).toHaveFocus();
 
     rerender(
       <GridSizeControl gridSize="large" setGridSizeAndPersist={setGridSizeAndPersist} />,
     );
-    fireEvent.keyDown(screen.getByRole("radio", { name: "Large grid" }), {
-      key: "ArrowRight",
-    });
-    expect(setGridSizeAndPersist).toHaveBeenCalledTimes(1);
-
-    fireEvent.keyDown(medium, { key: "Home" });
+    expect(slider).toHaveAttribute("aria-valuetext", "Large grid");
+    setGridSizeAndPersist.mockClear();
+    fireEvent.keyDown(slider, { key: "ArrowRight" });
+    expect(setGridSizeAndPersist).not.toHaveBeenCalled();
+    fireEvent.keyDown(slider, { key: "Home" });
     expect(setGridSizeAndPersist).toHaveBeenCalledWith("compact");
-    expect(compact).toHaveFocus();
   });
 });

@@ -1,0 +1,6 @@
+/* Geist Pixel (Square) for the wordmark; loaded in app/layout.tsx. */
+.font-pixel {
+  font-family: var(--font-geist-pixel-square), ui-monospace, monospace;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+}

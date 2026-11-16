@@ -2,14 +2,12 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import AuthDitherBackground from "@/components/auth/AuthDitherBackground";
 import GlitchText from "@/components/GlitchText";
 
-/** Centered brand mark on the auth dither field — for public sharing. */
+/** Centered brand mark over the page backdrop — for public sharing. */
 export default function BrandShowcase() {
   return (
-    <div className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-background p-6">
-      <AuthDitherBackground />
+    <div className="art-clear relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-background p-6">
       <Link
         href="/"
         aria-label="memory404"

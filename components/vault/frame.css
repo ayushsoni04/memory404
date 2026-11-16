@@ -1,0 +1,406 @@
+/*
+ * Page frame and dividers, after designeer.xyz:
+ * - hatched 16px gutters at both page edges, each with a solid 18% hairline
+ *   on its inner side;
+ * - every other divider is a 1px dashed line at 18% white;
+ * - section dividers inside the sidebar sit 10px in from the sides with 20px
+ *   above and below.
+ */
+:root {
+  --frame-line: rgb(255 255 255 / 0.18);
+  --frame-dash: 1px dashed var(--frame-line);
+  --frame-gutter: 16px;
+  --frame-hatch: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M-1 1l2-2M0 6l6-6M5 7l2-2' stroke='white' stroke-opacity='0.06'/%3E%3C/svg%3E");
+}
+
+/* A dashed rule between sidebar sections. */
+.frame-divider {
+  align-self: stretch;
+  height: 0;
+  margin: 4px 10px;
+  border: 0;
+  border-top: var(--frame-dash);
+}
+
+@media (min-width: 64rem) {
+  /* Room for the gutters: 16px of hatch, then the usual 16px of air. */
+  .vault-shell {
+    position: relative;
+    padding-inline-start: var(--frame-gutter) !important;
+    padding-inline-end: calc(var(--frame-gutter) + var(--layout-pad)) !important;
+    border-inline: 0 !important;
+  }
+
+  .vault-shell::before,
+  .vault-shell::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: var(--frame-gutter);
+    z-index: 50;
+    pointer-events: none;
+    background: var(--frame-hatch);
+  }
+
+  .vault-shell::before {
+    left: 0;
+    border-right: 1px solid var(--frame-line);
+  }
+
+  .vault-shell::after {
+    right: 0;
+    border-left: 1px solid var(--frame-line);
+  }
+
+  /* Sidebar edge: dashed, like every inner divider. */
+  .vault-sidebar > div {
+    border-inline-end: var(--frame-dash) !important;
+  }
+
+  /* The readout strip's rule runs from the sidebar edge to the frame line. */
+  html .sig-feed-meta {
+    position: relative;
+    overflow: visible;
+    border-bottom: 0;
+  }
+
+  html .sig-feed-meta::after {
+    content: "";
+    position: absolute;
+    left: calc(-1 * var(--layout-gap-section));
+    right: calc(-1 * var(--layout-pad));
+    bottom: 0;
+    border-top: var(--frame-dash);
+    pointer-events: none;
+  }
+}
+
+/* Sidebar footer (profile) gets the dashed rule too. */
+.vault-sidebar .sidebar-footer {
+  border-top: var(--frame-dash);
+}
+
+/* Tighter card rhythm, about 10px like designeer's grid. */
+.mind-grid {
+  --mind-card-gap: 0.625rem;
+}
+
+/* ── Sidebar structure (designeer) ───────────────────────────────────── */
+
+/* Logo row: full-bleed and 52px tall, level with the feed strip. */
+.sidebar-head {
+  display: flex;
+  align-items: center;
+  align-self: stretch;
+  height: 52px;
+  margin: calc(-1 * var(--layout-pad)) calc(-1 * var(--layout-pad)) 4px;
+  padding-inline: var(--layout-pad);
+  /* Meets the feed strip's rule so one dashed line runs across the top. */
+  border-bottom: var(--frame-dash);
+}
+
+.sidebar-blurb {
+  padding-inline: 8px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--foreground);
+}
+
+.sidebar-label {
+  padding-inline: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: rgb(139 139 146);
+}
+
+/* Footer: full-bleed dashed rule, like the head. */
+.vault-sidebar .sidebar-footer {
+  margin-inline: calc(-1 * var(--layout-pad));
+  padding-inline: var(--layout-pad);
+}
+
+/* Feed strip: 52px tall so its rule meets the sidebar head's. */
+@media (min-width: 40rem) {
+  html .sig-feed-meta {
+    display: flex;
+    align-items: center;
+    height: 52px;
+    margin-top: 0;
+    padding-bottom: 0;
+  }
+
+  html .sig-feed-meta > .sig-meta-row {
+    flex: 1;
+  }
+}
+
+/* ── Sidebar promo card ──────────────────────────────────────────────── */
+
+.sidebar-promo-card {
+  padding: 14px;
+  border-radius: 20px;
+  background: rgb(27 27 30 / 0.92);
+  border: 1px solid rgb(255 255 255 / 0.05);
+  animation: promo-in 260ms var(--ease-out) both;
+}
+
+@keyframes promo-in {
+  from {
+    opacity: 0;
+    translate: 0 4px;
+  }
+}
+
+.sidebar-promo-icon {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: var(--frame-dash);
+  color: var(--muted);
+}
+
+.sidebar-promo-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 32px;
+  margin-top: 12px;
+  border-radius: 999px;
+  background: rgb(16 16 18);
+  box-shadow:
+    0 4px 12px rgb(0 0 0 / 0.4),
+    inset 0 1px 0 rgb(255 255 255 / 0.06);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--foreground);
+  transition: background-color 160ms var(--ease-out), scale 160ms var(--ease-out);
+}
+
+.sidebar-promo-cta:hover {
+  background: rgb(30 30 34);
+}
+
+.sidebar-promo-cta:active {
+  scale: 0.98;
+}
+
+.sidebar-promo-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.25);
+  transition: width 220ms var(--ease-out), background-color 160ms var(--ease-out);
+}
+
+.sidebar-promo-dot[aria-current="true"] {
+  width: 18px;
+  background: var(--foreground);
+}
+
+/* ── Cards (designeer) ───────────────────────────────────────────────── */
+
+:root,
+html[data-art="signal"] {
+  --mind-card-radius: 20px !important;
+}
+
+.card-source {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: calc(100% - 7rem);
+  height: 30px;
+  padding: 0 11px 0 5px;
+  border-radius: 999px;
+  background: rgb(18 18 20 / 0.62);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  font-size: 12px;
+  font-weight: 500;
+  color: rgb(250 250 250);
+}
+
+.card-star {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgb(18 18 20 / 0.62);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.1);
+  color: rgb(250 250 250);
+  opacity: 0;
+  transition: opacity 160ms var(--ease-out), scale 160ms var(--ease-swift-out), color 160ms var(--ease-out);
+}
+
+.mind-card:hover .card-star,
+.card-star:focus-visible,
+.card-star[data-on] {
+  opacity: 1;
+}
+
+.card-star[data-on] {
+  color: rgb(255 214 102);
+}
+
+.card-star:active {
+  scale: 0.9;
+}
+
+@media (hover: none) {
+  .card-star {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-promo-card {
+    animation: none;
+  }
+}
+
+/* ── Spacing and chips (designeer) ──────────────────────────────────────
+ * 13px sentence-case labels on 26px pills, no outlines; idle pills are bare
+ * text, hover and the active one get a soft fill. Gaps follow a 4/8/10/16 step.
+ */
+@media (min-width: 40rem) {
+  html .vault-pill,
+  html button[aria-controls="sort-links-list"] {
+    height: 26px !important;
+    padding-inline: 11px !important;
+    border-color: transparent !important;
+    font-family: var(--font-display), ui-sans-serif, sans-serif !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    letter-spacing: 0 !important;
+    text-transform: none !important;
+    -webkit-font-smoothing: antialiased !important;
+  }
+
+  html .vault-pill:not(.bg-pill-active),
+  html button[aria-controls="sort-links-list"] {
+    background-color: transparent !important;
+    color: rgb(168 168 173) !important;
+  }
+
+  html .vault-pill:not(.bg-pill-active):hover,
+  html button[aria-controls="sort-links-list"]:hover {
+    background-color: rgb(255 255 255 / 0.06) !important;
+    color: rgb(250 250 250) !important;
+  }
+
+  html .vault-pill.bg-pill-active {
+    background-color: rgb(255 255 255 / 0.1) !important;
+    color: rgb(250 250 250) !important;
+  }
+
+  html [data-pill-row] {
+    gap: 4px !important;
+  }
+}
+
+/* Card captions: one quiet line, 8px under the image. */
+.mind-card-title {
+  margin-top: 8px !important;
+  font-size: 13px !important;
+  line-height: 1.45 !important;
+  color: rgb(250 250 250 / 0.82) !important;
+}
+
+/* The feed's readout words are gone; the 52px bar stays for the top rule. */
+html .sig-feed-meta > .sig-meta-row {
+  visibility: hidden;
+}
+
+/* ── Card captions only on hover (designeer) ─────────────────────────────
+ * Nothing is written under the cards. On hover the title (and note) fades in
+ * over the bottom of the image on a soft dark gradient, above the source pill.
+ */
+.mind-card {
+  position: relative;
+}
+
+.mind-card .mind-card-caption {
+  position: absolute;
+  inset-inline: 0;
+  bottom: var(--mind-card-gap, 0.625rem);
+  z-index: 2;
+  padding: 56px 14px 50px;
+  border-radius: 0 0 var(--mind-card-radius) var(--mind-card-radius);
+  background: linear-gradient(to top, rgb(0 0 0 / 0.78), rgb(0 0 0 / 0.42) 55%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  translate: 0 6px;
+  transition:
+    opacity 180ms var(--ease-out),
+    translate 220ms var(--ease-out);
+}
+
+.mind-card:hover .mind-card-caption,
+.mind-card:focus-within .mind-card-caption {
+  opacity: 1;
+  translate: 0 0;
+}
+
+.mind-card .mind-card-caption .mind-card-title {
+  margin-top: 0 !important;
+  padding-inline: 0 !important;
+  font-weight: 500;
+  color: rgb(255 255 255) !important;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.mind-card .mind-card-caption p + p {
+  padding-inline: 0 !important;
+  color: rgb(255 255 255 / 0.72) !important;
+}
+
+/* Touch screens can't hover: keep a compact caption visible. */
+@media (hover: none) {
+  .mind-card .mind-card-caption {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mind-card .mind-card-caption {
+    transition: none;
+  }
+}
+
+/* ── Edge spacing (designeer) ────────────────────────────────────────────
+ * 16px from each dividing line to the content, ~10px between cards in every
+ * grid size.
+ */
+.mind-grid,
+.mind-grid[data-grid-size] {
+  --mind-card-gap: 10px !important;
+}
+
+@media (min-width: 64rem) {
+  .vault-shell {
+    column-gap: 16px !important;
+    padding-inline-end: var(--frame-gutter) !important;
+  }
+
+  /* The strip's rule now ends where the main column ends: on the frame line. */
+  html .sig-feed-meta::after {
+    left: -16px;
+    right: 0;
+  }
+}

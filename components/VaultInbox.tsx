@@ -7,6 +7,7 @@ import CommandPalette from "@/components/CommandPalette";
 import { ExtensionErrorBanner } from "@/components/ExtensionErrorBanner";
 import LinkDetailOverlay from "@/components/LinkDetailOverlay";
 import { useAddLinkFlow } from "./vault/useAddLinkFlow";
+import { useLibraryAutoRefresh } from "./vault/useLibraryAutoRefresh";
 import { useLinkActions } from "./vault/useLinkActions";
 import { useVaultGroups } from "./vault/useVaultGroups";
 import { useVaultLinks } from "./vault/useVaultLinks";
@@ -18,6 +19,7 @@ import UndoNotice from "./vault/UndoNotice";
 import VaultColumns from "./vault/VaultColumns";
 import VaultFeed from "./vault/VaultFeed";
 import VaultSidebar from "./vault/VaultSidebar";
+import "./vault/frame.css";
 import type { InitialVaultData } from "./vault/types";
 
 const VaultGroupToolbar = dynamic(() => import("./vault/VaultGroupToolbar"), {
@@ -225,6 +227,19 @@ export default function VaultInbox({
     setGroupTrashError(result.error);
   };
 
+  // No Refresh button: the library reloads itself, but never under an open
+  // dialog, a drag or a save in flight.
+  useLibraryAutoRefresh({
+    loadGroups,
+    loadLinks,
+    paused:
+      Boolean(openedLink) ||
+      paletteOpen ||
+      Boolean(groupPendingTrash) ||
+      draggingGroupId !== null ||
+      saving,
+  });
+
   const handleFeedLinkSaved = useCallback(
     (row: (typeof sortedLinks)[number]) => {
       setNewCardId(row.id);
@@ -251,7 +266,7 @@ export default function VaultInbox({
       <div
         ref={pageRef}
         inert={openedLink ? true : undefined}
-        className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-x-0 lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0 min-[1712px]:border-x min-[1712px]:border-border"
+        className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0 min-[1712px]:border-x min-[1712px]:border-border"
       >
       <VaultColumns
         sidebar={
@@ -317,9 +332,6 @@ export default function VaultInbox({
               groupInputWidth={groupInputWidth}
               sortBy={sortBy}
               setSortByAndPersist={setSortByAndPersist}
-              loadGroups={loadGroups}
-              loadLinks={loadLinks}
-              onOpenSearch={() => setPaletteOpen(true)}
               onDropLink={(linkId, groupId) => {
                 const link = links.find((item) => item.id === linkId);
                 if (!link) return;
@@ -327,6 +339,8 @@ export default function VaultInbox({
               }}
             />
           }
+          groupOrder={filteredFolders}
+          onOpenSearch={() => setPaletteOpen(true)}
           openedGroupId={openedGroupId}
           openedGroup={openedGroup}
           allLinksCount={allLinksCount}

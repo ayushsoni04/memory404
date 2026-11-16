@@ -159,7 +159,7 @@ export function TrashLinkRow({
             unoptimized
             className="size-8 shrink-0 rounded-lg object-cover"
             onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-unicorn.jpg";
+              (e.target as HTMLImageElement).src = "/placeholders/dither-1.png";
             }}
           />
         }

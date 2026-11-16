@@ -38,7 +38,6 @@ function renderCreator(createGroup: () => Promise<void>) {
       groupInputWidth={120}
       sortBy="newest"
       setSortByAndPersist={() => {}}
-      loadGroups={async () => undefined}
     />,
   );
 }

@@ -1,0 +1,50 @@
+/* Custom cursor (components/CustomCursor.tsx). Hide the system arrow only
+   where ours is drawn; text fields keep their I-beam. */
+html[data-cursor="custom"],
+html[data-cursor="custom"] *:not(input):not(textarea):not([contenteditable="true"]) {
+  cursor: none !important;
+}
+
+.m404-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147483647;
+  pointer-events: none;
+  translate: -100px -100px;
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.45));
+  opacity: 0;
+  transition: opacity 120ms var(--ease-out);
+}
+
+.m404-cursor[data-visible="true"] {
+  opacity: 1;
+}
+
+.m404-cursor[data-hidden="true"] {
+  opacity: 0;
+}
+
+/* The arrow tip sits on the pointer; grow and press from there. */
+.m404-cursor svg {
+  display: block;
+  margin: -3px 0 0 -3px;
+  transform-origin: 3px 3px;
+  transition: scale 160ms var(--ease-swift-out);
+}
+
+.m404-cursor[data-hover="true"] svg {
+  scale: 1.25;
+}
+
+.m404-cursor[data-down="true"] svg {
+  scale: 0.85;
+  transition-duration: 80ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .m404-cursor,
+  .m404-cursor svg {
+    transition: none;
+  }
+}

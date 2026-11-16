@@ -52,7 +52,6 @@ describe("VaultGroupToolbar create error", () => {
         groupInputWidth={120}
         sortBy="newest"
         setSortByAndPersist={() => {}}
-        loadGroups={async () => undefined}
       />,
     );
 
@@ -94,7 +93,6 @@ describe("VaultGroupToolbar create error", () => {
           groupInputWidth={120}
           sortBy="newest"
           setSortByAndPersist={() => {}}
-          loadGroups={async () => undefined}
         />
       );
     }
@@ -149,7 +147,6 @@ describe("VaultGroupToolbar create error", () => {
           groupInputWidth={120}
           sortBy="newest"
           setSortByAndPersist={() => {}}
-          loadGroups={async () => undefined}
         />
       );
     }

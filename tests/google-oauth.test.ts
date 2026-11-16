@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   googleAuthStartUrl,
   issueExtensionExchangeCode,
@@ -34,5 +34,18 @@ describe("google oauth helpers", () => {
     const payload = await consumeExtensionExchangeCode(code);
     expect(payload).toEqual({ userId: "user-1", sessionVersion: 3 });
     expect(await consumeExtensionExchangeCode("not-a-jwt")).toBeNull();
+  });
+});
+
+describe("googleOAuthConfigured", () => {
+  it("ignores placeholder credentials", async () => {
+    const { googleOAuthConfigured } = await import("@/lib/google-oauth");
+    vi.stubEnv("GOOGLE_CLIENT_ID", "xxxxxxxx.apps.googleusercontent.com");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "GOCSPX-xxxxxxxx");
+    expect(googleOAuthConfigured()).toBe(false);
+    vi.stubEnv("GOOGLE_CLIENT_ID", "1234567890-abc123def456.apps.googleusercontent.com");
+    vi.stubEnv("GOOGLE_CLIENT_SECRET", "GOCSPX-Ab12Cd34Ef56Gh78");
+    expect(googleOAuthConfigured()).toBe(true);
+    vi.unstubAllEnvs();
   });
 });

@@ -15,3 +15,4 @@ export function nextGridSize(current: GridSize, key: string): GridSize | null {
   if (next < 0 || next >= ORDER.length || next === index) return null;
   return ORDER[next] ?? null;
 }
+

@@ -21,7 +21,7 @@ export default function AuthDitherBackground() {
 
   return (
     <div
-      className="pointer-events-none absolute inset-0 overflow-hidden"
+      className="auth-dither pointer-events-none absolute inset-0 overflow-hidden"
       aria-hidden
     >
       <Dithering

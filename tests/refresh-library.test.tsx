@@ -1,17 +1,17 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { cleanup, render, renderHook, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import VaultGroupToolbar from "@/components/vault/VaultGroupToolbar";
+import {
+  LIBRARY_REFRESH_MS,
+  useLibraryAutoRefresh,
+} from "@/components/vault/useLibraryAutoRefresh";
 import type { GroupRow } from "@/components/vault/types";
 
 vi.mock("@/lib/ui-sound", () => ({
   playUiSound: vi.fn(),
 }));
-
-afterEach(() => {
-  cleanup();
-});
 
 const folders: GroupRow[] = [
   {
@@ -23,17 +23,45 @@ const folders: GroupRow[] = [
   },
 ];
 
-describe("library refresh", () => {
-  it("runs one refresh at a time and stops spinning when it finishes", async () => {
-    let release: () => void = () => {};
-    const loadLinks = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          release = resolve;
-        }),
-    );
-    const loadGroups = vi.fn(async () => undefined);
+function setVisibility(state: "visible" | "hidden") {
+  Object.defineProperty(document, "visibilityState", {
+    configurable: true,
+    get: () => state,
+  });
+}
 
+function setOnline(online: boolean) {
+  Object.defineProperty(navigator, "onLine", {
+    configurable: true,
+    get: () => online,
+  });
+}
+
+beforeEach(() => {
+  vi.useFakeTimers();
+  setVisibility("visible");
+  setOnline(true);
+});
+
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+  document.body.innerHTML = "";
+});
+
+function setup(paused = false) {
+  const loadGroups = vi.fn(async () => undefined);
+  const loadLinks = vi.fn(async () => undefined);
+  const view = renderHook(
+    (props: { paused: boolean }) =>
+      useLibraryAutoRefresh({ loadGroups, loadLinks, paused: props.paused }),
+    { initialProps: { paused } },
+  );
+  return { loadGroups, loadLinks, ...view };
+}
+
+describe("library auto refresh", () => {
+  it("has no Refresh button in the group bar", () => {
     render(
       <VaultGroupToolbar
         openedGroupId="all"
@@ -59,144 +87,108 @@ describe("library refresh", () => {
         groupInputWidth={96}
         sortBy="newest"
         setSortByAndPersist={() => {}}
-        loadGroups={loadGroups}
-        loadLinks={loadLinks}
         onDropLink={() => {}}
       />,
     );
-
-    const refresh = screen.getByRole("button", { name: "Refresh" });
-    expect(refresh.querySelector("svg")?.getAttribute("class")).toContain(
-      "motion-reduce:animate-none",
-    );
-
-    fireEvent.click(refresh);
-    fireEvent.click(refresh);
-
-    expect(loadLinks).toHaveBeenCalledOnce();
-    expect(loadGroups).toHaveBeenCalledOnce();
-    expect(refresh).toBeDisabled();
-    expect(refresh).toHaveAttribute("aria-busy", "true");
-    expect(refresh.querySelector("svg")?.getAttribute("class")).toContain("animate-spin");
-
-    release();
-    await waitFor(() => {
-      expect(refresh).toBeEnabled();
-    });
-    expect(refresh).not.toHaveAttribute("aria-busy");
+    expect(screen.queryByRole("button", { name: "Refresh" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Sort links/ })).toBeInTheDocument();
   });
 
-  it("says the library is refreshing, then updated, and returns to Refresh", async () => {
+  it("reloads groups and links on every interval", async () => {
+    const { loadGroups, loadLinks } = setup();
+    expect(loadLinks).not.toHaveBeenCalled();
+
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadGroups).toHaveBeenCalledTimes(1);
+    expect(loadLinks).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadGroups).toHaveBeenCalledTimes(2);
+    expect(loadLinks).toHaveBeenCalledTimes(2);
+  });
+
+  it("waits while the tab is hidden, then catches up when it returns", async () => {
+    const { loadLinks } = setup();
+    setVisibility("hidden");
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS * 3);
+    expect(loadLinks).not.toHaveBeenCalled();
+
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(loadLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not reload again when the tab returns after a short glance away", async () => {
+    const { loadLinks } = setup();
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).toHaveBeenCalledTimes(1);
+
+    setVisibility("hidden");
+    await vi.advanceTimersByTimeAsync(5_000);
+    setVisibility("visible");
+    document.dispatchEvent(new Event("visibilitychange"));
+    expect(loadLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it("skips while offline and catches up when the connection returns", async () => {
+    const { loadLinks } = setup();
+    setOnline(false);
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS * 2);
+    expect(loadLinks).not.toHaveBeenCalled();
+
+    setOnline(true);
+    window.dispatchEvent(new Event("online"));
+    expect(loadLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it("holds off while paused or while you are typing", async () => {
+    const { loadLinks, rerender } = setup(true);
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).not.toHaveBeenCalled();
+
+    rerender({ paused: false });
+    const field = document.createElement("input");
+    document.body.append(field);
+    field.focus();
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).not.toHaveBeenCalled();
+
+    field.blur();
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).toHaveBeenCalledTimes(1);
+  });
+
+  it("runs one reload at a time, and keeps going after a failed one", async () => {
     let release: () => void = () => {};
-    const loadLinks = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          release = resolve;
-        }),
-    );
+    const loadGroups = vi.fn(async () => undefined);
+    const loadLinks = vi
+      .fn<() => Promise<void>>()
+      .mockImplementationOnce(
+        () =>
+          new Promise<void>((resolve) => {
+            release = resolve;
+          }),
+      )
+      .mockRejectedValueOnce(new Error("Failed to load links"))
+      .mockResolvedValue(undefined);
+    renderHook(() => useLibraryAutoRefresh({ loadGroups, loadLinks }));
 
-    render(
-      <VaultGroupToolbar
-        openedGroupId="all"
-        selectGroup={() => {}}
-        generalGroup={{ ...folders[0], id: "general", name: "General" }}
-        filteredFolders={folders}
-        draggingGroupId={null}
-        setDraggingGroupId={() => {}}
-        persistFolderOrder={() => {}}
-        canReorderPills={false}
-        handleDeleteGroup={() => {}}
-        addingAt={null}
-        createGroupName=""
-        setCreateGroupName={() => {}}
-        creatingGroup={false}
-        createGroupError={null}
-        setCreateGroupError={() => {}}
-        createGroup={async () => undefined}
-        openAddGroup={() => {}}
-        cancelAddGroup={() => {}}
-        groupInputRef={{ current: null }}
-        groupSizerRef={{ current: null }}
-        groupInputWidth={96}
-        sortBy="newest"
-        setSortByAndPersist={() => {}}
-        loadGroups={async () => undefined}
-        loadLinks={loadLinks}
-      />,
-    );
-
-    const refresh = screen.getByRole("button", { name: "Refresh" });
-    refresh.focus();
-    fireEvent.click(refresh);
-
-    expect(screen.getByRole("status")).toHaveTextContent("Refreshing your library…");
-    expect(refresh).toBeDisabled();
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).toHaveBeenCalledTimes(1);
 
     release();
-    await waitFor(() => {
-      expect(refresh).toBeEnabled();
-    });
-    expect(screen.getByRole("status")).toHaveTextContent("Library updated");
-    expect(refresh).toHaveFocus();
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).toHaveBeenCalledTimes(2);
+
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS);
+    expect(loadLinks).toHaveBeenCalledTimes(3);
   });
 
-  it("stays quiet when the refresh fails, and leaves a control you already moved to", async () => {
-    const loadLinks = vi.fn(async () => {
-      throw new Error("offline");
-    });
-    let releaseGroups: () => void = () => {};
-    const loadGroups = vi.fn(
-      () =>
-        new Promise<void>((resolve) => {
-          releaseGroups = resolve;
-        }),
-    );
-
-    render(
-      <VaultGroupToolbar
-        openedGroupId="all"
-        selectGroup={() => {}}
-        generalGroup={{ ...folders[0], id: "general", name: "General" }}
-        filteredFolders={folders}
-        draggingGroupId={null}
-        setDraggingGroupId={() => {}}
-        persistFolderOrder={() => {}}
-        canReorderPills={false}
-        handleDeleteGroup={() => {}}
-        addingAt={null}
-        createGroupName=""
-        setCreateGroupName={() => {}}
-        creatingGroup={false}
-        createGroupError={null}
-        setCreateGroupError={() => {}}
-        createGroup={async () => undefined}
-        openAddGroup={() => {}}
-        cancelAddGroup={() => {}}
-        groupInputRef={{ current: null }}
-        groupSizerRef={{ current: null }}
-        groupInputWidth={96}
-        sortBy="newest"
-        setSortByAndPersist={() => {}}
-        loadGroups={loadGroups}
-        loadLinks={loadLinks}
-      />,
-    );
-
-    const refresh = screen.getByRole("button", { name: "Refresh" });
-    refresh.focus();
-    fireEvent.click(refresh);
-    const other = document.createElement("button");
-    other.textContent = "Search";
-    document.body.appendChild(other);
-    other.focus();
-    releaseGroups();
-
-    await waitFor(() => {
-      expect(refresh).toBeEnabled();
-    });
-    expect(screen.getByRole("status")).not.toHaveTextContent("Library updated");
-    expect(screen.getByRole("status")).not.toHaveTextContent("Refreshing");
-    expect(other).toHaveFocus();
-    other.remove();
+  it("stops when the library unmounts", async () => {
+    const { loadLinks, unmount } = setup();
+    unmount();
+    await vi.advanceTimersByTimeAsync(LIBRARY_REFRESH_MS * 2);
+    expect(loadLinks).not.toHaveBeenCalled();
   });
 });

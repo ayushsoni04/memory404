@@ -1,0 +1,107 @@
+/* Grid dial: reveal both arcs while anywhere on the dial (or dragging onto it). */
+.grid-dial-wrap:is(:hover, :focus-within, [data-open]) .grid-dial-arc .grid-dial-track,
+.grid-dial-wrap:is(:hover, :focus-within, [data-open]) .grid-dial-arc .grid-dial-item {
+  opacity: 1;
+  scale: 1;
+  transition:
+    opacity 180ms var(--ease-out) calc(var(--i, 0) * 45ms),
+    scale 260ms var(--ease-swift-out) calc(var(--i, 0) * 45ms);
+}
+
+/* Shortcut icons on the lower arc follow the same fan-out. */
+.grid-dial-action {
+  opacity: 0;
+  scale: 0.72;
+  transition:
+    opacity 120ms var(--ease-in),
+    scale 140ms var(--ease-in),
+    color 160ms var(--ease-out);
+}
+
+.grid-dial-wrap:is(:hover, :focus-within, [data-open]) .grid-dial-action {
+  opacity: 1;
+  scale: 1;
+  transition:
+    opacity 180ms var(--ease-out) calc(var(--i, 0) * 45ms),
+    scale 260ms var(--ease-swift-out) calc(var(--i, 0) * 45ms),
+    color 160ms var(--ease-out);
+}
+
+.grid-dial-seg-drop {
+  fill: rgb(239 68 68 / 0.18);
+  stroke: rgb(239 68 68 / 0.45);
+}
+
+@media (hover: none) {
+  .grid-dial-action {
+    opacity: 1;
+    scale: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-dial-action {
+    transition: none;
+  }
+}
+
+/* Open state: grid glyph → ×, and a dashed ring around the knob. */
+.grid-dial-glyph,
+.grid-dial-close {
+  transition:
+    opacity 160ms var(--ease-out),
+    rotate 260ms var(--ease-swift-out),
+    scale 260ms var(--ease-swift-out);
+}
+
+.grid-dial-close {
+  opacity: 0;
+  rotate: -90deg;
+  scale: 0.6;
+}
+
+.grid-dial-wrap:is(:hover, :focus-within, [data-open]) .grid-dial-glyph {
+  opacity: 0;
+  rotate: 90deg;
+  scale: 0.6;
+}
+
+.grid-dial-wrap:is(:hover, :focus-within, [data-open]) .grid-dial-close {
+  opacity: 1;
+  rotate: 0deg;
+  scale: 1;
+}
+
+.grid-dial-well::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: 999px;
+  border: 2px dashed rgb(255 255 255 / 0.7);
+  opacity: 0;
+  scale: 0.85;
+  transition:
+    opacity 180ms var(--ease-out),
+    scale 260ms var(--ease-swift-out);
+}
+
+.grid-dial-wrap:is(:hover, :focus-within, [data-open]) .grid-dial-well::after {
+  opacity: 1;
+  scale: 1;
+  animation: dial-ring-spin 12s linear infinite;
+}
+
+@keyframes dial-ring-spin {
+  to {
+    rotate: 360deg;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-dial-glyph,
+  .grid-dial-close,
+  .grid-dial-well::after {
+    transition: none;
+    animation: none !important;
+  }
+}

@@ -1,0 +1,579 @@
+/*
+ * Signal: the app's look. Always on (the root layout renders
+ * <html data-art="signal">); data-tone="mono" drains the colours.
+ *
+ * A grainy eclipse-poster style: sky haze over ink, film grain, wide-tracked
+ * pixel-mono readouts, outlined pills and big tight statement type.
+ *
+ * Almost everything is driven by the colour tokens, so every page follows.
+ * This file is unlayered on purpose: it must win over Tailwind utilities.
+ */
+
+/* Decorative pieces that only exist in the Signal style. */
+.art-only {
+  display: none;
+}
+
+/* Small eclipse mark. */
+.art-toggle-orb {
+  flex: none;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: linear-gradient(180deg, #a9c8f0 0%, #3f66cc 38%, #04050a 72%);
+  box-shadow:
+    0 0 0 1px #1f7a4c,
+    0 0 0 2.5px #ee6a3a;
+}
+
+/* ── Tokens ──────────────────────────────────────────────────────────── */
+
+html[data-art="signal"] {
+  --sig-sky: #a9c8f0;
+  --sig-blue: #5a86de;
+  --sig-cobalt: #2c4cb6;
+  --sig-navy: #101c52;
+  --sig-ink: #04050a;
+  --sig-green: #1f7a4c;
+  --sig-orange: #ee6a3a;
+  --sig-coral: #f4a18b;
+  --sig-lilac: #cdb9ee;
+  --sig-wide: var(--font-wide), "Archivo", "Arial Black", ui-sans-serif, sans-serif;
+  --sig-mono: var(--font-departure), ui-monospace, monospace;
+
+  --background: #04050a;
+  --foreground: #f5f7fc;
+  --surface: #090b13;
+  --surface-elevated: #0e111c;
+  --subtle: #8b93aa;
+  --muted: #bcc4d8;
+  --border: rgba(255, 255, 255, 0.14);
+  --border-strong: rgba(255, 255, 255, 0.32);
+  --pill: rgba(255, 255, 255, 0.07);
+  --pill-hover: rgba(255, 255, 255, 0.15);
+  --pill-active: #ffffff;
+  --pill-active-fg: #04050a;
+  --focus: #ffffff;
+  --danger: #ff8466;
+  --success: #6fdc9f;
+  --studio-stage: #030408;
+  --mind-card-radius: 2px;
+  --glow-opacity: 0.9;
+}
+
+html[data-art="signal"] ::selection {
+  background: var(--sig-orange);
+  color: var(--sig-ink);
+}
+
+html[data-art="signal"] * {
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+
+/* ── Page backdrop: sky haze on top, eclipse rim on the horizon ──────── */
+
+/* One definition, so the sticky group bar can paint the exact same sky. */
+html[data-art="signal"] {
+  --sig-backdrop:
+    radial-gradient(
+      110% 60% at 58% -14%,
+      rgba(140, 180, 240, 0.5) 0%,
+      rgba(70, 110, 215, 0.3) 34%,
+      rgba(31, 58, 156, 0.13) 58%,
+      transparent 78%
+    ),
+    var(--sig-ink);
+}
+
+html[data-art="signal"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--sig-backdrop);
+}
+
+/* Film grain over everything. A small tile, so it costs one raster. */
+html[data-art="signal"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+  pointer-events: none;
+  opacity: 0.14;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  1.5 0 0 0 -.62'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 220px 220px;
+}
+
+/* Page wrappers step aside so the backdrop shows through. */
+html[data-art="signal"] .art-clear {
+  background-color: transparent;
+}
+
+html[data-art="signal"] .auth-dither {
+  display: none;
+}
+
+/* ── Sidebar poster ──────────────────────────────────────────────────── */
+
+html[data-art="signal"] .sidebar-dither {
+  display: none;
+}
+
+/*
+ * The sidebar shares the page backdrop, so it and the feed read as one
+ * continuous surface. The poster layer now only carries the readouts.
+ */
+html[data-art="signal"] .vault-sidebar > div {
+  background-color: transparent;
+}
+
+html[data-art="signal"] .sig-poster {
+  display: block;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  border-radius: inherit;
+}
+
+html[data-art="signal"] .sig-poster-orb,
+html[data-art="signal"] .sig-poster-grid {
+  display: none;
+}
+
+html .sig-meta-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  white-space: nowrap;
+}
+
+html .sig-poster-meta,
+html[data-art="signal"] .sig-poster-mark {
+  display: none;
+}
+
+@media (min-width: 64rem) {
+  html .sig-poster-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+    position: absolute;
+    top: 116px;
+    left: var(--layout-pad);
+    right: var(--layout-pad);
+    font-family: var(--font-departure), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.86);
+    -webkit-font-smoothing: none;
+  }
+}
+
+/* The mark needs room between the readouts and the rim. */
+@media (min-width: 64rem) and (min-height: 740px) {
+  html[data-art="signal"] .sig-poster-mark {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: absolute;
+    top: calc(50% - 188px);
+    left: 0;
+    right: 0;
+    transition: opacity var(--duration-panel) var(--ease-out);
+  }
+}
+
+/*
+ * Halftone 404. A blurred copy of the glyphs is multiplied by a dot screen,
+ * then brightness and hard contrast snap it to pure dots whose size follows
+ * the glow: merged near the letters, vanishing further out. The crisp copy
+ * on top keeps the letterforms solid.
+ */
+html[data-art="signal"] .sig-mark {
+  position: relative;
+  width: 232px;
+  height: 110px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #000;
+  filter: brightness(3.4) contrast(24);
+  mix-blend-mode: screen;
+}
+
+html[data-art="signal"] .sig-mark::before,
+html[data-art="signal"] .sig-mark::after {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--sig-wide);
+  font-stretch: 125%;
+  font-weight: 900;
+  font-size: 54px;
+  line-height: 1;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+html[data-art="signal"] .sig-mark::before {
+  text-shadow: 0 0 22px #fff;
+  filter: blur(14px);
+}
+
+html[data-art="signal"] .sig-mark::after {
+  z-index: 1;
+}
+
+html[data-art="signal"] .sig-mark-dots {
+  position: absolute;
+  inset: -60%;
+  background: radial-gradient(circle at center, #fff 0, #000 74%) 0 0 / 6px 6px;
+  transform: rotate(45deg);
+  mix-blend-mode: multiply;
+}
+
+/* Outlined pill badge in the wide face, with the poster's double stroke. */
+html[data-art="signal"] .sig-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 2px solid #fff;
+  border-radius: 999px;
+  box-shadow:
+    inset 0 0 0 2px var(--sig-ink),
+    inset 0 0 0 3px rgba(255, 255, 255, 0.85);
+  background: var(--sig-ink);
+  font-family: var(--sig-wide);
+  font-stretch: 125%;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #fff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+html[data-art="signal"] .sig-badge {
+  margin-top: 12px;
+  padding: 8px 15px 7px;
+  font-size: 10px;
+}
+
+/* Sidebar size buttons get the same outline as the feed's pills. */
+html[data-art="signal"] .vault-sidebar [role="radio"]:not([aria-checked="true"]) {
+  border: 1px solid rgba(255, 255, 255, 0.24);
+}
+
+html[data-art="signal"] .vault-sidebar [role="radio"]:not([aria-checked="true"]):hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+/* ── Library header ──────────────────────────────────────────────────── */
+
+@media (min-width: 40rem) {
+  html .sig-feed-meta {
+    display: block;
+    flex: none;
+    margin-top: max(0.875rem, env(safe-area-inset-top));
+    padding-bottom: 9px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+    font-family: var(--font-departure), ui-monospace, monospace;
+    font-size: 11px;
+    line-height: 1;
+    letter-spacing: 0.02em;
+    color: rgba(255, 255, 255, 0.72);
+    -webkit-font-smoothing: none;
+  }
+
+  html .vault-header {
+    padding-top: 1.75rem;
+  }
+}
+
+/* Room under the heading for the next group's name to fade out in. */
+html .vault-header {
+  padding-bottom: 1rem;
+}
+
+/* The group name and the link counter share one centre line. */
+@media (min-width: 64rem) {
+  html[data-art="signal"] .vault-header {
+    align-items: center;
+  }
+}
+
+/*
+ * The sticky group bar. At rest it is clear, so the header and the bar read as
+ * one stretch of sky. Its tint (and the shadow under it) ease in over the
+ * first few pixels of scrolling, once links start passing beneath.
+ * Fallback, and phones where the page itself scrolls: a soft-topped tint.
+ */
+/*
+ * The bar paints the page sky itself, pinned to the viewport like the
+ * backdrop, so it matches the header above exactly and hides the cards that
+ * scroll under it instead of tinting them.
+ */
+html[data-art="signal"] #vault-feed .sticky.backdrop-blur-md {
+  background: var(--sig-backdrop);
+  background-attachment: fixed;
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+/*
+ * Below the bar, cards dissolve into the sky instead of meeting a hard edge:
+ * the same fixed backdrop continues past the bar and fades out on an eased
+ * curve, so there is no line where it stops.
+ */
+html[data-art="signal"] #vault-feed .sticky.backdrop-blur-md::after {
+  /* Always on where it can't fade in with scrolling, so keep it short there. */
+  height: 32px;
+  background: var(--sig-backdrop);
+  background-attachment: fixed;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    rgb(0 0 0 / 0.94) 12%,
+    rgb(0 0 0 / 0.82) 24%,
+    rgb(0 0 0 / 0.64) 38%,
+    rgb(0 0 0 / 0.44) 52%,
+    rgb(0 0 0 / 0.26) 66%,
+    rgb(0 0 0 / 0.12) 80%,
+    rgb(0 0 0 / 0.04) 91%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #000 0%,
+    rgb(0 0 0 / 0.94) 12%,
+    rgb(0 0 0 / 0.82) 24%,
+    rgb(0 0 0 / 0.64) 38%,
+    rgb(0 0 0 / 0.44) 52%,
+    rgb(0 0 0 / 0.26) 66%,
+    rgb(0 0 0 / 0.12) 80%,
+    rgb(0 0 0 / 0.04) 91%,
+    transparent 100%
+  );
+}
+
+@supports (animation-timeline: scroll()) {
+  @media (min-width: 64rem) {
+    html[data-art="signal"] #vault-feed .sticky.backdrop-blur-md::after {
+      height: 72px;
+      animation: sig-bar-shadow linear both;
+      animation-timeline: scroll(nearest block);
+      animation-range: 0px 96px;
+    }
+  }
+}
+
+@keyframes sig-bar-shadow {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── Pills and small controls: pixel mono, uppercase, outlined ───────── */
+
+html[data-art="signal"] .vault-pill,
+html[data-art="signal"] button[aria-controls="sort-links-list"] {
+  font-family: var(--sig-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  -webkit-font-smoothing: none;
+}
+
+html[data-art="signal"] .vault-pill button {
+  text-transform: inherit;
+}
+
+html[data-art="signal"] .vault-pill:not(.bg-pill-active),
+html[data-art="signal"] button[aria-controls="sort-links-list"] {
+  border-color: rgba(255, 255, 255, 0.24);
+}
+
+html[data-art="signal"] .vault-pill:not(.bg-pill-active):hover,
+html[data-art="signal"] button[aria-controls="sort-links-list"]:hover {
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+html[data-art="signal"] .vault-pill kbd {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+/*
+ * The pill row fades its edges with flat background-coloured overlays. Over
+ * a gradient backdrop those show as smudges, so fade with a mask instead.
+ */
+html[data-art="signal"] [data-pill-fade] {
+  display: none;
+}
+
+html[data-art="signal"] [data-pill-row] {
+  --fade-start: 0px;
+  --fade-end: 0px;
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 var(--fade-start),
+    #000 calc(100% - var(--fade-end)),
+    transparent 100%
+  );
+}
+
+html[data-art="signal"] div:has(> [data-pill-fade="start"][data-visible="true"]) > [data-pill-row] {
+  --fade-start: 44px;
+}
+
+html[data-art="signal"] div:has(> [data-pill-fade="end"][data-visible="true"]) > [data-pill-row] {
+  --fade-end: 44px;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────── */
+
+html[data-art="signal"] .mind-card-shell,
+html[data-art="signal"] .mind-card-shell [data-feed-card],
+html[data-art="signal"] .mind-card-preview {
+  border-radius: var(--mind-card-radius);
+}
+
+html[data-art="signal"] .mind-card-shell {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.13);
+}
+
+/* Card hover shine: same as the Old style (no Signal override). */
+
+html[data-art="signal"] .mind-card-title {
+  color: var(--foreground);
+}
+
+html[data-art="signal"] .vault-skeleton,
+html[data-art="signal"] .vault-skeleton > div {
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+
+/* The feed ends on the closing line alone; links are added from the top card. */
+html[data-art="signal"] .feed-end-prompt {
+  display: none;
+}
+
+/* Closing line under the feed, set like the poster's statement. */
+html[data-art="signal"] .sig-outro {
+  display: block;
+  /* Full width so the grid behind it can span the feed; the padding keeps
+     the words to a 32ch measure, which balances the line onto two rows. */
+  padding-inline-end: max(0px, calc(100% - 32ch));
+  margin-top: 3.5rem;
+  padding-bottom: 6vh;
+  font-family: var(--font-display), ui-sans-serif, sans-serif;
+  font-size: clamp(1.75rem, 3.5vw, 3.5rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.062em;
+  color: transparent;
+  /* 60% of the original strength; done on the text so the grid behind keeps its own. */
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.49), rgba(255, 255, 255, 0.18));
+  -webkit-background-clip: text;
+  background-clip: text;
+  text-wrap: balance;
+  position: relative;
+}
+
+/*
+ * Graph-paper lines behind the closing line only. They begin about a fifth of
+ * the screen above it and fade in from nothing, so they merge into the page.
+ * They stop at the feed's padding edges; going wider made the feed scroll sideways.
+ */
+html[data-art="signal"] .sig-outro::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: -20vh;
+  bottom: 0;
+  left: -0.5rem;
+  right: calc(-1 * var(--layout-pad));
+  pointer-events: none;
+  background:
+    linear-gradient(to right, rgba(255, 255, 255, 0.032) 1px, transparent 1px) 0 0 / 32px 32px,
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.032) 1px, transparent 1px) 0 0 / 32px 32px;
+  mask-image: linear-gradient(to bottom, transparent 0, #000 20vh, #000 82%, transparent 100%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-art="signal"] .sig-poster,
+  html[data-art="signal"] .sig-poster-mark {
+    transition: none;
+  }
+}
+
+/* ── Mono: the Signal layout with the colour drained out ─────────────── */
+/* On when <html data-art="signal" data-tone="mono">. Only colours change. */
+
+html[data-art="signal"][data-tone="mono"] {
+  --sig-backdrop:
+    radial-gradient(
+      110% 60% at 58% -14%,
+      rgba(178, 178, 178, 0.42) 0%,
+      rgba(118, 118, 118, 0.26) 34%,
+      rgba(64, 64, 64, 0.12) 58%,
+      transparent 78%
+    ),
+    var(--sig-ink);
+  --sig-sky: #d4d4d4;
+  --sig-blue: #8f8f8f;
+  --sig-cobalt: #5c5c5c;
+  --sig-navy: #222222;
+  --sig-ink: #050505;
+  --sig-green: #6b6b6b;
+  --sig-orange: #b5b5b5;
+  --sig-coral: #d0d0d0;
+  --sig-lilac: #e2e2e2;
+  --background: #050505;
+  --surface: #0b0b0b;
+  --surface-elevated: #111111;
+  --subtle: #959595;
+  --muted: #c6c6c6;
+  --danger: #ff8466;
+}
+
+/* The hard-coded gradients go grey too. */
+html[data-art="signal"][data-tone="mono"] body::before,
+html[data-art="signal"][data-tone="mono"] .sig-poster,
+html[data-art="signal"][data-tone="mono"] .sig-poster-orb,
+html[data-art="signal"][data-tone="mono"] .sig-mark,
+html[data-art="signal"][data-tone="mono"] .mind-card-stroke,
+html[data-art="signal"][data-tone="mono"] .art-toggle-orb {
+  filter: grayscale(1);
+}
+
+/* The halftone 404 mark and "Link archive" badge are hidden for now.
+   Delete this rule to bring them back. */
+html[data-art="signal"] .sig-poster-mark {
+  display: none !important;
+}
+
+/* Grid size slider glow: sky in Signal, grey in Mono. */
+html[data-art="signal"] {
+  --grid-glow: rgb(140 180 240 / 0.75);
+}
+
+html[data-art="signal"][data-tone="mono"] {
+  --grid-glow: rgb(220 220 220 / 0.6);
+}
+
+html[data-art="signal"] .grid-dial-label {
+  font-family: var(--sig-mono);
+  -webkit-font-smoothing: none;
+}

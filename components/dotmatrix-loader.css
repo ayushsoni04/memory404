@@ -148,7 +148,7 @@
 }
 
 .dmx-ripple {
-  animation: dmx-ripple calc(var(--dmx-cycle) * var(--dmx-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1)
+  animation: dmx-ripple calc(var(--dmx-cycle) * var(--dmx-speed, 1)) var(--ease-in-out-base)
     infinite;
   animation-delay: calc(var(--dmx-ripple-ring, 0) * 0.2333 * var(--dmx-cycle) * var(--dmx-speed, 1));
   will-change: opacity;
@@ -185,7 +185,7 @@
 }
 
 .dmx-path {
-  animation: dmx-ripple calc(var(--dmx-cycle) * var(--dmx-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1)
+  animation: dmx-ripple calc(var(--dmx-cycle) * var(--dmx-speed, 1)) var(--ease-in-out-base)
     infinite;
   animation-delay: calc(var(--dmx-path, 0) * 0.2333 * var(--dmx-cycle) * var(--dmx-speed, 1));
   will-change: opacity;
@@ -196,7 +196,7 @@
 }
 
 .dmx-path-3 {
-  animation: dmx-ripple-3 calc(0.68 * var(--dmx-cycle) * var(--dmx-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1)
+  animation: dmx-ripple-3 calc(0.68 * var(--dmx-cycle) * var(--dmx-speed, 1)) var(--ease-in-out-base)
     infinite;
   animation-delay: calc(var(--dmx-path, 0) * 0.19 * var(--dmx-cycle) * var(--dmx-speed, 1));
   will-change: opacity;
@@ -233,21 +233,21 @@
 }
 
 .dmx-snake-path-3 {
-  animation: dmx-ripple-3 calc(1.04 * var(--dmx-cycle) * var(--dmx-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1)
+  animation: dmx-ripple-3 calc(1.04 * var(--dmx-cycle) * var(--dmx-speed, 1)) var(--ease-in-out-base)
     infinite;
   animation-delay: calc(var(--dmx-snake-order, 0) * 0.085 * var(--dmx-cycle) * var(--dmx-speed, 1));
   will-change: opacity;
 }
 
 .dmx-frame-chase-3 {
-  animation: dmx-ripple-3 calc(0.98 * var(--dmx-cycle) * var(--dmx-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1)
+  animation: dmx-ripple-3 calc(0.98 * var(--dmx-cycle) * var(--dmx-speed, 1)) var(--ease-in-out-base)
     infinite;
   animation-delay: calc(var(--dmx-frame-order, 0) * 0.09 * var(--dmx-cycle) * var(--dmx-speed, 1));
   will-change: opacity;
 }
 
 .dmx-core-pulse-3 {
-  animation: dmx-ripple-3 calc(0.46 * var(--dmx-cycle) * var(--dmx-speed, 1)) cubic-bezier(0.42, 0, 0.58, 1)
+  animation: dmx-ripple-3 calc(0.46 * var(--dmx-cycle) * var(--dmx-speed, 1)) var(--ease-in-out-base)
     infinite;
   will-change: opacity;
 }

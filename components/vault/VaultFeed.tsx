@@ -1,13 +1,14 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 import AddLinkCard from "@/components/AddLinkCard";
 import LinkCard from "@/components/LinkCard";
-import MorphText from "@/components/MorphText";
+import { GlobeSwap } from "@/components/workspace/text-swap/GlobeSwap";
 import LoadRecovery from "@/components/LoadRecovery";
 import { explainLoadError } from "@/lib/load-error";
 import { isSessionExpiredMessage } from "@/lib/session-recovery";
 import type { LinkApiRow } from "@/lib/links";
+import { FeedEndReadouts } from "./FeedEndReadouts";
 import FeedGrid from "./FeedGrid";
 import { scrollFeedToTop } from "./feed-scroll";
 import {
@@ -17,7 +18,9 @@ import {
   showRefreshFailure,
 } from "./feed-load";
 import PastePrompt from "./PastePrompt";
-import { ShortcutButton } from "./ShortcutButton";
+import { LinkOdometer } from "./LinkOdometer";
+import { BottomDock } from "./BottomDock";
+import { countReadout, SignalMetaRow } from "./SignalPoster";
 import type { GridSize, GroupRow } from "./types";
 
 type SaveLinkResult =
@@ -26,6 +29,10 @@ type SaveLinkResult =
 
 type VaultFeedProps = {
   groupToolbar: React.ReactNode;
+  /** Opens the ⌘K palette from the bottom dock. */
+  onOpenSearch?: () => void;
+  /** Groups in chip-row order; the heading spins through these. */
+  groupOrder?: { id: string; name: string }[];
   openedGroupId: string | null;
   openedGroup: GroupRow | null;
   allLinksCount: number;
@@ -56,8 +63,21 @@ type VaultFeedProps = {
   scrollRootRef: React.RefObject<HTMLDivElement | null>;
 };
 
+/** Same feel as the Globe lab default. */
+const GLOBE_HEADING_MS = 560;
+
+/** The heading reads as a statement: "design system" is drawn "Design system." */
+function headingStatement(name: string): string {
+  const trimmed = name.trim();
+  if (!trimmed) return trimmed;
+  const sentence = `${trimmed.charAt(0).toUpperCase()}${trimmed.slice(1)}`;
+  return /[.!?…]$/.test(sentence) ? sentence : `${sentence}.`;
+}
+
 export default function VaultFeed({
   groupToolbar,
+  onOpenSearch,
+  groupOrder = [],
   openedGroupId,
   openedGroup,
   allLinksCount,
@@ -83,6 +103,20 @@ export default function VaultFeed({
   sentinelRef,
   scrollRootRef,
 }: VaultFeedProps) {
+  // "All Links" first, then the groups in chip-row order. Keyed on the names so
+  // the heading only rebuilds when the list really changes.
+  const groupNames = groupOrder.map((g) => g.name).join("\u0000");
+  const globeItems = useMemo(
+    () => ["All Links", ...(groupNames ? groupNames.split("\u0000") : [])],
+    [groupNames],
+  );
+  const globe = useMemo(() => {
+    if (openedGroupId === "all") return { items: globeItems, index: 0 };
+    const i = groupOrder.findIndex((g) => g.id === openedGroupId);
+    if (i >= 0) return { items: globeItems, index: i + 1 };
+    // A group outside the chip row (or none): show its name on its own.
+    return { items: [openedGroup?.name ?? "memory404"], index: 0 };
+  }, [globeItems, groupOrder, openedGroupId, openedGroup?.name]);
   const addLinkGroupId =
     openedGroupId === "all" ? (generalGroup?.id ?? null) : openedGroupId;
 
@@ -251,12 +285,24 @@ export default function VaultFeed({
         </div>
       )}
       {!hasMoreLinks && !loadMoreError ? (
-        <PastePrompt
-          variant="end"
-          groupId={addLinkGroupId}
-          saveLink={saveLink}
-          onSaved={onLinkSaved}
-        />
+        // `contents` keeps the default layout; the Signal style hides this
+        // wrapper so the feed ends on the closing line alone.
+        <div className="feed-end-prompt contents">
+          <PastePrompt
+            variant="end"
+            groupId={addLinkGroupId}
+            saveLink={saveLink}
+            onSaved={onLinkSaved}
+          />
+        </div>
+      ) : null}
+      {!hasMoreLinks && !loadMoreError ? (
+        <div className="relative">
+          <p className="sig-outro art-only" aria-hidden>
+            A private archive for the links you meant to come back to.
+          </p>
+          <FeedEndReadouts />
+        </div>
       ) : null}
     </>
   );
@@ -265,33 +311,59 @@ export default function VaultFeed({
     <main
       id="vault-feed"
       tabIndex={-1}
-      className="relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background outline-none scroll-mt-4 lg:h-full"
+      className="art-clear relative z-30 flex min-h-0 min-w-0 flex-1 flex-col bg-background outline-none scroll-mt-4 lg:h-full"
     >
-      <header className="shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-[var(--layout-gap-item)] pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-[var(--layout-gap-control)]">
-        <h1 className="font-departure min-w-0 max-w-full break-words text-[15px] font-medium leading-normal tracking-wide text-foreground uppercase">
-          <MorphText className="max-w-full break-words">
-            {openedGroupId === "all"
-              ? "All Links"
-              : (openedGroup?.name ?? "memory404")}
-          </MorphText>
+      {/* Signal art style only: a live readout strip, spread like a spec sheet. */}
+      <p className="sig-feed-meta art-only" aria-hidden>
+        <SignalMetaRow
+          words={[
+            "MEMORY404",
+            "[FEED]",
+            "/",
+            countReadout(allLinksCount),
+            "LINKS",
+            "HELD",
+            "/",
+            "GRID",
+            gridSize === "compact" ? "S" : gridSize === "default" ? "M" : "L",
+            "//",
+            "SIGNAL",
+            "LOCKED",
+          ]}
+        />
+      </p>
+      <header className="vault-header shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-[var(--layout-gap-item)] pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-[var(--layout-gap-control)]">
+        <h1 className="vault-title min-w-0 max-w-full lg:flex-1 break-words text-[22px] font-bold leading-[1.1] tracking-[-0.05em] text-foreground sm:text-[26px]">
+          <GlobeSwap
+            items={globe.items}
+            index={globe.index}
+            durationMs={GLOBE_HEADING_MS}
+            display={headingStatement}
+            peekOpacity={0.39}
+            peekReach={0.75}
+            className="max-w-full"
+          />
         </h1>
-        <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 lg:self-center">
-          <span className="shrink-0 text-[13px] text-muted tabular-nums">
-            <MorphText>
-              {openedGroupId === "all"
-                ? `${allLinksCount} link${allLinksCount === 1 ? "" : "s"}`
-                : openedGroup
-                  ? `${openedGroup.linksCount} link${openedGroup.linksCount === 1 ? "" : "s"}`
-                  : ""}
-            </MorphText>
-          </span>
-          <ShortcutButton />
+        <div className="flex shrink-0 items-center gap-2 lg:me-[var(--layout-pad)] lg:self-center">
+          <LinkOdometer
+            count={
+              openedGroupId === "all"
+                ? allLinksCount
+                : (openedGroup?.linksCount ?? 0)
+            }
+          />
         </div>
       </header>
 
+      <div className="mt-[var(--layout-gap-control)] shrink-0 -ms-2 min-w-0 ps-2 pe-[var(--layout-pad)]">
+        {groupToolbar}
+      </div>
+
       <div
         ref={scrollRootRef}
-        className="mt-[var(--layout-gap-control)] min-h-0 min-w-0 flex-1 overflow-y-auto [scrollbar-width:thin]"
+        // Cards fade out as they scroll up under the chip row instead of
+        // meeting a hard edge; the top padding keeps the first row clear of it.
+        className="-ms-2 min-h-0 min-w-0 flex-1 overflow-y-auto ps-2 pt-4 [scrollbar-width:thin] [mask-image:linear-gradient(to_bottom,transparent_0,#000_1rem)]"
       >
         <div className="flex min-w-0 flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
           {missingGroupNotice ? (
@@ -299,7 +371,6 @@ export default function VaultFeed({
               {missingGroupNotice}
             </p>
           ) : null}
-          {groupToolbar}
           {showRefreshFailure(fetchError, sortedLinks.length, loadMoreError) ? (
             <div
               className="flex flex-col items-start gap-3 rounded-xl border border-danger/30 bg-surface-elevated p-6"
@@ -319,6 +390,7 @@ export default function VaultFeed({
           {feedBody}
         </div>
       </div>
+      {onOpenSearch ? <BottomDock onOpenSearch={onOpenSearch} /> : null}
     </main>
   );
 }

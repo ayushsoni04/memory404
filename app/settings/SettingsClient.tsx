@@ -17,6 +17,7 @@ type MeUser = {
   username: string | null;
   avatarUrl: string | null;
   bannerStyle: string;
+  hasPassword?: boolean;
 };
 
 const TAB_COPY: Record<Tab, { title: string; body: string }> = {
@@ -54,6 +55,7 @@ export default function SettingsClient({
   const [name, setName] = useState("");
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
+  const [hasPassword, setHasPassword] = useState(true);
   const [bannerStyle, setBannerStyle] = useState("midnight");
   const [isSaved, setIsSaved] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
@@ -69,6 +71,7 @@ export default function SettingsClient({
     setName(user.name ?? "");
     setUsername(user.username ?? "");
     setEmail(user.email);
+    setHasPassword(user.hasPassword !== false);
     setBannerStyle(user.bannerStyle || "midnight");
     setAvatarPreview(user.avatarUrl);
   }, []);
@@ -265,6 +268,8 @@ export default function SettingsClient({
               profileReady={profileReady}
               error={profileError}
               onRetryLoad={() => void loadProfile()}
+              hasPassword={hasPassword}
+              onPasswordSet={() => setHasPassword(true)}
               onSaveProfile={handleSaveProfile}
               onOpenDeactivateModal={() => {
                 setDeactivateError(null);

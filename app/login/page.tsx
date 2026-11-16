@@ -1,7 +1,10 @@
 import { Suspense } from "react";
+import { googleOAuthConfigured } from "@/lib/google-oauth";
 import type { Metadata } from "next";
 import AuthShell from "@/components/auth/AuthShell";
 import { LoginForm } from "./_components/LoginForm";
+
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
   title: "Sign in",
@@ -15,7 +18,7 @@ export default function LoginPage() {
   return (
     <AuthShell>
       <Suspense>
-        <LoginForm />
+        <LoginForm googleEnabled={googleOAuthConfigured()} />
       </Suspense>
     </AuthShell>
   );

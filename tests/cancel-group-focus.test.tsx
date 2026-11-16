@@ -40,7 +40,6 @@ function AddingGroup() {
       groupInputWidth={120}
       sortBy="newest"
       setSortByAndPersist={() => {}}
-      loadGroups={async () => undefined}
     />
   );
 }

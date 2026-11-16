@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 export default function TextSwapLabPage() {
   const lab = getLab("text-swap")!;
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-background">
+    <div className="art-clear flex min-h-full flex-1 flex-col bg-background">
       <WorkspaceChrome lab={lab}>
         <TextSwapLab />
       </WorkspaceChrome>

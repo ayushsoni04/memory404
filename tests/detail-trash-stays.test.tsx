@@ -84,8 +84,9 @@ describe("Move to Trash from an open link", () => {
     );
     const action = screen.getByRole("button", { name: "Move to Trash" });
     expect(action).toBeEnabled();
-    expect(action.className).toContain("min-h-11");
-    expect(action.className).toContain("sm:min-h-9");
+    // 44px tap target on phones, 40px from the sm breakpoint up.
+    expect(action.className).toContain("size-11");
+    expect(action.className).toContain("sm:size-10");
     await waitFor(() => expect(action).toHaveFocus());
   });
 

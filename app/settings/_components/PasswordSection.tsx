@@ -36,7 +36,14 @@ function visibleError(
   return null;
 }
 
-export function PasswordSection() {
+export function PasswordSection({
+  hasPassword = true,
+  onPasswordSet,
+}: {
+  /** False for Google-only accounts: they set a first password, no current one. */
+  hasPassword?: boolean;
+  onPasswordSet?: () => void;
+} = {}) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -56,11 +63,16 @@ export function PasswordSection() {
   const [saved, setSaved] = useState(false);
 
   const errors: PasswordChangeErrors = passwordChangeErrors({
+    requireCurrent: hasPassword,
     currentPassword,
     newPassword,
     confirmPassword,
   });
-  const currentError = visibleError(attempted, currentPassword, errors.currentPassword);
+  const currentError = visibleError(
+    attempted,
+    currentPassword,
+    errors.currentPassword,
+  );
   const newError = visiblePasswordRequirementError(
     newPassword,
     errors.newPassword,
@@ -76,7 +88,9 @@ export function PasswordSection() {
     currentError ??
     (serverError === CURRENT_PASSWORD_INCORRECT ? serverError : null);
   const bannerError =
-    serverError && serverError !== CURRENT_PASSWORD_INCORRECT ? serverError : null;
+    serverError && serverError !== CURRENT_PASSWORD_INCORRECT
+      ? serverError
+      : null;
 
   useEffect(() => {
     if (saving || resultFocus.current !== "recovery") return;
@@ -113,10 +127,14 @@ export function PasswordSection() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        const message = authFailureMessage(data, "Could not update your password.");
+        const message = authFailureMessage(
+          data,
+          "Could not update your password.",
+        );
         const explained = explainLoadError(message) ?? message;
         setServerError(explained);
-        if (explained === CURRENT_PASSWORD_INCORRECT) currentRef.current?.focus();
+        if (explained === CURRENT_PASSWORD_INCORRECT)
+          currentRef.current?.focus();
         else resultFocus.current = "recovery";
         return;
       }
@@ -125,6 +143,7 @@ export function PasswordSection() {
       setConfirmPassword("");
       setAttempted(false);
       setSaved(true);
+      if (!hasPassword) onPasswordSet?.();
       resultFocus.current = "recovery";
     } catch {
       setServerError(
@@ -144,27 +163,33 @@ export function PasswordSection() {
           Password
         </h3>
         <p className="mt-0.5 text-xs text-subtle">
-          Choose a new password for this account. You stay signed in.
+          {hasPassword
+            ? "Choose a new password for this account. You stay signed in."
+            : "This account signs in with Google. Set a password to also sign in with your email."}
         </p>
       </div>
       <form onSubmit={(event) => void onSubmit(event)} className="space-y-4">
-        <PasswordField
-          id="current-password"
-          inputRef={currentRef}
-          label="Current password"
-          autoComplete="current-password"
-          value={currentPassword}
-          shown={showCurrent}
-          onToggle={() => setShowCurrent((value) => !value)}
-          toggleLabel={showCurrent ? "Hide current password" : "Show current password"}
-          error={currentFieldError}
-          errorId="current-password-error"
-          onChange={(value) => {
-            setCurrentPassword(value);
-            setServerError(null);
-            setSaved(false);
-          }}
-        />
+        {hasPassword ? (
+          <PasswordField
+            id="current-password"
+            inputRef={currentRef}
+            label="Current password"
+            autoComplete="current-password"
+            value={currentPassword}
+            shown={showCurrent}
+            onToggle={() => setShowCurrent((value) => !value)}
+            toggleLabel={
+              showCurrent ? "Hide current password" : "Show current password"
+            }
+            error={currentFieldError}
+            errorId="current-password-error"
+            onChange={(value) => {
+              setCurrentPassword(value);
+              setServerError(null);
+              setSaved(false);
+            }}
+          />
+        ) : null}
         <PasswordField
           id="new-password"
           inputRef={newRef}
@@ -203,7 +228,11 @@ export function PasswordSection() {
           }}
         />
         {bannerError ? (
-          <div ref={bannerRef} className="flex flex-col items-start gap-2" role="alert">
+          <div
+            ref={bannerRef}
+            className="flex flex-col items-start gap-2"
+            role="alert"
+          >
             <p className="text-[12px] text-danger">{bannerError}</p>
             <SessionSignInLink
               message={bannerError}
@@ -224,7 +253,11 @@ export function PasswordSection() {
             disabled={saving}
             className={`inline-flex h-9 cursor-pointer items-center justify-center rounded-lg bg-pill-active px-4 text-sm font-medium text-pill-active-fg shadow-md hover:opacity-90 disabled:opacity-50 ${controlPress}`}
           >
-            {saving ? "Updating…" : "Update password"}
+            {saving
+              ? "Updating…"
+              : hasPassword
+                ? "Update password"
+                : "Set password"}
           </button>
           <Link
             href={withAuthRedirect("/forgot-password", "/settings")}
@@ -295,7 +328,11 @@ function PasswordField({
           aria-pressed={shown}
           className={authRevealClass}
         >
-          {shown ? <EyeOff className="size-4" aria-hidden /> : <Eye className="size-4" aria-hidden />}
+          {shown ? (
+            <EyeOff className="size-4" aria-hidden />
+          ) : (
+            <Eye className="size-4" aria-hidden />
+          )}
         </button>
       </div>
       {hint ? (

@@ -39,16 +39,20 @@ export async function POST(request: Request) {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid request body" },
+      { status: 400 },
+    );
   }
 
   const currentPassword =
     typeof body.currentPassword === "string" ? body.currentPassword : "";
-  const newPassword = typeof body.newPassword === "string" ? body.newPassword : "";
+  const newPassword =
+    typeof body.newPassword === "string" ? body.newPassword : "";
 
-  if (!currentPassword || !newPassword) {
+  if (!newPassword) {
     return NextResponse.json(
-      { error: "Current and new password are required" },
+      { error: "New password is required" },
       { status: 400 },
     );
   }
@@ -63,16 +67,26 @@ export async function POST(request: Request) {
 
   try {
     const user = await findUserById(auth.id);
-    if (!user?.passwordHash) {
+    if (!user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const valid = await verifyPassword(currentPassword, user.passwordHash);
-    if (!valid) {
-      return NextResponse.json(
-        { error: "Current password is incorrect" },
-        { status: 401 },
-      );
+    // Google-only accounts have no password yet; being signed in is enough
+    // to set the first one. Changing an existing password needs the old one.
+    if (user.passwordHash) {
+      if (!currentPassword) {
+        return NextResponse.json(
+          { error: "Current and new password are required" },
+          { status: 400 },
+        );
+      }
+      const valid = await verifyPassword(currentPassword, user.passwordHash);
+      if (!valid) {
+        return NextResponse.json(
+          { error: "Current password is incorrect" },
+          { status: 401 },
+        );
+      }
     }
 
     const passwordHash = await hashPassword(newPassword);
@@ -81,6 +95,9 @@ export async function POST(request: Request) {
     return attachSessionCookie(response, auth.id, sessionVersion);
   } catch (e) {
     console.error("POST /api/me/password:", e);
-    return NextResponse.json({ error: "Failed to change password" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to change password" },
+      { status: 500 },
+    );
   }
 }

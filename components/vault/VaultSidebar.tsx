@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
-import { Download } from "lucide-react";
+import { Download, FlaskConical, Trash2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
-import GlitchText from "@/components/GlitchText";
+import { DitherBrain } from "@/components/brand/DitherBrain";
+import { SidebarPromo } from "./SidebarPromo";
 import MorphText from "@/components/MorphText";
-import TrashBin from "@/components/TrashBin";
 import {
   EXTENSION_VERSION,
   EXTENSION_ZIP_FILENAME,
@@ -17,10 +16,8 @@ import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { groupNameDraftIssue } from "@/lib/group-name";
 import { explainLoadError } from "@/lib/load-error";
 import { NOTE_DONE_LABEL, noteCountLabel, noteIssue, SAVE_NOTE_LABEL } from "@/lib/note-limit";
-import { withInboxInGroupSearch } from "@/lib/search-group";
 import { GridSizeControl } from "./GridSizeControl";
 import { NoteCount } from "./NoteCount";
-import GroupSearchCommand from "./GroupSearchCommand";
 import SidebarDitherBackground from "./SidebarDitherBackground";
 import SidebarProfile from "./SidebarProfile";
 import {
@@ -92,10 +89,6 @@ export default function VaultSidebar({
   onDeleteLink,
   onDeleteGroup,
   isOwner = false,
-  groupSearch,
-  setGroupSearch,
-  filteredFolders,
-  selectGroup,
 }: VaultSidebarProps) {
   const noteProblem = noteIssue(sidebarNotesText);
   const noteAlert = noteProblem ?? (sidebarShowNotesForm ? saveError : null);
@@ -133,28 +126,47 @@ export default function VaultSidebar({
         <SidebarDitherBackground />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[var(--layout-gap-group)] p-[var(--layout-pad)] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:gap-[var(--layout-gap-section)] lg:overflow-hidden">
           <div className="flex flex-col items-start gap-[var(--layout-gap-control)]">
-            <Link
-              href="/"
-              aria-label="memory404"
-              className={`inline-flex items-center gap-2 text-foreground hover:opacity-85 rounded-lg ${controlPress}`}
-            >
-              <Image
-                src="/logo.png"
-                alt=""
-                width={28}
-                height={28}
-                className="size-7 object-contain"
-                aria-hidden
-                draggable={false}
-                priority
-              />
-              <GlitchText className="text-sm tracking-widest font-semibold uppercase">
-                404
-              </GlitchText>
-            </Link>
+            {/* Logo row: same height as the feed's top strip, dashed rule under both. */}
+            <div className="sidebar-head">
+              <Link
+                href="/"
+                aria-label="memory404"
+                className={`flex w-fit items-center gap-2 whitespace-nowrap rounded-lg text-foreground hover:opacity-85 ${controlPress}`}
+              >
+                <DitherBrain size={22} cell={1} />
+                <span className="font-pixel text-[19px] leading-none">memory 404</span>
+              </Link>
+            </div>
             <GridSizeControl
               gridSize={gridSize}
               setGridSizeAndPersist={setGridSizeAndPersist}
+              actions={[
+                ...(isOwner
+                  ? [
+                      {
+                        id: "workspace",
+                        label: "Workspace",
+                        href: "/workspace",
+                        icon: <FlaskConical className="size-3.5" aria-hidden />,
+                      },
+                    ]
+                  : []),
+                {
+                  id: "download",
+                  label: `Download extension ${EXTENSION_VERSION}`,
+                  href: EXTENSION_ZIP_HREF,
+                  download: EXTENSION_ZIP_FILENAME,
+                  icon: <Download className="size-3.5" aria-hidden />,
+                },
+                {
+                  id: "trash",
+                  label: "Trash",
+                  href: "/trash",
+                  icon: <Trash2 className="size-3.5" aria-hidden />,
+                  onDropLink: (linkId: string) => void onDeleteLink(linkId),
+                  onDropGroup: (groupId: string) => void onDeleteGroup(groupId),
+                },
+              ]}
             />
           </div>
 
@@ -383,48 +395,8 @@ export default function VaultSidebar({
               </p>
             ) : null}
 
-            <nav
-              aria-label="Sidebar"
-              className="flex flex-col gap-[var(--layout-gap-control)]"
-            >
-              <GroupSearchCommand
-                value={groupSearch}
-                onChange={setGroupSearch}
-                groups={withInboxInGroupSearch(filteredFolders, groupSearch)}
-                onSelectGroup={selectGroup}
-                placeholder="Search groups"
-                className="w-full"
-                dropdownAlign="start"
-              />
-              {isOwner ? (
-                <Link
-                  href="/workspace"
-                  className={`hidden rounded-lg px-2.5 py-1.5 text-[13px] text-muted hover:bg-pill hover:text-foreground lg:block ${controlPress}`}
-                >
-                  Workspace
-                </Link>
-              ) : null}
-              <a
-                href={EXTENSION_ZIP_HREF}
-                download={EXTENSION_ZIP_FILENAME}
-                className="inline-flex h-8 w-full items-center justify-center gap-1.5 rounded-lg bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg transition-[transform,opacity] duration-[160ms] ease-[var(--ease-out)] hover:opacity-90 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-              >
-                <Download className="size-3.5" aria-hidden />
-                Download extension
-                <span className="font-mono text-[10px] font-normal opacity-70">
-                  {EXTENSION_VERSION}
-                </span>
-              </a>
-              <TrashBin
-                onDropLink={(linkId) => void onDeleteLink(linkId)}
-                onDropGroup={(groupId) => void onDeleteGroup(groupId)}
-              />
-              <p className="hidden px-2.5 pt-2 text-[13px] text-subtle lg:block">
-                © {new Date().getFullYear()} memory404
-              </p>
-            </nav>
-
-            <div className="mt-auto border-t border-border pt-4">
+            <SidebarPromo isOwner={isOwner} />
+            <div className="sidebar-footer mt-auto pt-4">
               <SidebarProfile />
             </div>
           </div>

@@ -33,7 +33,8 @@ function emailAlreadyRegistered(message: string | null): boolean {
   return message?.trim().toLowerCase() === EMAIL_TAKEN;
 }
 
-export function SignupForm() {
+/** `googleEnabled` is false until GOOGLE_CLIENT_ID/SECRET are set on the server. */
+export function SignupForm({ googleEnabled = true }: { googleEnabled?: boolean } = {}) {
   const searchParams = useSearchParams();
   const redirectPath = safeRedirectPath(searchParams.get("redirect"));
 
@@ -144,8 +145,12 @@ export function SignupForm() {
         </p>
       </div>
 
-      <GoogleAuthButton label="Continue with Google" />
-      <AuthDivider />
+      {googleEnabled ? (
+        <>
+          <GoogleAuthButton label="Continue with Google" />
+          <AuthDivider />
+        </>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <label className="block space-y-1.5">

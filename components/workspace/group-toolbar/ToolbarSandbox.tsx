@@ -170,7 +170,7 @@ export function ToolbarSandbox({ config, onChange, width, label }: Props) {
                       boxShadow: isDragging
                         ? "0 4px 12px rgba(0,0,0,0.2)"
                         : undefined,
-                      transition: `transform ${config.dragDurationS}s cubic-bezier(0.34, 1.4, 0.64, 1)`,
+                      transition: `transform ${config.dragDurationS}s var(--ease-overshoot-out)`,
                       cursor: config.canReorder ? "grab" : "default",
                     }}
                   >

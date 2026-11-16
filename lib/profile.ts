@@ -109,6 +109,8 @@ export type PublicUserProfile = {
   bannerStyle: string;
   plan: string;
   createdAt: string;
+  /** False for accounts that only sign in with Google (or the dev user). */
+  hasPassword: boolean;
 };
 
 export function toPublicProfile(user: {
@@ -120,6 +122,7 @@ export function toPublicProfile(user: {
   bannerStyle?: string | null;
   plan: string;
   createdAt: Date;
+  passwordHash?: string | null;
 }): PublicUserProfile {
   return {
     id: user.id,
@@ -130,5 +133,6 @@ export function toPublicProfile(user: {
     bannerStyle: user.bannerStyle ?? "midnight",
     plan: user.plan,
     createdAt: user.createdAt.toISOString(),
+    hasPassword: Boolean(user.passwordHash),
   };
 }

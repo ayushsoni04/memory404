@@ -1,10 +1,14 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Archivo, Inter, Kaushan_Script } from "next/font/google";
 import localFont from "next/font/local";
+import { GeistPixelSquare } from "geist/font/pixel";
 import { NuqsAdapter } from "nuqs/adapters/next/app";
 import { DeferredVitals } from "@/components/DeferredVitals";
 import { UiSoundBoot } from "@/components/UiSoundBoot";
+import { CustomCursor } from "@/components/CustomCursor";
+import { ART_STYLE_BOOT_SCRIPT } from "@/lib/art-style";
 import "./globals.css";
+import "./art-signal.css";
 
 /** Same combo as blog.maximeheckel.com: Inter + Departure Mono + Fira Code */
 const inter = Inter({
@@ -27,6 +31,23 @@ const firaCode = localFont({
   variable: "--font-fira",
   display: "swap",
   preload: false,
+});
+
+/** Wide display face for badges and labels. */
+const archivo = Archivo({
+  subsets: ["latin"],
+  variable: "--font-wide",
+  display: "swap",
+  axes: ["wdth"],
+  preload: false,
+});
+
+/** Brush script for the sprayed "memory 404" logo. */
+const spray = Kaushan_Script({
+  subsets: ["latin"],
+  weight: "400",
+  variable: "--font-spray",
+  display: "swap",
 });
 
 const siteUrl =
@@ -79,7 +100,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport = {
-  themeColor: "#0c0c0c",
+  themeColor: "#04050a",
 };
 
 const appSchema = {
@@ -100,9 +121,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${inter.variable} ${departureMono.variable} ${firaCode.variable} dark h-full antialiased`}
+      // Signal is the app's look; app/art-signal.css keys off this attribute.
+      data-art="signal"
+      className={`${inter.variable} ${departureMono.variable} ${firaCode.variable} ${archivo.variable} ${spray.variable} ${GeistPixelSquare.variable} dark h-full antialiased`}
+      // The boot script below may add data-tone before React hydrates.
+      suppressHydrationWarning
     >
       <head>
+        <script
+          id="art-style-boot"
+          dangerouslySetInnerHTML={{ __html: ART_STYLE_BOOT_SCRIPT }}
+        />
         <link rel="preconnect" href="https://res.cloudinary.com" crossOrigin="anonymous" />
         <link rel="dns-prefetch" href="https://res.cloudinary.com" />
         <script
@@ -113,6 +142,7 @@ export default function RootLayout({
       <body className="flex min-h-full flex-col bg-background text-foreground">
         <NuqsAdapter>{children}</NuqsAdapter>
         <UiSoundBoot />
+        <CustomCursor />
         <DeferredVitals />
       </body>
     </html>

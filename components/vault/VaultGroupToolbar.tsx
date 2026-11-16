@@ -2,12 +2,11 @@
 
 import { useEffect, useRef, useState } from "react";
 import { horizontalScrollEdges } from "./pill-scroll-fade";
-import { Check, ChevronDown, Plus, RotateCw, Search, X } from "lucide-react";
+import { Check, ChevronDown, Plus, X } from "lucide-react";
 import { Reorder } from "framer-motion";
 import { AppLoader } from "@/components/AppLoader";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import { groupNameDraftIssue } from "@/lib/group-name";
-import { anotherDialogIsOpen } from "@/lib/palette-shortcut";
 import { playUiSound } from "@/lib/ui-sound";
 import { nextOptionIndex } from "./feed-keyboard";
 import { activeGroupPill, groupPillIds, nextGroupPill } from "./group-pills";
@@ -52,9 +51,6 @@ type VaultGroupToolbarProps = {
   groupInputWidth: number;
   sortBy: SortBy;
   setSortByAndPersist: (val: SortBy) => void;
-  loadGroups: () => Promise<unknown>;
-  loadLinks?: () => Promise<unknown>;
-  onOpenSearch?: () => void;
   onDropLink?: (linkId: string, groupId: string) => void;
 };
 
@@ -263,16 +259,9 @@ export default function VaultGroupToolbar({
   groupInputWidth,
   sortBy,
   setSortByAndPersist,
-  loadGroups,
-  loadLinks,
-  onOpenSearch,
   onDropLink,
 }: VaultGroupToolbarProps) {
   const isDragging = draggingGroupId !== null;
-  const [refreshing, setRefreshing] = useState(false);
-  const [refreshStatus, setRefreshStatus] = useState("");
-  const refreshLock = useRef(false);
-  const refreshButtonRef = useRef<HTMLButtonElement>(null);
   const addGroupRef = useRef<HTMLButtonElement>(null);
   const returnToAddRef = useRef(false);
 
@@ -288,37 +277,6 @@ export default function VaultGroupToolbar({
     void Promise.resolve(createGroup()).finally(() => {
       createLock.current = false;
     });
-  };
-  const refreshLibrary = () => {
-    if (refreshLock.current) return;
-    refreshLock.current = true;
-    const hadFocus = document.activeElement === refreshButtonRef.current;
-    setRefreshing(true);
-    setRefreshStatus("Refreshing your library…");
-    playUiSound("loading");
-    void Promise.all([loadGroups(), loadLinks?.()])
-      .then(() => {
-        setRefreshStatus("Library updated");
-      })
-      .catch(() => {
-        setRefreshStatus("");
-      })
-      .finally(() => {
-        window.setTimeout(() => {
-          refreshLock.current = false;
-          setRefreshing(false);
-          if (!hadFocus) return;
-          const active = document.activeElement;
-          if (
-            active instanceof HTMLElement &&
-            active !== document.body &&
-            active !== document.documentElement
-          ) {
-            return;
-          }
-          refreshButtonRef.current?.focus();
-        }, 400);
-      });
   };
   const pillIds = groupPillIds(filteredFolders.map((group) => group.id));
   const currentPill = activeGroupPill(openedGroupId, pillIds);
@@ -367,14 +325,9 @@ export default function VaultGroupToolbar({
       observer?.disconnect();
     };
   }, [pillKey, generalGroup?.id, addingAt]);
-  const searchShortcut =
-    typeof navigator !== "undefined" &&
-    /Mac|iPhone|iPad/.test(navigator.platform)
-      ? "⌘K"
-      : "Ctrl K";
 
   return (
-    <div className="relative sticky top-[env(safe-area-inset-top)] z-20 -me-[var(--layout-pad)] flex min-w-0 flex-col bg-background/90 pt-3 pb-4 pe-[var(--layout-pad)] backdrop-blur-md supports-[backdrop-filter]:bg-background/75 after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:h-6 after:translate-y-full after:bg-gradient-to-b after:from-background/80 after:to-transparent">
+    <div className="relative z-20 -me-[var(--layout-pad)] flex min-w-0 flex-col pt-3 pb-1 pe-[var(--layout-pad)]">
       <div className="flex items-center justify-between gap-[var(--layout-gap-control)]">
       <div className="flex min-w-0 flex-1 items-center gap-2">
         <div className="relative min-w-0 flex-1">
@@ -383,7 +336,7 @@ export default function VaultGroupToolbar({
           data-pill-row=""
           role="toolbar"
           aria-label="Groups"
-          className="flex min-w-0 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 ps-0.5 pe-1"
+          className="flex min-w-0 items-center gap-2 overflow-x-auto overflow-y-visible [scrollbar-width:none] [&::-webkit-scrollbar]:hidden py-3.5 -my-3.5 -ms-2 ps-2.5 pe-1"
         >
           {isDragging && (
             <div className="absolute inset-0 flex items-center pointer-events-none z-0 ps-0.5">
@@ -395,7 +348,7 @@ export default function VaultGroupToolbar({
               {generalGroup ? (
                 <span
                   aria-hidden
-                  className="ms-0 me-2 h-5 w-px shrink-0 bg-transparent"
+                  className="mx-2 h-5 w-px shrink-0 bg-transparent"
                 />
               ) : null}
               <div className="flex items-center gap-2">
@@ -452,6 +405,16 @@ export default function VaultGroupToolbar({
               All
             </button>
           )}
+
+          {/* All stays put; everything after this line can be dragged to reorder. */}
+          {filteredFolders.length > 0 ? (
+            <span
+              role="separator"
+              aria-orientation="vertical"
+              data-pill-divider=""
+              className="relative z-10 h-5 w-px shrink-0 bg-border-strong"
+            />
+          ) : null}
 
           <Reorder.Group
             axis="x"
@@ -618,46 +581,7 @@ export default function VaultGroupToolbar({
         )}
       </div>
       <div className="relative z-10 flex shrink-0 items-center gap-2">
-        {onOpenSearch ? (
-          <button
-            type="button"
-            onClick={() => {
-              if (anotherDialogIsOpen()) return;
-              onOpenSearch();
-              playUiSound("tick");
-            }}
-            aria-keyshortcuts="Control+K Meta+K"
-            className={`${pillIdle} gap-1.5 px-3`}
-          >
-            <Search className="size-3.5" strokeWidth={2} aria-hidden />
-            <span>Search</span>
-            <kbd className="hidden font-mono text-[10px] font-normal text-subtle md:inline">
-              {searchShortcut}
-            </kbd>
-          </button>
-        ) : null}
         <SortPill sortBy={sortBy} setSortByAndPersist={setSortByAndPersist} />
-        <p className="sr-only" role="status">
-          {refreshStatus}
-        </p>
-        <button
-          ref={refreshButtonRef}
-          type="button"
-          onClick={refreshLibrary}
-          disabled={refreshing}
-          aria-busy={refreshing || undefined}
-          aria-label="Refresh"
-          title="Refresh"
-          className={`${pillIdle} min-w-11 justify-center px-2.5 disabled:opacity-60 sm:min-w-0`}
-        >
-          <RotateCw
-            className={`size-3.5 -scale-x-100 transition-transform duration-500 ease-out motion-reduce:animate-none ${
-              refreshing ? "animate-spin" : ""
-            }`}
-            strokeWidth={2}
-            aria-hidden
-          />
-        </button>
       </div>
       </div>
       {createGroupError ? (

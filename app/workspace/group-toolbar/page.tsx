@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 export default function GroupToolbarLabPage() {
   const lab = getLab("group-toolbar")!;
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-background">
+    <div className="art-clear flex min-h-full flex-1 flex-col bg-background">
       <WorkspaceChrome lab={lab}>
         <GroupToolbarLab />
       </WorkspaceChrome>

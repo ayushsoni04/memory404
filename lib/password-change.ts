@@ -6,6 +6,8 @@ import {
 export { PASSWORD_HINT };
 
 export type PasswordChangeInput = {
+  /** False when the account has no password yet, so there is nothing to confirm. */
+  requireCurrent?: boolean;
   currentPassword: string;
   newPassword: string;
   confirmPassword: string;
@@ -20,7 +22,7 @@ export type PasswordChangeErrors = {
 /** Field errors for a signed-in password change, before the request is sent. */
 export function passwordChangeErrors(input: PasswordChangeInput): PasswordChangeErrors {
   const errors: PasswordChangeErrors = {};
-  if (!input.currentPassword) {
+  if (input.requireCurrent !== false && !input.currentPassword) {
     errors.currentPassword = "Enter your current password.";
   }
   if (!input.newPassword) {

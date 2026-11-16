@@ -10,6 +10,7 @@ import {
 } from "./cases";
 import { ControlChip, type SwapAlign, type SwapEase, type SwapSpeed, type SwapVariant } from "./controls";
 import { SwapPreview } from "./SwapPreview";
+import { GlobeLab } from "./GlobeLab";
 
 type CaseResult = {
   id: string;
@@ -188,6 +189,8 @@ export function TextSwapLab() {
 
   return (
     <div className="flex flex-col gap-4">
+      <GlobeLab />
+
       {/* Summary bar */}
       <section className="rounded-xl border border-border bg-surface p-3 sm:p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">

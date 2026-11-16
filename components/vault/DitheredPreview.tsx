@@ -9,7 +9,7 @@ type Props = {
   className?: string;
 };
 
-/** Retro CRT dither over feed card images (viewport-gated to limit WebGL contexts). */
+/** Halftone dither in cold ink over feed card images (viewport-gated to limit WebGL contexts). */
 export default function DitheredPreview({ children, className }: Props) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const inView = useInView(rootRef, { margin: "80px 0px", amount: 0.1 });
@@ -32,16 +32,16 @@ export default function DitheredPreview({ children, className }: Props) {
         softness={0.9}
         pixelSize={2}
         levels={4}
-        darkColor={[0.02, 0.02, 0.02]}
-        lightColor={[0.92, 0.92, 0.9]}
+        darkColor={[0.016, 0.02, 0.05]}
+        lightColor={[0.95, 0.97, 1]}
         colorize={0.12}
         contrast={0.7}
         brightness={0.02}
         strength={0.88}
         baseStrength={0.35}
         invert={0}
-        scanlines={0.16}
-        pattern="bayer"
+        scanlines={0.06}
+        pattern="halftone"
         trail={0.4}
         degauss={0.75}
         followSpeed={3.25}

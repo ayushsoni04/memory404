@@ -36,7 +36,8 @@ function googleLoginError(code: string | null): string | null {
   return null;
 }
 
-export function LoginForm() {
+/** `googleEnabled` is false until GOOGLE_CLIENT_ID/SECRET are set on the server. */
+export function LoginForm({ googleEnabled = true }: { googleEnabled?: boolean } = {}) {
   const searchParams = useSearchParams();
   const redirectPath = safeRedirectPath(searchParams.get("redirect"));
 
@@ -122,8 +123,12 @@ export function LoginForm() {
         </p>
       </div>
 
-      <GoogleAuthButton />
-      <AuthDivider />
+      {googleEnabled ? (
+        <>
+          <GoogleAuthButton />
+          <AuthDivider />
+        </>
+      ) : null}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
