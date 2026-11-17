@@ -111,7 +111,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
             setError(null);
             setEditing(true);
           }}
-          className={`mt-1 shrink-0 text-[12px] text-subtle underline-offset-2 hover:text-foreground hover:underline ${focusRing}`}
+          className={`mt-1 inline-flex min-h-11 shrink-0 items-center px-2 text-[12px] text-subtle underline-offset-2 hover:text-foreground hover:underline sm:min-h-8 sm:px-0 ${focusRing}`}
         >
           Rename
         </button>
@@ -149,7 +149,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
           event.stopPropagation();
           cancel();
         }}
-        className={`mt-1 w-full rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-sm text-foreground ${focusRing}`}
+        className={`mt-1 w-full rounded-[4px] border border-white/12 bg-black/25 px-3 py-2 text-base text-foreground sm:text-sm ${focusRing}`}
       />
       <p id={`link-title-hint-${link.id}`} className="mt-1 text-[12px] text-subtle">
         Leave this blank to use the page title.
@@ -158,7 +158,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
         <button
           type="submit"
           disabled={saving || Boolean(linkTitleIssue(draft))}
-          className={`inline-flex h-8 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 ${focusRing}`}
+          className={`inline-flex h-11 items-center rounded-full bg-pill-active px-3 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-50 sm:h-8 ${focusRing}`}
         >
           {saving ? "Saving…" : "Save name"}
         </button>
@@ -166,7 +166,7 @@ export default function LinkTitleEditor({ link, onSaved }: Props) {
           type="button"
           onClick={cancel}
           disabled={saving}
-          className={`inline-flex h-8 items-center rounded-full px-3 text-[13px] text-subtle hover:text-foreground disabled:opacity-50 ${focusRing}`}
+          className={`inline-flex h-11 items-center rounded-full px-3 text-[13px] text-subtle hover:text-foreground disabled:opacity-50 sm:h-8 ${focusRing}`}
         >
           Cancel
         </button>
