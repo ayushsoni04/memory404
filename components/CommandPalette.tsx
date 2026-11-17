@@ -317,7 +317,7 @@ export default function CommandPalette({
               setNote(event.target.value);
               setNoteError(noteIssue(event.target.value));
             }}
-            className="w-full resize-none rounded-md border border-border bg-transparent px-2.5 py-1.5 text-[13px] text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
+            className="w-full resize-none rounded-md border border-border bg-transparent px-2.5 py-1.5 text-base text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface sm:text-[13px]"
           />
           <NoteCount notes={note} id="palette-note-count" />
           {noteError ? (
@@ -345,7 +345,7 @@ export default function CommandPalette({
         value={search}
         onValueChange={handleSearchChange}
         placeholder="Search links, jump to a group, or go to a page…"
-        className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
+        className="w-full border-b border-border bg-transparent px-4 py-3 text-base text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface sm:text-sm"
       />
       )}
       {savedLink ? null : (
