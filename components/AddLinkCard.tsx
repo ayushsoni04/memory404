@@ -12,7 +12,7 @@ import { NoteCount } from "@/components/vault/NoteCount";
 import { controlPress } from "@/components/vault/types";
 
 const addLinkField =
-  "w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-2 text-[13px] text-foreground outline-none placeholder:text-subtle focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)]";
+  "w-full rounded-[4px] border border-dashed border-border bg-surface px-2.5 py-2 text-base text-foreground outline-none placeholder:text-subtle focus-visible:border-foreground/40 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_40%,transparent)] sm:text-[13px]";
 
 type Props = {
   groupId: string | null;
@@ -235,7 +235,7 @@ export default function AddLinkCard({
                   }
                   aria-busy={saving || undefined}
                   tabIndex={phase === "form" ? 0 : -1}
-                  className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-45 ${controlPress}`}
+                  className={`inline-flex h-11 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg hover:opacity-90 disabled:opacity-45 sm:h-7 ${controlPress}`}
                 >
                   Save
                 </button>
@@ -243,7 +243,7 @@ export default function AddLinkCard({
                   type="button"
                   onClick={() => cancel()}
                   tabIndex={phase === "form" ? 0 : -1}
-                  className={`inline-flex h-7 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted hover:bg-pill-hover hover:text-foreground ${controlPress}`}
+                  className={`inline-flex h-11 items-center rounded-full bg-pill px-2.5 text-[13px] text-muted hover:bg-pill-hover hover:text-foreground sm:h-7 ${controlPress}`}
                 >
                   Cancel
                 </button>
@@ -319,7 +319,7 @@ export default function AddLinkCard({
                   disabled={savingNote || Boolean(noteIssue(notes))}
                   aria-busy={savingNote || undefined}
                   tabIndex={phase === "notes" ? 0 : -1}
-                  className={`inline-flex h-7 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-50 ${controlPress}`}
+                  className={`inline-flex h-11 items-center rounded-full bg-pill-active px-2.5 text-[13px] font-medium text-pill-active-fg disabled:opacity-50 sm:h-7 ${controlPress}`}
                 >
                   <MorphText duration={220}>
                     {savingNote ? "Saving…" : notes.trim() ? SAVE_NOTE_LABEL : NOTE_DONE_LABEL}
