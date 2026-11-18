@@ -19,6 +19,8 @@ import {
 } from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import { LinkOdometer } from "./LinkOdometer";
+import { SplitTiles, Watermark } from "./HeroCounters";
+import { useHeroCounterStyle } from "./hero-counter-style";
 import { OutroSparkles } from "./OutroSparkles";
 import { BottomDock } from "./BottomDock";
 import { countReadout, SignalMetaRow } from "./SignalPoster";
@@ -319,6 +321,23 @@ export default function VaultFeed({
     </>
   );
 
+  const heroCounterStyle = useHeroCounterStyle();
+  const heroCount =
+    openedGroupId === "all" ? allLinksCount : (openedGroup?.linksCount ?? 0);
+  const heroTitle = (
+    <h1 className="vault-title feed-hero-title min-w-0 max-w-full break-words">
+      <GlobeSwap
+        items={globe.items}
+        index={globe.index}
+        durationMs={GLOBE_HEADING_MS}
+        display={headingStatement}
+        peekOpacity={0.39}
+        peekReach={0.75}
+        className="max-w-full"
+      />
+    </h1>
+  );
+
   return (
     <main
       id="vault-feed"
@@ -358,26 +377,20 @@ export default function VaultFeed({
         className="feed-scroller -ms-2 min-h-0 min-w-0 flex-1 overflow-y-auto ps-2 [scrollbar-width:thin]"
       >
         <header className="vault-header feed-hero">
-          <h1 className="vault-title feed-hero-title min-w-0 max-w-full break-words">
-            <GlobeSwap
-              items={globe.items}
-              index={globe.index}
-              durationMs={GLOBE_HEADING_MS}
-              display={headingStatement}
-              peekOpacity={0.39}
-              peekReach={0.75}
-              className="max-w-full"
-            />
-          </h1>
-          <div className="feed-hero-count">
-            <LinkOdometer
-              count={
-                openedGroupId === "all"
-                  ? allLinksCount
-                  : (openedGroup?.linksCount ?? 0)
-              }
-            />
-          </div>
+          {heroCounterStyle === "watermark" ? (
+            <Watermark count={heroCount}>{heroTitle}</Watermark>
+          ) : (
+            <>
+              {heroTitle}
+              <div className="feed-hero-count">
+                {heroCounterStyle === "tiles" ? (
+                  <SplitTiles count={heroCount} />
+                ) : (
+                  <LinkOdometer count={heroCount} />
+                )}
+              </div>
+            </>
+          )}
         </header>
 
         <div className="feed-sticky-bar sticky top-0 z-20 -ms-2 min-w-0 bg-background/80 ps-2 pe-[var(--layout-pad)] backdrop-blur-md after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:content-['']">

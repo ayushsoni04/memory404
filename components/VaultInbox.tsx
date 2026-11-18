@@ -1,8 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { getLibraryLayout, subscribeLibraryLayout } from "@/lib/layout-pref";
+import { useCallback, useMemo, useRef, useState } from "react";
+import { LIBRARY_LAYOUT } from "@/lib/layout-pref";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import CommandPalette from "@/components/CommandPalette";
 import { ExtensionErrorBanner } from "@/components/ExtensionErrorBanner";
@@ -36,7 +36,7 @@ export default function VaultInbox({
   isOwner?: boolean;
 }) {
   const pageRef = useRef<HTMLDivElement | null>(null);
-  const layout = useSyncExternalStore(subscribeLibraryLayout, getLibraryLayout, () => "bar" as const);
+  const layout = LIBRARY_LAYOUT;
   const [newCardId, setNewCardId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [groupPendingTrashId, setGroupPendingTrashId] = useState<string | null>(

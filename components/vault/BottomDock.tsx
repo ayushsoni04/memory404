@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { Wordmark } from "@/components/brand/Wordmark";
 import { EXTENSION_VERSION, EXTENSION_ZIP_FILENAME, EXTENSION_ZIP_HREF } from "@/lib/extension-download";
-import { setLibraryLayout, type LibraryLayout } from "@/lib/layout-pref";
+import type { LibraryLayout } from "@/lib/layout-pref";
 import type { GridSize } from "./types";
 import {
   getCustomCursorEnabled,
@@ -282,19 +282,6 @@ export function BottomDock({
             options={[
               { value: "system", label: "System cursor", icon: <MousePointer className={iconCls} strokeWidth={1.6} /> },
               { value: "custom", label: "Custom cursor", icon: <MousePointer2 className={iconCls} strokeWidth={1.6} /> },
-            ]}
-          />
-          <Segmented<LibraryLayout>
-            label="Layout"
-            value={layout}
-            onChange={(v) => {
-              setLibraryLayout(v);
-              setOpen(false);
-              playUiSound("toggle");
-            }}
-            options={[
-              { value: "bar", label: "Top bar only", icon: <span className="text-[11px] font-semibold">Bar</span> },
-              { value: "sidebar", label: "With sidebar", icon: <span className="text-[11px] font-semibold">Side</span> },
             ]}
           />
           {bar ? (

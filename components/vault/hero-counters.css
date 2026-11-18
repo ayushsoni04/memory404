@@ -1,0 +1,12 @@
+/* ── Watermark: huge outlined reels ────────────────────────────────────── */
+.counter-watermark {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+  letter-spacing: -0.04em;
+}
+
+.counter-watermark .bg-current {
+  background-color: rgba(255, 255, 255, 0.1);
+  height: 2px;
+}
+

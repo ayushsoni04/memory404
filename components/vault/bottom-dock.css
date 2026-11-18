@@ -452,7 +452,7 @@ button.topbar-avatar:focus-visible {
     width: auto;
   }
 
-  .feed-topbar[data-layout="bar"] .topbar-logo span {
+  .feed-topbar[data-layout="bar"] .topbar-logo .brand-reveal {
     display: none;
   }
 }

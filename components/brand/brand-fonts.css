@@ -6,14 +6,84 @@
 }
 
 /* ── Wordmark (designeer's logo treatment) ───────────────────────────── */
+/* The brain alone takes up layout space, so it stays put (centred in the
+ * top bar) while the wordmark slides out to its right. */
 .brand-mark {
+  position: relative;
   display: inline-flex;
   align-items: center;
-  gap: 10px;
   width: fit-content;
   border-radius: 999px;
   color: var(--foreground);
   white-space: nowrap;
+}
+
+.brand-brain {
+  position: relative;
+  z-index: 2;
+  display: block;
+  line-height: 0;
+}
+
+.brand-brain canvas {
+  display: block;
+}
+
+/* The wordmark lives behind the brain. Its window starts at the brain's
+ * centre, so as the word slides right it comes out from behind the brain
+ * rather than appearing beside it. */
+.brand-reveal {
+  --brand-reveal-start: 29px; /* half the brain (23px) plus a 6px gap */
+  position: absolute;
+  z-index: 1;
+  top: 50%;
+  left: 50%;
+  padding: 4px 4px 4px var(--brand-reveal-start);
+  overflow: hidden;
+  translate: 0 -50%;
+  pointer-events: none;
+}
+
+.brand-reveal .brand-word {
+  translate: calc(-100% - var(--brand-reveal-start)) 0;
+  opacity: 0;
+  filter: blur(3px);
+  transition:
+    translate 560ms var(--ease-out, cubic-bezier(0.22, 1, 0.36, 1)),
+    opacity 320ms var(--ease-out, ease-out),
+    filter 420ms var(--ease-out, ease-out);
+}
+
+.brand-mark:hover .brand-reveal,
+.brand-mark:focus-visible .brand-reveal,
+.brand-mark[data-awake] .brand-reveal,
+.brand-mark[data-no-brain] .brand-reveal {
+  pointer-events: auto;
+}
+
+.brand-mark:hover .brand-word,
+.brand-mark:focus-visible .brand-word,
+.brand-mark[data-awake] .brand-word,
+.brand-mark[data-no-brain] .brand-word {
+  translate: 0 0;
+  opacity: 1;
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .brand-reveal .brand-word {
+    translate: 0 0;
+    filter: none;
+    transition: opacity 200ms linear;
+  }
+}
+
+/* Stars from a tap on the brain, spread over the whole top bar. */
+.tap-sparkles {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
 }
 
 .brand-word {
@@ -47,4 +117,9 @@
     height: max(100%, 44px);
     translate: -50% -50%;
   }
+}
+
+/* The top bar dims its logo on hover; the brain stays at full strength. */
+.topbar-logo.brand-mark:hover {
+  opacity: 1;
 }
