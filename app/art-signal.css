@@ -72,11 +72,56 @@ html[data-art="signal"] * {
 
 /* ── Page backdrop: sky haze on top, eclipse rim on the horizon ──────── */
 
+/*
+ * The bright haze drifts on its own: its centre wanders a few percent around
+ * 58% / -14% on two out-of-step loops, so the path never visibly repeats.
+ * Animated on <html>, so the backdrop and every sticky bar that repaints it
+ * with a fixed attachment move together and never show a seam.
+ */
+@property --sig-sky-x {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: 58%;
+}
+
+@property --sig-sky-y {
+  syntax: "<percentage>";
+  inherits: true;
+  initial-value: -14%;
+}
+
+html[data-art="signal"] {
+  --sig-sky-x: 58%;
+  --sig-sky-y: -14%;
+  animation:
+    sig-sky-drift-x 23s ease-in-out infinite alternate,
+    sig-sky-drift-y 17s ease-in-out infinite alternate;
+}
+
+@keyframes sig-sky-drift-x {
+  0% { --sig-sky-x: 51%; }
+  35% { --sig-sky-x: 61%; }
+  70% { --sig-sky-x: 55%; }
+  100% { --sig-sky-x: 65%; }
+}
+
+@keyframes sig-sky-drift-y {
+  0% { --sig-sky-y: -17%; }
+  50% { --sig-sky-y: -10%; }
+  100% { --sig-sky-y: -15%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-art="signal"] {
+    animation: none;
+  }
+}
+
 /* One definition, so the sticky group bar can paint the exact same sky. */
 html[data-art="signal"] {
   --sig-backdrop:
     radial-gradient(
-      110% 60% at 58% -14%,
+      110% 60% at var(--sig-sky-x) var(--sig-sky-y),
       rgba(140, 180, 240, 0.5) 0%,
       rgba(70, 110, 215, 0.3) 34%,
       rgba(31, 58, 156, 0.13) 58%,
@@ -524,7 +569,7 @@ html[data-art="signal"] .sig-outro::before {
 html[data-art="signal"][data-tone="mono"] {
   --sig-backdrop:
     radial-gradient(
-      110% 60% at 58% -14%,
+      110% 60% at var(--sig-sky-x) var(--sig-sky-y),
       rgba(178, 178, 178, 0.42) 0%,
       rgba(118, 118, 118, 0.26) 34%,
       rgba(64, 64, 64, 0.12) 58%,

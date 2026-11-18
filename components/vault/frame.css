@@ -404,3 +404,340 @@ html .sig-feed-meta > .sig-meta-row {
     right: 0;
   }
 }
+
+/* ── Feed layout (designeer /finds) ──────────────────────────────────────
+ * A narrower 208px sidebar; in the feed, a centred hero (title plus counter)
+ * with plenty of air, then the chip row, which sticks once the hero scrolls
+ * away, and the grid 16px in from every line.
+ */
+@media (min-width: 64rem) {
+  :root {
+    --sidebar-w: 208px;
+  }
+}
+
+html .vault-header.feed-hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  margin: 0;
+  padding: 44px var(--layout-pad) 28px 0;
+  text-align: center;
+}
+
+@media (min-width: 40rem) {
+  html .vault-header.feed-hero {
+    padding-top: 52px;
+    padding-bottom: 36px;
+  }
+}
+
+html .feed-hero-title {
+  width: 100%;
+  max-width: 40rem;
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.035em;
+  color: var(--foreground);
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 40rem) {
+  html .feed-hero-title {
+    font-size: 28px;
+  }
+}
+
+.feed-hero-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+/* Chip row: 16px above, 12px below, like designeer's filter bar. */
+.feed-sticky-bar {
+  padding-top: 4px;
+}
+
+/* ── Name pill (designeer) ───────────────────────────────────────────────
+ * Each card is named by a dark glass pill at its foot: round site icon, then
+ * the link's own name in bold white. The hover caption only adds the note.
+ */
+.mind-card .card-source {
+  gap: 7px;
+  max-width: calc(100% - 24px);
+  height: 32px;
+  padding: 0 13px 0 5px;
+  background: rgb(20 20 22 / 0.7);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.mind-card .card-source:not(:has(img)) {
+  padding-inline-start: 13px;
+}
+
+.card-source-name {
+  min-width: 0;
+}
+
+.mind-card .mind-card-caption p {
+  padding-inline: 0 !important;
+  color: rgb(255 255 255 / 0.78) !important;
+}
+
+/* The note sits above the name pill instead of over it: no gradient of its
+ * own (the card's hover scrim already darkens the image), so the pill stays
+ * fully visible on hover. */
+.mind-card .mind-card-caption {
+  bottom: calc(var(--mind-card-gap, 10px) + 52px);
+  padding: 0 16px;
+  background: none;
+  border-radius: 0;
+  text-shadow: 0 1px 8px rgb(0 0 0 / 0.6);
+}
+
+/* Title and counter share one line, centred together. */
+html .vault-header.feed-hero {
+  flex-direction: row;
+  justify-content: center;
+  gap: 14px;
+}
+
+html .feed-hero-title {
+  width: auto;
+  flex: 0 1 auto;
+}
+
+/* ── Name pill: icon at rest, name on hover ──────────────────────────────
+ * At rest the pill is just the round site icon. Hovering the card slides the
+ * name out beside it, cut to about 15 characters.
+ */
+.mind-card .card-source {
+  gap: 0;
+  padding: 0 5px;
+  transition:
+    padding 260ms var(--ease-out),
+    gap 260ms var(--ease-out),
+    opacity 180ms var(--ease-out);
+}
+
+.mind-card .card-source-name {
+  display: block;
+  max-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  opacity: 0;
+  transition:
+    max-width 300ms var(--ease-out),
+    opacity 180ms var(--ease-out);
+}
+
+/* Without an icon there is nothing to show at rest. */
+.mind-card .card-source:not(:has(img)) {
+  opacity: 0;
+}
+
+.mind-card:hover .card-source,
+.mind-card:focus-within .card-source {
+  gap: 7px;
+  padding-inline-end: 13px;
+  opacity: 1;
+}
+
+.mind-card:hover .card-source:not(:has(img)),
+.mind-card:focus-within .card-source:not(:has(img)) {
+  padding-inline-start: 13px;
+}
+
+.mind-card:hover .card-source-name,
+.mind-card:focus-within .card-source-name {
+  max-width: 15ch;
+  opacity: 1;
+}
+
+/* Touch screens can't hover: show the name all the time. */
+@media (hover: none) {
+  .mind-card .card-source {
+    gap: 7px;
+    padding-inline-end: 13px;
+    opacity: 1;
+  }
+
+  .mind-card .card-source-name {
+    max-width: 15ch;
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mind-card .card-source,
+  .mind-card .card-source-name {
+    transition: none;
+  }
+}
+
+/* Title at the left edge of the grid, counter at the right edge. */
+html .vault-header.feed-hero {
+  justify-content: space-between;
+  text-align: start;
+}
+
+/* No top strip or dashed rule over the feed; the hero starts near the top. */
+html #vault-feed > .sig-feed-meta {
+  display: none !important;
+}
+
+html .vault-header.feed-hero {
+  padding-top: 28px;
+  padding-bottom: 24px;
+}
+
+/* Card edges: one clean edge. The outer 1px ring and the shell's fill used to
+ * peek out around the image's rounded corners as a second, offset line. Now
+ * the shell is bare and a faint hairline is drawn inside the image itself. */
+html .mind-card-shell {
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.mind-card-preview::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.07);
+  pointer-events: none;
+}
+
+/* The chip bar is clear while it sits under the hero, so there is no visible
+ * box where its painted backdrop starts. Its backdrop (and the fade under it)
+ * only comes in as the hero scrolls away and the bar sticks. */
+html #vault-feed .feed-sticky-bar {
+  background: transparent !important;
+}
+
+html #vault-feed .feed-sticky-bar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: var(--sig-backdrop, var(--background));
+  background-attachment: fixed;
+  opacity: 0;
+}
+
+@supports (animation-timeline: scroll()) {
+  html #vault-feed .feed-sticky-bar::before,
+  html #vault-feed .feed-sticky-bar::after {
+    animation: feed-bar-in linear both;
+    animation-timeline: scroll(nearest block);
+    animation-range: 40px 110px;
+  }
+}
+
+@supports not (animation-timeline: scroll()) {
+  html #vault-feed .feed-sticky-bar::before {
+    opacity: 1;
+  }
+}
+
+@keyframes feed-bar-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Add-link card: its dashed outline follows the card's own rounded corners
+ * instead of being clipped by them. */
+.mind-card-shell > div.overflow-hidden,
+.mind-card-shell > div.overflow-hidden > * > button.border-dashed,
+.mind-card-shell button.border-dashed {
+  border-radius: var(--mind-card-radius) !important;
+}
+
+/* Copy and open buttons wear the same dark glass as the name pill and star. */
+html .mind-card .mind-card-action {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  border: 0;
+  background: rgb(20 20 22 / 0.7);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.08);
+  color: rgb(250 250 250);
+}
+
+html .mind-card .mind-card-action:hover {
+  background: rgb(36 36 40 / 0.85);
+}
+
+html .mind-card .mind-card-actions {
+  --mind-card-action-size: 32px;
+}
+
+/* ── Sidebar Browse list (designeer) ─────────────────────────────────────
+ * "Browse" label, then 29px rows: 18px line icon and 14px label, muted at
+ * rest, white for the current page. */
+.sidebar-browse {
+  align-self: stretch;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.sidebar-browse ul {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sidebar-browse-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 30px;
+  padding-inline: 8px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: rgb(168 168 173);
+  transition:
+    color 160ms var(--ease-out),
+    background-color 160ms var(--ease-out);
+}
+
+.sidebar-browse-link:hover {
+  color: var(--foreground);
+  background: rgb(255 255 255 / 0.04);
+}
+
+.sidebar-browse-link[aria-current="page"] {
+  color: var(--foreground);
+}
+
+.sidebar-browse-link:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--focus) 60%, transparent);
+  outline-offset: 1px;
+}
+
+/* The feed column doesn't clip on wide screens, so the top bar's dashed rule
+ * reaches the hatched gutters' hairlines instead of stopping at the column. */
+@media (min-width: 64rem) {
+  html .vault-shell [data-vault-column="feed"] {
+    overflow: visible;
+  }
+}

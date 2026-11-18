@@ -10,7 +10,9 @@ import {
   CommandList,
   CommandLoading,
 } from "cmdk";
-import { Folder, LayoutGrid, Plus, Settings, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, CornerDownLeft, Folder, LayoutGrid, Plus, Search, Settings, Trash2 } from "lucide-react";
+import { PaletteHighlight } from "@/components/vault/PaletteHighlight";
+import "@/components/vault/palette.css";
 import { apiUrl } from "@/lib/api-base";
 import { asSentence, explainLoadError } from "@/lib/load-error";
 import type { LinkApiRow } from "@/lib/links";
@@ -79,6 +81,7 @@ export default function CommandPalette({
   const [savingNote, setSavingNote] = useState(false);
   const noteRef = useRef<HTMLTextAreaElement | null>(null);
   const searchRef = useRef<HTMLInputElement | null>(null);
+  const listRef = useRef<HTMLDivElement | null>(null);
   const searchRecoveryRef = useRef<HTMLDivElement | null>(null);
   const requestIdRef = useRef(0);
   const savingUrlRef = useRef(false);
@@ -281,8 +284,8 @@ export default function CommandPalette({
       onOpenChange={handleDialogOpenChange}
       label="Command palette"
       shouldFilter={false}
-      contentClassName="fixed left-1/2 top-[18%] z-50 w-full max-w-lg -translate-x-1/2 overflow-hidden rounded-xl border border-border bg-surface-elevated shadow-2xl"
-      overlayClassName="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm"
+      contentClassName="palette-dialog"
+      overlayClassName="palette-overlay"
     >
       {savedLink ? (
         <form
@@ -340,16 +343,21 @@ export default function CommandPalette({
         </form>
       ) : null}
       {savedLink ? null : (
-      <CommandInput
-        ref={searchRef}
-        value={search}
-        onValueChange={handleSearchChange}
-        placeholder="Search links, jump to a group, or go to a page…"
-        className="w-full border-b border-border bg-transparent px-4 py-3 text-sm text-foreground outline-none placeholder:text-subtle focus-visible:bg-surface"
-      />
+      <div className="palette-field">
+        <Search className="size-[18px] shrink-0" strokeWidth={1.8} aria-hidden />
+        <CommandInput
+          ref={searchRef}
+          value={search}
+          onValueChange={handleSearchChange}
+          placeholder="Search links, groups and pages…"
+          className="palette-input"
+        />
+        <kbd className="palette-kbd">Esc</kbd>
+      </div>
       )}
       {savedLink ? null : (
-      <CommandList className="max-h-80 overflow-y-auto p-2">
+      <CommandList ref={listRef} className="palette-list">
+        <PaletteHighlight listRef={listRef} />
         {loadingLinks ? (
           <CommandLoading className="px-2 py-1.5 text-[12px] text-subtle">
             Searching links…
@@ -407,7 +415,6 @@ export default function CommandPalette({
         {offerUrl && !loadingLinks && !searchError && onSaveUrl ? (
           <CommandGroup
             heading="Save"
-            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
           >
             <CommandItem
               value="save-typed-url"
@@ -415,10 +422,12 @@ export default function CommandPalette({
               onSelect={() => {
                 void saveOfferedUrl();
               }}
-              className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+              className="palette-item"
             >
-              <Plus className="size-3.5 text-muted" strokeWidth={2} />
-              <span className="min-w-0 truncate">
+              <span className="palette-icon" aria-hidden>
+                <Plus className="size-4" strokeWidth={1.7} />
+              </span>
+              <span className="palette-label">
                 {savingUrl ? "Saving…" : `Save ${offerUrl}`}
               </span>
             </CommandItem>
@@ -433,7 +442,6 @@ export default function CommandPalette({
         {filteredGroups.length ? (
           <CommandGroup
             heading="Groups"
-            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
           >
             {filteredGroups.map((g) => (
               <CommandItem
@@ -443,10 +451,12 @@ export default function CommandPalette({
                   onSelectGroup(g.id);
                   closePalette();
                 }}
-                className="flex min-w-0 cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+                className="palette-item min-w-0"
               >
-                <Folder className="size-3.5 shrink-0 text-muted" strokeWidth={2} />
-                <span className="min-w-0 truncate">{g.name}</span>
+                <span className="palette-icon" aria-hidden>
+                  <Folder className="size-4" strokeWidth={1.7} />
+                </span>
+                <span className="palette-label min-w-0 truncate">{g.name}</span>
               </CommandItem>
             ))}
           </CommandGroup>
@@ -455,7 +465,6 @@ export default function CommandPalette({
         {!loadingLinks && linkResults.length ? (
           <CommandGroup
             heading="Links"
-            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
           >
             {linkResults.map((link) => (
               <CommandItem
@@ -470,7 +479,7 @@ export default function CommandPalette({
                   else openLink(link.url);
                   closePalette();
                 }}
-                className="flex min-w-0 cursor-pointer flex-col gap-0.5 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+                className="palette-item palette-item-link"
               >
                 <SearchResultText
                   link={link}
@@ -484,7 +493,6 @@ export default function CommandPalette({
         {pages.length ? (
           <CommandGroup
             heading="Go to"
-            className="[&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:py-1.5 [&_[cmdk-group-heading]]:text-[11px] [&_[cmdk-group-heading]]:uppercase [&_[cmdk-group-heading]]:tracking-wide [&_[cmdk-group-heading]]:text-subtle"
           >
             {pages.map((page) => {
               const Icon =
@@ -501,10 +509,12 @@ export default function CommandPalette({
                     router.push(page.href);
                     closePalette();
                   }}
-                  className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-foreground data-[selected=true]:bg-pill-hover"
+                  className="palette-item"
                 >
-                  <Icon className="size-3.5 text-muted" strokeWidth={2} />
-                  {page.label}
+                  <span className="palette-icon" aria-hidden>
+                    <Icon className="size-4" strokeWidth={1.7} />
+                  </span>
+                  <span className="palette-label">{page.label}</span>
                 </CommandItem>
               );
             })}
@@ -513,8 +523,22 @@ export default function CommandPalette({
       </CommandList>
       )}
       {savedLink ? null : (
-      <div className="flex items-center justify-between border-t border-border px-3 py-2">
-        <span className="text-[11px] text-subtle">Keyboard shortcuts</span>
+      <div className="palette-footer">
+        <span className="palette-hint">
+          <kbd className="palette-kbd palette-key" aria-hidden>
+            <ArrowUp className="size-3" strokeWidth={2} />
+          </kbd>
+          <kbd className="palette-kbd palette-key" aria-hidden>
+            <ArrowDown className="size-3" strokeWidth={2} />
+          </kbd>
+          Move
+        </span>
+        <span className="palette-hint">
+          <kbd className="palette-kbd palette-key" aria-hidden>
+            <CornerDownLeft className="size-3" strokeWidth={2} />
+          </kbd>
+          Open
+        </span>
         <button
           type="button"
           onClick={() => {
@@ -522,7 +546,7 @@ export default function CommandPalette({
             openShortcutHelp();
           }}
           aria-label="Show keyboard shortcuts"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-border bg-pill px-2 font-mono text-[11px] text-subtle hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] focus-visible:ring-offset-2 focus-visible:ring-offset-surface-elevated sm:min-h-8 sm:min-w-8"
+          className="palette-kbd palette-key palette-help min-h-11 min-w-11 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_70%,transparent)] sm:min-h-8 sm:min-w-8"
         >
           ?
         </button>

@@ -34,6 +34,13 @@ export const WORKSPACE_LABS: WorkspaceLab[] = [
     status: "beta",
   },
   {
+    slug: "counter",
+    title: "Link counter",
+    description:
+      "Alternatives to the hero odometer: split tiles, carved into the page, watermark, lit dial, split-flap, 3D drums.",
+    status: "beta",
+  },
+  {
     slug: "nixie",
     title: "Nixie counter",
     description:

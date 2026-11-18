@@ -1,0 +1,77 @@
+/* Sparkles around the feed's closing line (components/vault/OutroSparkles.tsx). */
+/* The words get their own box so the sparkles hug the text, not the row. */
+.outro-words {
+  position: relative;
+  display: inline-block;
+  width: max-content;
+  max-width: 100%;
+}
+
+.outro-sparkles {
+  position: absolute;
+  inset: -0.45em -0.7em;
+  pointer-events: none;
+}
+
+.outro-sparkle {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  translate: -50% -50%;
+  animation: outro-sparkle 1100ms var(--ease-in-out-cubic, ease-in-out) both;
+}
+
+.outro-sparkle svg {
+  display: block;
+  fill: rgb(255 255 255 / 0.9);
+  filter: drop-shadow(0 0 6px rgb(255 255 255 / 0.45));
+}
+
+/* A tiny satellite dot that trails off below-right of the star. */
+.outro-sparkle-dot {
+  position: absolute;
+  right: -35%;
+  bottom: -40%;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.7);
+  animation: outro-sparkle-dot 1100ms var(--ease-out) both;
+}
+
+@keyframes outro-sparkle {
+  0% {
+    scale: 0;
+    rotate: calc(var(--r) - 45deg);
+    opacity: 0;
+  }
+  35% {
+    scale: 1;
+    rotate: var(--r);
+    opacity: 1;
+  }
+  60% {
+    scale: 0.82;
+    opacity: 1;
+  }
+  100% {
+    scale: 0;
+    rotate: calc(var(--r) + 45deg);
+    opacity: 0;
+  }
+}
+
+@keyframes outro-sparkle-dot {
+  0%,
+  25% {
+    opacity: 0;
+    translate: 0 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    translate: 4px 6px;
+  }
+}

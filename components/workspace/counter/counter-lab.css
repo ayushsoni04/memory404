@@ -1,0 +1,94 @@
+/* Stage: the feed's own backdrop (ink + grain come from the page), no card fill. */
+.counter-stage {
+  background: var(--background);
+}
+
+/* ── Carved: slots cut into the page, digits debossed ─────────────────── */
+.counter-carved-slot {
+  background: rgba(0, 0, 0, 0.32);
+  box-shadow:
+    inset 0 2px 3px rgba(0, 0, 0, 0.85),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05),
+    0 1px 0 rgba(255, 255, 255, 0.07);
+  -webkit-mask-image: linear-gradient(to bottom, transparent 6%, #000 32%, #000 68%, transparent 94%);
+  mask-image: linear-gradient(to bottom, transparent 6%, #000 32%, #000 68%, transparent 94%);
+}
+
+.counter-carved {
+  /* Same colour as the surface, lit from above: reads as pressed in, not printed on. */
+  color: rgba(255, 255, 255, 0.11);
+  text-shadow:
+    0 -1px 0 rgba(0, 0, 0, 0.9),
+    0 1px 0 rgba(255, 255, 255, 0.13);
+}
+
+/* ── Watermark: huge outlined reels ────────────────────────────────────── */
+.counter-watermark {
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(255, 255, 255, 0.1);
+  letter-spacing: -0.04em;
+}
+
+.counter-watermark .bg-current {
+  background-color: rgba(255, 255, 255, 0.1);
+  height: 2px;
+}
+
+/* ── Split-flap ───────────────────────────────────────────────────────── */
+.counter-flap-half {
+  height: 22px;
+  background: linear-gradient(to bottom, #232323, #191919);
+  backface-visibility: hidden;
+}
+
+.counter-flap-half[data-half="top"] {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.counter-flap-half[data-half="bottom"] {
+  background: linear-gradient(to bottom, #151515, #1d1d1d);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.45);
+}
+
+.counter-flap-fall {
+  transform-origin: 50% 50%;
+  animation-name: counter-flap-fall;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+}
+
+.counter-flap-land {
+  transform-origin: 50% 50%;
+  animation-name: counter-flap-land;
+  animation-timing-function: ease-out;
+  animation-fill-mode: both;
+}
+
+@keyframes counter-flap-fall {
+  from {
+    transform: rotateX(0deg);
+  }
+  to {
+    transform: rotateX(-90deg);
+  }
+}
+
+@keyframes counter-flap-land {
+  0%,
+  50% {
+    transform: rotateX(90deg);
+  }
+  to {
+    transform: rotateX(0deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .counter-flap-fall,
+  .counter-flap-land {
+    animation: none;
+  }
+  .counter-flap-fall {
+    display: none;
+  }
+}

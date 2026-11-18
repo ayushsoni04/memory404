@@ -123,6 +123,8 @@ export default function RootLayout({
       lang="en"
       // Signal is the app's look; app/art-signal.css keys off this attribute.
       data-art="signal"
+      // Black and white only: the colour version is switched off.
+      data-tone="mono"
       className={`${inter.variable} ${departureMono.variable} ${firaCode.variable} ${archivo.variable} ${spray.variable} ${GeistPixelSquare.variable} dark h-full antialiased`}
       // The boot script below may add data-tone before React hydrates.
       suppressHydrationWarning

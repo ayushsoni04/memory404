@@ -1,5 +1,6 @@
 "use client";
 
+import "./sort-menu.css";
 import { useEffect, useRef, useState } from "react";
 import { horizontalScrollEdges } from "./pill-scroll-fade";
 import { Check, ChevronDown, Plus, X } from "lucide-react";
@@ -112,6 +113,44 @@ export function SortPill({
   const rootRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const optionRefs = useRef<Array<HTMLButtonElement | null>>([]);
+  // Kept mounted for 120ms after closing so the menu can animate out.
+  const [closing, setClosing] = useState(false);
+  const wasOpen = useRef(false);
+  // The row the gliding highlight sits behind (hovered or focused).
+  const [hot, setHot] = useState<number | null>(null);
+  const [pill, setPill] = useState({ y: 0, h: 0, show: false, glide: false });
+
+  useEffect(() => {
+    if (open) {
+      wasOpen.current = true;
+      return;
+    }
+    if (!wasOpen.current) return;
+    wasOpen.current = false;
+    const start = window.setTimeout(() => setClosing(true), 0);
+    const end = window.setTimeout(() => {
+      setClosing(false);
+      setHot(null);
+    }, 120);
+    return () => {
+      window.clearTimeout(start);
+      window.clearTimeout(end);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const raf = requestAnimationFrame(() => {
+      const node = hot === null ? null : optionRefs.current[hot];
+      setPill((prev) =>
+        node
+          ? { y: node.offsetTop, h: node.offsetHeight, show: true, glide: prev.show }
+          : { ...prev, show: false, glide: false },
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [hot, open]);
+
   const label =
     SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? "Newest";
 
@@ -157,6 +196,7 @@ export function SortPill({
       <button
         ref={buttonRef}
         type="button"
+        data-popup-open={open || undefined}
         aria-label={`Sort links, ${label}`}
         aria-haspopup="listbox"
         aria-expanded={open}
@@ -174,19 +214,19 @@ export function SortPill({
       >
         <span>{label}</span>
         <ChevronDown
-          className={`size-3.5 shrink-0 transition-transform duration-200 ${
-            open ? "rotate-180" : ""
-          }`}
+          className="size-3.5 shrink-0 opacity-60"
           strokeWidth={2}
           aria-hidden
         />
       </button>
-      {open ? (
+      {open || closing ? (
         <ul
           id="sort-links-list"
           role="listbox"
           aria-label="Sort links"
-          className="absolute right-0 top-[calc(100%+6px)] z-30 min-w-[10.5rem] overflow-hidden rounded-xl border border-border bg-surface-elevated p-1 shadow-lg"
+          data-state={open ? "open" : "closed"}
+          className="sort-menu"
+          onPointerLeave={() => setHot(null)}
           onKeyDown={(event) => {
             if (event.key === "Tab") {
               event.preventDefault();
@@ -199,6 +239,16 @@ export function SortPill({
             event.stopPropagation();
           }}
         >
+          <span
+            aria-hidden
+            className="sort-menu-pill"
+            data-glide={pill.glide ? "true" : "false"}
+            style={{
+              opacity: pill.show ? 1 : 0,
+              height: pill.h,
+              transform: `translateY(${pill.y}px)`,
+            }}
+          />
           {SORT_OPTIONS.map((opt, index) => (
             <li key={opt.value} role="option" aria-selected={opt.value === sortBy}>
               <button
@@ -207,24 +257,23 @@ export function SortPill({
                 }}
                 type="button"
                 tabIndex={-1}
+                data-hot={hot === index || undefined}
+                onPointerEnter={() => setHot(index)}
+                onFocus={() => setHot(index)}
                 onClick={() => {
                   setSortByAndPersist(opt.value);
                   setOpen(false);
                   buttonRef.current?.focus();
                   playUiSound("tick");
                 }}
-                className={`flex min-h-11 w-full cursor-pointer items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left text-[13px] outline-none transition-[background-color,color,box-shadow] duration-[var(--duration-press)] ease-[var(--ease-out)] focus-visible:bg-pill-hover focus-visible:text-foreground focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] sm:min-h-0 ${
-                  opt.value === sortBy
-                    ? "text-foreground"
-                    : "text-muted hover:bg-pill hover:text-foreground"
+                className={`sort-menu-item min-h-11 sm:min-h-9 focus-visible:ring-2 focus-visible:ring-[color-mix(in_oklch,var(--focus)_45%,transparent)] ${
+                  opt.value === sortBy ? "is-checked" : ""
                 }`}
               >
                 <span>{opt.label}</span>
-                {opt.value === sortBy ? (
-                  <Check className="size-3.5 shrink-0" strokeWidth={2.5} aria-hidden />
-                ) : (
-                  <span className="size-3.5 shrink-0" aria-hidden />
-                )}
+                <span className="sort-menu-check" aria-hidden>
+                  {opt.value === sortBy ? <Check className="size-4" strokeWidth={2} /> : null}
+                </span>
               </button>
             </li>
           ))}

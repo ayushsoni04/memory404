@@ -4,3 +4,47 @@
   font-weight: 500;
   letter-spacing: -0.01em;
 }
+
+/* ── Wordmark (designeer's logo treatment) ───────────────────────────── */
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  width: fit-content;
+  border-radius: 999px;
+  color: var(--foreground);
+  white-space: nowrap;
+}
+
+.brand-word {
+  display: flex;
+  align-items: center;
+  font-size: 19px;
+  line-height: 1;
+}
+
+.brand-word-dim {
+  color: rgb(168 168 173);
+}
+
+.brand-mark:focus-visible {
+  outline: 2px solid color-mix(in oklch, var(--focus) 60%, transparent);
+  outline-offset: 3px;
+}
+
+/* Touch: grow the hit area to at least 44px without moving anything. */
+@media (pointer: coarse) {
+  .tap {
+    position: relative;
+  }
+
+  .tap::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}

@@ -19,9 +19,11 @@ import {
 } from "./feed-load";
 import PastePrompt from "./PastePrompt";
 import { LinkOdometer } from "./LinkOdometer";
+import { OutroSparkles } from "./OutroSparkles";
 import { BottomDock } from "./BottomDock";
 import { countReadout, SignalMetaRow } from "./SignalPoster";
 import type { GridSize, GroupRow } from "./types";
+import type { LibraryLayout } from "@/lib/layout-pref";
 
 type SaveLinkResult =
   | { ok: true; link: LinkApiRow }
@@ -31,6 +33,9 @@ type VaultFeedProps = {
   groupToolbar: React.ReactNode;
   /** Opens the ⌘K palette from the bottom dock. */
   onOpenSearch?: () => void;
+  isOwner?: boolean;
+  layout?: LibraryLayout;
+  setGridSize?: (next: GridSize) => void;
   /** Groups in chip-row order; the heading spins through these. */
   groupOrder?: { id: string; name: string }[];
   openedGroupId: string | null;
@@ -77,6 +82,9 @@ function headingStatement(name: string): string {
 export default function VaultFeed({
   groupToolbar,
   onOpenSearch,
+  isOwner = false,
+  layout = "sidebar",
+  setGridSize,
   groupOrder = [],
   openedGroupId,
   openedGroup,
@@ -299,7 +307,11 @@ export default function VaultFeed({
       {!hasMoreLinks && !loadMoreError ? (
         <div className="relative">
           <p className="sig-outro art-only" aria-hidden>
-            A private archive for the links you meant to come back to.
+            <span className="outro-words">
+              A private archive for the links
+              <br className="max-sm:hidden" /> you meant to come back to.
+              <OutroSparkles />
+            </span>
           </p>
           <FeedEndReadouts />
         </div>
@@ -332,40 +344,47 @@ export default function VaultFeed({
           ]}
         />
       </p>
-      <header className="vault-header shrink-0 -me-[var(--layout-pad)] flex flex-col gap-y-[var(--layout-gap-item)] pe-[var(--layout-pad)] pt-[max(1rem,env(safe-area-inset-top))] lg:flex-row lg:items-baseline lg:justify-between lg:gap-x-[var(--layout-gap-control)]">
-        <h1 className="vault-title min-w-0 max-w-full lg:flex-1 break-words text-[22px] font-bold leading-[1.1] tracking-[-0.05em] text-foreground sm:text-[26px]">
-          <GlobeSwap
-            items={globe.items}
-            index={globe.index}
-            durationMs={GLOBE_HEADING_MS}
-            display={headingStatement}
-            peekOpacity={0.39}
-            peekReach={0.75}
-            className="max-w-full"
-          />
-        </h1>
-        <div className="flex shrink-0 items-center gap-2 lg:me-[var(--layout-pad)] lg:self-center">
-          <LinkOdometer
-            count={
-              openedGroupId === "all"
-                ? allLinksCount
-                : (openedGroup?.linksCount ?? 0)
-            }
-          />
-        </div>
-      </header>
-
-      <div className="mt-[var(--layout-gap-control)] shrink-0 -ms-2 min-w-0 ps-2 pe-[var(--layout-pad)]">
-        {groupToolbar}
-      </div>
-
+      {onOpenSearch ? <BottomDock
+          onOpenSearch={onOpenSearch}
+          isOwner={isOwner}
+          layout={layout}
+          gridSize={gridSize}
+          setGridSize={setGridSize}
+        /> : null}
       <div
         ref={scrollRootRef}
-        // Cards fade out as they scroll up under the chip row instead of
-        // meeting a hard edge; the top padding keeps the first row clear of it.
-        className="-ms-2 min-h-0 min-w-0 flex-1 overflow-y-auto ps-2 pt-4 [scrollbar-width:thin] [mask-image:linear-gradient(to_bottom,transparent_0,#000_1rem)]"
+        // One scroller, like designeer: the centred hero scrolls away and the
+        // chip row sticks at the top, with the cards fading out beneath it.
+        className="feed-scroller -ms-2 min-h-0 min-w-0 flex-1 overflow-y-auto ps-2 [scrollbar-width:thin]"
       >
-        <div className="flex min-w-0 flex-col gap-[var(--layout-gap-group)] pb-8 pe-[var(--layout-pad)]">
+        <header className="vault-header feed-hero">
+          <h1 className="vault-title feed-hero-title min-w-0 max-w-full break-words">
+            <GlobeSwap
+              items={globe.items}
+              index={globe.index}
+              durationMs={GLOBE_HEADING_MS}
+              display={headingStatement}
+              peekOpacity={0.39}
+              peekReach={0.75}
+              className="max-w-full"
+            />
+          </h1>
+          <div className="feed-hero-count">
+            <LinkOdometer
+              count={
+                openedGroupId === "all"
+                  ? allLinksCount
+                  : (openedGroup?.linksCount ?? 0)
+              }
+            />
+          </div>
+        </header>
+
+        <div className="feed-sticky-bar sticky top-0 z-20 -ms-2 min-w-0 bg-background/80 ps-2 pe-[var(--layout-pad)] backdrop-blur-md after:pointer-events-none after:absolute after:inset-x-0 after:top-full after:content-['']">
+          {groupToolbar}
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-[var(--layout-gap-group)] pt-2 pb-8 pe-[var(--layout-pad)]">
           {missingGroupNotice ? (
             <p role="status" className="text-[13px] text-muted">
               {missingGroupNotice}
@@ -390,7 +409,7 @@ export default function VaultFeed({
           {feedBody}
         </div>
       </div>
-      {onOpenSearch ? <BottomDock onOpenSearch={onOpenSearch} /> : null}
+      
     </main>
   );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { getLibraryLayout, subscribeLibraryLayout } from "@/lib/layout-pref";
 import { GENERAL_GROUP_NAME } from "@/lib/group-constants";
 import CommandPalette from "@/components/CommandPalette";
 import { ExtensionErrorBanner } from "@/components/ExtensionErrorBanner";
@@ -35,6 +36,7 @@ export default function VaultInbox({
   isOwner?: boolean;
 }) {
   const pageRef = useRef<HTMLDivElement | null>(null);
+  const layout = useSyncExternalStore(subscribeLibraryLayout, getLibraryLayout, () => "bar" as const);
   const [newCardId, setNewCardId] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [groupPendingTrashId, setGroupPendingTrashId] = useState<string | null>(
@@ -266,6 +268,7 @@ export default function VaultInbox({
       <div
         ref={pageRef}
         inert={openedLink ? true : undefined}
+        data-layout={layout}
         className="vault-shell mx-auto grid min-h-dvh w-full max-w-[var(--content-max)] grid-cols-1 gap-[var(--layout-gap-section)] px-[max(var(--layout-pad),env(safe-area-inset-left))] pe-[max(var(--layout-pad),env(safe-area-inset-right))] pt-[max(var(--layout-pad),env(safe-area-inset-top))] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:h-dvh lg:max-h-dvh lg:grid-cols-[var(--sidebar-w)_minmax(0,1fr)] lg:gap-y-0 lg:overflow-hidden lg:ps-0 lg:pe-[max(var(--layout-pad),env(safe-area-inset-right))] lg:pt-0 lg:pb-0 min-[1712px]:border-x min-[1712px]:border-border"
       >
       <VaultColumns
@@ -341,6 +344,9 @@ export default function VaultInbox({
           }
           groupOrder={filteredFolders}
           onOpenSearch={() => setPaletteOpen(true)}
+          isOwner={isOwner}
+          layout={layout}
+          setGridSize={setGridSizeAndPersist}
           openedGroupId={openedGroupId}
           openedGroup={openedGroup}
           allLinksCount={allLinksCount}

@@ -1,18 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import Link from "next/link";
 import {
-  Contrast,
-  Menu,
+  Download,
+  FlaskConical,
   MousePointer,
   MousePointer2,
-  Palette,
   Search,
   Volume2,
+  Settings,
+  Trash2,
   VolumeX,
 } from "lucide-react";
-import { applyArtStyle, type ArtStyle } from "@/lib/art-style";
-import { useArtStyle } from "@/lib/use-art-style";
+import { Wordmark } from "@/components/brand/Wordmark";
+import { EXTENSION_VERSION, EXTENSION_ZIP_FILENAME, EXTENSION_ZIP_HREF } from "@/lib/extension-download";
+import { setLibraryLayout, type LibraryLayout } from "@/lib/layout-pref";
+import type { GridSize } from "./types";
 import {
   getCustomCursorEnabled,
   setCustomCursorEnabled,
@@ -59,16 +63,64 @@ function Segmented<T extends string>({
   );
 }
 
+type Me = { name: string | null; username: string | null; avatarUrl: string | null };
+
+/** The signed-in person's name and photo, refreshed when the profile changes. */
+function useMe(): Me | null {
+  const [me, setMe] = useState<Me | null>(null);
+  useEffect(() => {
+    let alive = true;
+    const load = async () => {
+      try {
+        const res = await fetch("/api/me");
+        if (!res.ok) return;
+        const data = await res.json();
+        if (alive && data.user) setMe(data.user as Me);
+      } catch {
+        /* the initial stays */
+      }
+    };
+    void load();
+    window.addEventListener("m404:profile-updated", load);
+    return () => {
+      alive = false;
+      window.removeEventListener("m404:profile-updated", load);
+    };
+  }, []);
+  return me;
+}
+
+function initialOf(me: Me | null): string {
+  const source = me?.name?.trim() || me?.username?.trim() || "";
+  return source ? source[0].toUpperCase() : "M";
+}
+
 /**
- * Floating dock at the bottom of the feed: Search (opens the ⌘K palette) and a
- * menu with display settings.
+ * The feed's top bar, after designeer.xyz/finds.
+ * - "bar" layout (no sidebar): logo on the left, Search in the middle, the
+ *   profile photo on the right. The photo opens a menu with everything the
+ *   sidebar used to hold: grid size, pages, the extension and settings.
+ * - "sidebar" layout: page links on the left, Search, and a settings gear.
  */
-export function BottomDock({ onOpenSearch }: { onOpenSearch: () => void }) {
+export function BottomDock({
+  onOpenSearch,
+  isOwner = false,
+  layout = "sidebar",
+  gridSize,
+  setGridSize,
+}: {
+  onOpenSearch: () => void;
+  isOwner?: boolean;
+  layout?: LibraryLayout;
+  gridSize?: GridSize;
+  setGridSize?: (next: GridSize) => void;
+}) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
-  const art = useArtStyle();
   const cursorOn = useSyncExternalStore(subscribeCustomCursor, getCustomCursorEnabled, () => true);
   const [soundOn, setSoundOn] = useState(true);
+  const me = useMe();
+  const bar = layout === "bar";
   const shortcut =
     typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform) ? "⌘K" : "Ctrl K";
 
@@ -89,23 +141,123 @@ export function BottomDock({ onOpenSearch }: { onOpenSearch: () => void }) {
   }, [open]);
 
   const iconCls = "size-[18px]";
+  const toggleMenu = () => {
+    if (!open) setSoundOn(getSoundsEnabled());
+    setOpen(!open);
+  };
 
   return (
-    <div ref={rootRef} className="bottom-dock">
+    <div ref={rootRef} className="feed-topbar" data-layout={layout}>
+      {bar ? (
+        <Wordmark className="topbar-logo" />
+      ) : (
+        <nav aria-label="Pages" className="topbar-nav">
+          <Link href="/" aria-current="page" className="topbar-link topbar-link-active">
+            Library
+          </Link>
+          {isOwner ? (
+            <Link href="/workspace" className="topbar-link">
+              Workspace
+            </Link>
+          ) : null}
+          <Link href="/trash" className="topbar-link">
+            Trash
+          </Link>
+        </nav>
+      )}
+
+      <button
+        type="button"
+        onClick={() => {
+          if (anotherDialogIsOpen()) return;
+          onOpenSearch();
+          playUiSound("tick");
+        }}
+        aria-keyshortcuts="Control+K Meta+K"
+        className="topbar-search"
+      >
+        <Search className="size-[14px]" strokeWidth={2} aria-hidden />
+        <span>Search</span>
+        <kbd suppressHydrationWarning className="topbar-kbd">
+          {shortcut}
+        </kbd>
+      </button>
+
+      <div className="topbar-actions">
+        {bar ? (
+          <button
+            type="button"
+            aria-label="Profile and settings"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={toggleMenu}
+            className="topbar-avatar"
+          >
+            {me?.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- data URLs and remote avatars
+              <img src={me.avatarUrl} alt="" className="size-full rounded-full object-cover" />
+            ) : (
+              <span aria-hidden>{initialOf(me)}</span>
+            )}
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label="Display settings"
+            aria-haspopup="dialog"
+            aria-expanded={open}
+            onClick={toggleMenu}
+            className="topbar-icon"
+          >
+            <Settings className="size-[15px]" strokeWidth={1.8} aria-hidden />
+          </button>
+        )}
+      </div>
+
       {open ? (
-        <div className="dock-panel" role="dialog" aria-label="Display settings">
-          <Segmented<ArtStyle>
-            label="Colour"
-            value={art}
-            onChange={(v) => {
-              applyArtStyle(v);
-              playUiSound("toggle");
-            }}
-            options={[
-              { value: "signal", label: "Colour", icon: <Palette className={iconCls} strokeWidth={1.6} /> },
-              { value: "mono", label: "Mono", icon: <Contrast className={iconCls} strokeWidth={1.6} /> },
-            ]}
-          />
+        <div
+          className="dock-panel topbar-panel"
+          role="dialog"
+          aria-label={bar ? "Profile and settings" : "Display settings"}
+        >
+          {bar ? (
+            <>
+              <div className="flex items-center gap-3">
+                <span className="topbar-avatar topbar-avatar-lg" aria-hidden>
+                  {me?.avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element -- data URLs and remote avatars
+                    <img src={me.avatarUrl} alt="" className="size-full rounded-full object-cover" />
+                  ) : (
+                    initialOf(me)
+                  )}
+                </span>
+                <span className="flex min-w-0 flex-col">
+                  <span className="truncate text-[14px] font-medium text-foreground">
+                    {me?.name || "Your profile"}
+                  </span>
+                  <span className="truncate text-[12px] text-subtle">
+                    {me?.username ? `@${me.username}` : "Add photo & details"}
+                  </span>
+                </span>
+              </div>
+              <hr className="border-white/10" />
+              {gridSize && setGridSize ? (
+                <Segmented<GridSize>
+                  label="Card size"
+                  value={gridSize}
+                  onChange={(v) => {
+                    setGridSize(v);
+                    playUiSound("toggle");
+                  }}
+                  options={[
+                    { value: "compact", label: "Small cards", icon: <span className="text-[12px] font-semibold">S</span> },
+                    { value: "default", label: "Medium cards", icon: <span className="text-[12px] font-semibold">M</span> },
+                    { value: "large", label: "Large cards", icon: <span className="text-[12px] font-semibold">L</span> },
+                  ]}
+                />
+              ) : null}
+            </>
+          ) : null}
           <Segmented<"off" | "on">
             label="Sound"
             value={soundOn ? "on" : "off"}
@@ -120,7 +272,6 @@ export function BottomDock({ onOpenSearch }: { onOpenSearch: () => void }) {
               { value: "on", label: "Sound on", icon: <Volume2 className={iconCls} strokeWidth={1.6} /> },
             ]}
           />
-          <hr className="border-white/10" />
           <Segmented<"system" | "custom">
             label="Custom cursor"
             value={cursorOn ? "custom" : "system"}
@@ -133,41 +284,47 @@ export function BottomDock({ onOpenSearch }: { onOpenSearch: () => void }) {
               { value: "custom", label: "Custom cursor", icon: <MousePointer2 className={iconCls} strokeWidth={1.6} /> },
             ]}
           />
+          <Segmented<LibraryLayout>
+            label="Layout"
+            value={layout}
+            onChange={(v) => {
+              setLibraryLayout(v);
+              setOpen(false);
+              playUiSound("toggle");
+            }}
+            options={[
+              { value: "bar", label: "Top bar only", icon: <span className="text-[11px] font-semibold">Bar</span> },
+              { value: "sidebar", label: "With sidebar", icon: <span className="text-[11px] font-semibold">Side</span> },
+            ]}
+          />
+          {bar ? (
+            <>
+              <hr className="border-white/10" />
+              <nav aria-label="Pages" className="flex flex-col">
+                {isOwner ? (
+                  <Link href="/workspace" className="topbar-menu-link">
+                    <FlaskConical className="size-4" strokeWidth={1.7} aria-hidden />
+                    Workspace
+                  </Link>
+                ) : null}
+                <Link href="/trash" className="topbar-menu-link">
+                  <Trash2 className="size-4" strokeWidth={1.7} aria-hidden />
+                  Trash
+                </Link>
+                <a href={EXTENSION_ZIP_HREF} download={EXTENSION_ZIP_FILENAME} className="topbar-menu-link">
+                  <Download className="size-4" strokeWidth={1.7} aria-hidden />
+                  Extension
+                  <span className="ms-auto text-[11px] text-subtle">{EXTENSION_VERSION}</span>
+                </a>
+                <Link href="/settings" className="topbar-menu-link">
+                  <Settings className="size-4" strokeWidth={1.7} aria-hidden />
+                  Settings
+                </Link>
+              </nav>
+            </>
+          ) : null}
         </div>
       ) : null}
-
-      <div className="dock-pill">
-        <button
-          type="button"
-          onClick={() => {
-            if (anotherDialogIsOpen()) return;
-            onOpenSearch();
-            playUiSound("tick");
-          }}
-          aria-keyshortcuts="Control+K Meta+K"
-          className="dock-button gap-2 ps-4 pe-3"
-        >
-          <Search className="size-4" strokeWidth={1.8} aria-hidden />
-          <span>Search</span>
-          <kbd suppressHydrationWarning className="font-mono text-[10px] text-subtle">
-            {shortcut}
-          </kbd>
-        </button>
-        <span className="h-5 w-px bg-white/15" aria-hidden />
-        <button
-          type="button"
-          aria-label="Display settings"
-          aria-haspopup="dialog"
-          aria-expanded={open}
-          onClick={() => {
-            if (!open) setSoundOn(getSoundsEnabled());
-            setOpen(!open);
-          }}
-          className="dock-button px-3"
-        >
-          <Menu className="size-4" strokeWidth={1.8} aria-hidden />
-        </button>
-      </div>
     </div>
   );
 }

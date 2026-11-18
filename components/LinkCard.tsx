@@ -167,22 +167,26 @@ function LinkCard({
               </DitheredPreview>
             )}
             <span className="mind-card-hover-scrim pointer-events-none absolute inset-0 bg-black/0 opacity-0" />
-            {/* Source pill: site icon + domain on a dark glass chip. The
-                letter placeholder already names the site, so skip it there. */}
-            {showMark ? null : (
-            <span className="card-source pointer-events-none absolute bottom-3 left-3 z-[1]">
-              {faviconSrc ? (
+            {/* Name pill: site icon + the link's name on a dark glass chip. */}
+            <span
+              className="card-source pointer-events-none absolute bottom-3 left-3 z-[1]"
+            >
+              {faviconSrc && !showMark ? (
                 <FaviconImage
                   key={faviconSrc}
                   src={faviconSrc}
-                  size={20}
+                  size={22}
                   loading={priority ? "eager" : "lazy"}
-                  className="size-5 shrink-0 rounded-full object-cover"
+                  className="size-[22px] shrink-0 rounded-full object-cover"
                 />
               ) : null}
-              <span className="truncate">{host}</span>
+              <span
+                className="card-source-name truncate [overflow-wrap:anywhere]"
+                title={link.displayTitle}
+              >
+                {link.displayTitle}
+              </span>
             </span>
-            )}
             {showLoader ? (
               <span className="absolute inset-0 flex items-center justify-center bg-black/30">
                 <AppLoader compact progressive label="capturing" />
@@ -193,27 +197,21 @@ function LinkCard({
         <CardStar linkId={link.id} title={link.displayTitle} />
         <MindCardActions url={link.url} host={host} />
       </div>
-      <div className="mind-card-caption">
-        <p
-          className="mind-card-title mt-2 min-w-0 px-0.5 text-[13px] leading-snug text-muted [overflow-wrap:anywhere]"
-          title={link.displayTitle}
-        >
-          {link.displayTitle}
-        </p>
-        {link.notes ? (
-          <p
-            className="mt-0.5 line-clamp-2 min-w-0 px-0.5 text-[12px] leading-snug text-subtle [overflow-wrap:anywhere]"
-            title={link.notes}
-          >
-            {link.notes}
-          </p>
-        ) : null}
-        {showLoader ? (
-          <p className="mt-0.5 px-0.5 text-[11px] text-subtle">
-            Capturing screenshot…
-          </p>
-        ) : null}
-      </div>
+      {link.notes || showLoader ? (
+        <div className="mind-card-caption">
+          {link.notes ? (
+            <p
+              className="line-clamp-2 min-w-0 text-[12px] leading-snug [overflow-wrap:anywhere]"
+              title={link.notes}
+            >
+              {link.notes}
+            </p>
+          ) : null}
+          {showLoader ? (
+            <p className="mt-0.5 text-[11px]">Capturing screenshot…</p>
+          ) : null}
+        </div>
+      ) : null}
     </article>
   );
 }

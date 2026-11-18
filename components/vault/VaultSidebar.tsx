@@ -2,9 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { Download, FlaskConical, Trash2 } from "lucide-react";
+import { Download, FlaskConical, LayoutGrid, Trash2 } from "lucide-react";
 import { ThinkingOrb } from "thinking-orbs";
-import { DitherBrain } from "@/components/brand/DitherBrain";
+import { Wordmark } from "@/components/brand/Wordmark";
 import { SidebarPromo } from "./SidebarPromo";
 import MorphText from "@/components/MorphText";
 import {
@@ -121,22 +121,51 @@ export default function VaultSidebar({
     sidebarShowNotesForm || saving || savePhase === "place";
 
   return (
-    <aside className="vault-sidebar flex flex-col lg:sticky lg:top-0 lg:z-[45] lg:h-full lg:max-h-dvh lg:w-full lg:shrink-0 lg:self-stretch lg:items-stretch lg:overflow-hidden">
+    <aside data-save-flow={showSaveFlow || undefined} className="vault-sidebar flex flex-col lg:sticky lg:top-0 lg:z-[45] lg:h-full lg:max-h-dvh lg:w-full lg:shrink-0 lg:self-stretch lg:items-stretch lg:overflow-hidden">
       <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-border bg-black lg:rounded-none lg:border-0 lg:border-e lg:border-border">
         <SidebarDitherBackground />
         <div className="relative z-10 flex min-h-0 flex-1 flex-col gap-[var(--layout-gap-group)] p-[var(--layout-pad)] pb-[max(var(--layout-pad),env(safe-area-inset-bottom))] lg:gap-[var(--layout-gap-section)] lg:overflow-hidden">
           <div className="flex flex-col items-start gap-[var(--layout-gap-control)]">
             {/* Logo row: same height as the feed's top strip, dashed rule under both. */}
             <div className="sidebar-head">
-              <Link
-                href="/"
-                aria-label="memory404"
-                className={`flex w-fit items-center gap-2 whitespace-nowrap rounded-lg text-foreground hover:opacity-85 ${controlPress}`}
-              >
-                <DitherBrain size={22} cell={1} />
-                <span className="font-pixel text-[19px] leading-none">memory 404</span>
-              </Link>
+              <Wordmark />
             </div>
+            <nav aria-label="Browse" className="sidebar-browse">
+              <h2 className="sidebar-label">Browse</h2>
+              <ul>
+                <li>
+                  <Link href="/" aria-current="page" className="sidebar-browse-link">
+                    <LayoutGrid className="size-[18px]" strokeWidth={1.6} aria-hidden />
+                    Library
+                  </Link>
+                </li>
+                {isOwner ? (
+                  <li>
+                    <Link href="/workspace" className="sidebar-browse-link">
+                      <FlaskConical className="size-[18px]" strokeWidth={1.6} aria-hidden />
+                      Workspace
+                    </Link>
+                  </li>
+                ) : null}
+                <li>
+                  <Link href="/trash" className="sidebar-browse-link">
+                    <Trash2 className="size-[18px]" strokeWidth={1.6} aria-hidden />
+                    Trash
+                  </Link>
+                </li>
+                <li>
+                  <a
+                    href={EXTENSION_ZIP_HREF}
+                    download={EXTENSION_ZIP_FILENAME}
+                    className="sidebar-browse-link"
+                  >
+                    <Download className="size-[18px]" strokeWidth={1.6} aria-hidden />
+                    Extension
+                    <span className="ms-auto text-[11px] text-subtle">{EXTENSION_VERSION}</span>
+                  </a>
+                </li>
+              </ul>
+            </nav>
             <GridSizeControl
               gridSize={gridSize}
               setGridSizeAndPersist={setGridSizeAndPersist}
@@ -172,7 +201,7 @@ export default function VaultSidebar({
 
           <div className="flex flex-col gap-[var(--layout-gap-group)] lg:mt-auto">
             {showSaveFlow ? (
-              <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+              <form onSubmit={handleSubmit} className="sidebar-save flex flex-col gap-2">
                 {sidebarShowNotesForm ? (
                   <div className="flex flex-col gap-2 p-1">
                     <label htmlFor="sidebar-save-note" className="text-[11px] text-muted">
